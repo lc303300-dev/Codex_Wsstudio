@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+PLUGIN = ROOT / "codex-media-plugin"
+sys.path.insert(0, str(ROOT / "CLI" / "Media-Router"))
+sys.path.insert(0, str(PLUGIN / "mcp"))
+
+SPEC = importlib.util.spec_from_file_location("codex_media_server", PLUGIN / "mcp" / "server.py")
+server = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader
+SPEC.loader.exec_module(server)
+
+
+class PluginContractTests(unittest.TestCase):
+    def test_only_two_tools_are_public(self):
+        reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
+        tools = reply["result"]["tools"]
+        self.assertEqual([tool["name"] for tool in tools], ["generate_image", "generate_video"])
+        self.assertTrue(all(tool["annotations"]["openWorldHint"] for tool in tools))
+
+    def test_exact_public_schemas(self):
+        tools = {tool["name"]: tool["inputSchema"] for tool in server.TOOLS}
+        self.assertEqual(set(tools["generate_image"]["properties"]), {"prompt", "images"})
+        self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios"})
+        self.assertFalse(tools["generate_image"]["additionalProperties"])
+        self.assertFalse(tools["generate_video"]["additionalProperties"])
+
+    def test_provider_skills_are_not_implicit(self):
+        for name in ("gemini-api", "gemini-cli", "seedance-cli", "gpt-api", "comfly-api"):
+            value = (ROOT / name / "agents" / "openai.yaml").read_text(encoding="utf-8")
+            self.assertIn("allow_implicit_invocation: false", value)
+
+
+if __name__ == "__main__":
+    unittest.main()

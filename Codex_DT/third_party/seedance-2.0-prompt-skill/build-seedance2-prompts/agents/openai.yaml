@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seedance 2.0 Prompt Director"
+  short_description: "公式仕様準拠でSeedance 2.0用プロンプトを設計・検証"
+  default_prompt: "Use $build-seedance2-prompts to turn my creative brief and reference media into a production-ready Seedance 2.0 prompt."

@@ -1,0 +1,17 @@
+# Machine-local Codex configuration and backups
+config.toml
+config.toml.backup-*
+*.local.toml
+
+# Credentials and private runtime data
+**/.env
+**/.env.*
+!**/.env.example
+**/.codex-image-private/
+
+# Generated data
+**/__pycache__/
+**/*.pyc
+**/outputs/
+**/logs/
+**/validation/

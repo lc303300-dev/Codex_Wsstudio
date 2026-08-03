@@ -1,0 +1,42 @@
+{
+  "name": "seedance-forge",
+  "version": "1.0.0",
+  "description": "Seedance Forge — Claude Code / Codex CLI skill for Seedance 2.0 video-generation prompts (2,366-row corpus)",
+  "bin": {
+    "seedance-forge": "./install.js"
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "references/",
+    "scripts/",
+    "install.js"
+  ],
+  "scripts": {
+    "test": "node -e \"require('./install.js')\" 2>&1 || true"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "codex",
+    "skill",
+    "seedance",
+    "video-generation",
+    "ai",
+    "prompt",
+    "i2v",
+    "t2v"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/StreetJammer/seedance-forge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StreetJammer/seedance-forge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/StreetJammer/seedance-forge/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

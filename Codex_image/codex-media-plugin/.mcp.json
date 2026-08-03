@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "codex-media": {
+      "command": "powershell",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "./mcp/run.ps1"],
+      "cwd": ".",
+      "tool_timeout_sec": 900
+    }
+  }
+}

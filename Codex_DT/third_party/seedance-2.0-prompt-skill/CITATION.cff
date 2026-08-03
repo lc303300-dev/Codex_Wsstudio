@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this skill in published work, please cite the repository."
+title: "Seedance 2.0 Prompt Engineering Skill"
+type: software
+authors:
+  - family-names: "Nagata"
+    given-names: "Hideaki"
+    alias: "mqrox"
+version: 1.0.0
+date-released: 2026-07-14
+url: "https://github.com/mqrox/seedance-2.0-prompt-skill"
+repository-code: "https://github.com/mqrox/seedance-2.0-prompt-skill"
+license: MIT
+keywords:
+  - Seedance 2.0
+  - prompt engineering
+  - AI video
+  - Codex skill
+  - multimodal generation

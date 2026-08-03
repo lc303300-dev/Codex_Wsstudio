@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "scheduler": { "max_child_agents": 6, "refill_on_completion": true },
+  "image_timeouts": { "provider_seconds": 120, "task_seconds": 300 },
+  "media_inputs": { "max_image_long_edge": 1920 },
+  "providers": {
+    "comfly-gemini-lite": { "enabled": true, "priority": 1, "max_concurrency": 6 },
+    "comfly-gpt-image-2-all": { "enabled": true, "priority": 2, "max_concurrency": 6 },
+    "comfly-gpt-image-2": { "enabled": true, "priority": 3, "max_concurrency": 6 },
+    "apimart-gpt-image-2": { "enabled": true, "priority": 4, "max_concurrency": 6 },
+    "google-gemini-image": { "enabled": true, "priority": 5, "max_concurrency": 6 },
+    "dreamina-image": { "enabled": false, "priority": 6, "max_concurrency": 6, "capacity_key": "seedance-cli" },
+    "antigravity-image": { "enabled": false, "priority": 7, "max_concurrency": 6 },
+    "dreamina-video": { "enabled": true, "max_concurrency": 6, "capacity_key": "seedance-cli" }
+  }
+}

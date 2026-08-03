@@ -1,0 +1,5 @@
+{
+    "version": "1.4.12",
+    "release_date": "2026-07-15",
+    "release_notes": "新增：支持Seedream 5.0 Pro模型；修复CDN缓存问题导致的更新失效\n更新命令：curl -fsSL https://jimeng.jianying.com/cli | bash"
+}

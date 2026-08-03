@@ -1,0 +1,18 @@
+{
+  "language": "zh-CN",
+  "surface": "jimeng-zh",
+  "mode": "first-frame",
+  "duration": 5,
+  "model_version": "seedance2.0fast_vip",
+  "video_resolution": "720p",
+  "poll_seconds": 60,
+  "preview_max_long_edge": 512,
+  "private_runtime": ".codex-image-private",
+  "paths": {
+    "preview_tool": "",
+    "seedance_cli": "",
+    "forge_search": "third_party/seedance-forge/scripts/search.py",
+    "forge_csv": "third_party/seedance-forge/references/seedance-prompts.csv",
+    "mqrox_validator": "third_party/seedance-2.0-prompt-skill/build-seedance2-prompts/scripts/validate_prompt.py"
+  }
+}

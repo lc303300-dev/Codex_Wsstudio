@@ -1,0 +1,10 @@
+.codex-image-private/
+CLI/.env
+**/.env
+**/.env.*
+!**/.env.example
+**/__pycache__/
+**/*.pyc
+outputs/
+logs/
+validation/

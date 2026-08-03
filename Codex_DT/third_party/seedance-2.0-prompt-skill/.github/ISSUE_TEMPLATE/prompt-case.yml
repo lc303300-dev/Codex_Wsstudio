@@ -1,0 +1,66 @@
+name: Reproducible generation case
+description: Share a useful Seedance 2.0 success, failure, or provider-specific behavior.
+title: "[Case]: "
+labels: [evidence, prompt-case]
+body:
+  - type: markdown
+    attributes:
+      value: A case is evidence, not a universal guarantee. Include repeat count and failed takes when known.
+  - type: dropdown
+    id: result_type
+    attributes:
+      label: Case type
+      options:
+        - Successful pattern
+        - Failure pattern
+        - Provider syntax or schema behavior
+        - Edit / extension behavior
+        - Audio / dialogue behavior
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Exact model and provider
+      placeholder: Seedance 2.0 Standard via Dreamina
+    validations:
+      required: true
+  - type: input
+    id: settings
+    attributes:
+      label: Duration, ratio, resolution, and audio setting
+      placeholder: 12s, 9:16, 1080p, audio on
+    validations:
+      required: true
+  - type: textarea
+    id: asset_roles
+    attributes:
+      label: Asset order and roles
+      description: Describe each image, video, and audio job without sharing private media.
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Prompt
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: Observed result
+      description: Include number of attempts and what stayed consistent or failed.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Official or provider source, if applicable
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Rights and redistribution
+      options:
+        - label: I have the right to share the prompt and any linked media or likenesses.
+          required: true
+        - label: I understand this case may be summarized in the evidence ledger under the repository license.
+          required: true

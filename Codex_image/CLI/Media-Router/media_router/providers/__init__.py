@@ -1,0 +1,1 @@
+"""Single-provider media adapters."""

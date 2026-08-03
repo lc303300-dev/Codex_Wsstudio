@@ -1,0 +1,48 @@
+# Shared Codex settings. Machine-generated paths belong in the local config only.
+model_provider = "codex"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+disable_response_storage = true
+personality = "pragmatic"
+
+[model_providers.codex]
+name = "codex"
+base_url = "https://relay.nf.video/v1"
+wire_api = "responses"
+
+[desktop]
+followUpQueueMode = "queue"
+conversationDetailMode = "STEPS_COMMANDS"
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."cowart@personal"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[features]
+js_repl = false
+
+[windows]
+sandbox = "elevated"

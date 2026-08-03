@@ -1,0 +1,76 @@
+{
+  "id": "image-001",
+  "source_image": "inputs/image-001.jpg",
+  "preview_image": "previews/image-001.512px.jpg",
+  "photo_type": "样板间室内照片",
+  "visual": {
+    "description_zh": "",
+    "main_subjects": [],
+    "fixed_elements": [],
+    "movable_elements": [],
+    "lighting": "",
+    "composition": "",
+    "risks": []
+  },
+  "motion_plan": {
+    "camera_motion_zh": "",
+    "environment_motion_zh": [],
+    "subject_motion_zh": [],
+    "negative_constraints_zh": []
+  },
+  "user_requirements": {
+    "motion_zh": ""
+  },
+  "forge": {
+    "queries_zh": [],
+    "queries_en": [],
+    "matches": []
+  },
+  "mqrox_compile": {
+    "surface": "dreamina-cli",
+    "mode": "multimodal",
+    "prompt_binding": "ordered_cli_image_arguments",
+    "duration": null,
+    "ratio": null,
+    "model_version": "seedance2.0fast_vip",
+    "resolution": "720p",
+    "asset_manifest": {
+      "surface": "generic",
+      "model_variant": "fast",
+      "mode": "multimodal",
+      "duration": null,
+      "ratio": null,
+      "resolution": "720p",
+      "generate_audio": false,
+      "assets": [
+        {
+          "modality": "image",
+          "index": 1,
+          "tag": "图片1",
+          "alias": "图片1",
+          "source": "inputs/image-001.jpg",
+          "transport_role": "reference_image",
+          "primary_role": "first_frame_reference",
+          "transfers": ["首帧构图", "主体身份", "空间结构", "材质与光线"],
+          "must_not_transfer": []
+        }
+      ]
+    },
+    "validator": {
+      "ok": null,
+      "issues": []
+    }
+  },
+  "prompt": {
+    "language": "zh-CN",
+    "file": "prompts/image-001.prompt.txt",
+    "status": "draft",
+    "confirmed_at": null
+  },
+  "generation": {
+    "status": "not_started",
+    "submit_id": null,
+    "output_dir": null,
+    "error": null
+  }
+}
