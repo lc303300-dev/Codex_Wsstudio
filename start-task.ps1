@@ -1,11 +1,26 @@
 [CmdletBinding()]
 param(
-    [string]$RepositoryRoot = $PSScriptRoot,
+    # $PSScriptRoot is normally populated for a script, but some hosts that
+    # invoke a .ps1 through a relative -File path can pass an empty or
+    # malformed value into a default parameter expression. Resolve the script
+    # location from the invocation metadata as a reliable fallback.
+    [string]$RepositoryRoot,
     [switch]$CheckOnly
 )
 
 $ErrorActionPreference = "Stop"
-$RepositoryRoot = [System.IO.Path]::GetFullPath($RepositoryRoot)
+$scriptRoot = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($scriptRoot)) {
+    $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
+if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
+    $RepositoryRoot = $scriptRoot
+}
+try {
+    $RepositoryRoot = [System.IO.Path]::GetFullPath($RepositoryRoot)
+} catch {
+    throw "RepositoryRoot is not a valid path: '$RepositoryRoot'."
+}
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     throw "Git is not installed or is not available in PATH."
