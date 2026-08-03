@@ -32,6 +32,12 @@ API keys are intentionally excluded from Git. Configure only the providers you u
 .\Codex_image\configure-api-key.ps1 -Pipeline gemini-api
 ```
 
+Key sources:
+
+- `COMFLY_API_KEY` - [ai.comfly.org](https://ai.comfly.org/)
+- `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
+- `GEMINI_API_KEY` - [aistudio.google.com](https://aistudio.google.com/)
+
 ## Before every new task
 
 Run:

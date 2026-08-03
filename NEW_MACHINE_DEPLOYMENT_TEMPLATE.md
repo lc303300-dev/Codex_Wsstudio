@@ -13,11 +13,19 @@
 
 ## 你可能要填写的 Key
 
-- `COMFLY_API_KEY`
-- `APIMART_API_KEY`
-- `GEMINI_API_KEY`
+- `COMFLY_API_KEY` - [ai.comfly.org](https://ai.comfly.org/)
+- `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
+- `GEMINI_API_KEY` - [aistudio.google.com](https://aistudio.google.com/)
 
 脚本会把它们写入本机的 `Codex_image/.codex-image-private/.env`，不会提交到 Git。
+
+复制填写模板：
+
+```text
+COMFLY_API_KEY=
+APIMART_API_KEY=
+GEMINI_API_KEY=
+```
 
 ## 一键部署
 

@@ -46,9 +46,23 @@ function Test-KeyPresent {
     return $false
 }
 
+function Show-KeyChecklist {
+    Write-Host ""
+    Write-Host "Please prepare the following API keys before deployment:" -ForegroundColor Yellow
+    Write-Host "  COMFLY_API_KEY   https://ai.comfly.org/"
+    Write-Host "  APIMART_API_KEY  https://apimart.ai/zh"
+    Write-Host "  GEMINI_API_KEY   https://aistudio.google.com/"
+    Write-Host ""
+    Write-Host "Copy-fill template:"
+    Write-Host "  COMFLY_API_KEY="
+    Write-Host "  APIMART_API_KEY="
+    Write-Host "  GEMINI_API_KEY="
+}
+
 Write-Host "New machine deployment template"
 Write-Host "This script will configure keys, then run the repository bootstrap."
 Write-Host "Codex home: $CodexHome"
+Show-KeyChecklist
 
 foreach ($item in @(
     @{ Pipeline = "comfly-api"; Label = "COMFLY_API_KEY" },

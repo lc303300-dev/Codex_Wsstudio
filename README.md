@@ -16,6 +16,12 @@ Codex_Wsstudio is a public workspace for a Codex-based media pipeline.
 - Node.js LTS if you want the full bootstrap path
 - Provider API keys only for the services you actually use
 
+## Key links
+
+- `COMFLY_API_KEY` - [ai.comfly.org](https://ai.comfly.org/)
+- `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
+- `GEMINI_API_KEY` - [aistudio.google.com](https://aistudio.google.com/)
+
 ## Install
 
 1. Clone the repository.
