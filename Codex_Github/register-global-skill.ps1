@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $projectRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
-$source = Join-Path $projectRoot "tool-scout-skill\.claude\skills\tool-scout"
+$source = Join-Path $projectRoot ".claude\skills\tool-scout"
 $skillFile = Join-Path $source "SKILL.md"
 if (-not (Test-Path -LiteralPath $skillFile -PathType Leaf)) { throw "Tool Scout skill source is missing: $skillFile" }
 
