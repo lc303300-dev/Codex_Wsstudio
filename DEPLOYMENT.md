@@ -2,7 +2,7 @@
 
 ## New computer
 
-Clone the private Git repository, open PowerShell in the checkout root, and run:
+Clone this repository, open PowerShell in the checkout root, and run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
