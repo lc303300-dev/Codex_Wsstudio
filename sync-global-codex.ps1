@@ -89,5 +89,13 @@ if (-not $SkipConfig) {
     }
 }
 
+$githubRegistration = Join-Path $RepositoryRoot "Codex_Github\register-global-skill.ps1"
+if (Test-Path -LiteralPath $githubRegistration -PathType Leaf) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $githubRegistration -CodexHome $CodexHome
+    if ($LASTEXITCODE -ne 0) {
+        throw "Codex_Github global skill registration failed with exit code ${LASTEXITCODE}."
+    }
+}
+
 Write-Host ""
 Write-Host "Global Codex synchronization complete. Restart Codex or start a new task to reload changes." -ForegroundColor Green

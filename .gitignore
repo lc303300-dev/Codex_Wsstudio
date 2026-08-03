@@ -15,3 +15,6 @@ config.toml.backup-*
 **/outputs/
 **/logs/
 **/validation/
+
+# Imported upstream repositories keep their own metadata out of the workspace index
+Codex_Github/**/.git/

@@ -6,12 +6,14 @@ Codex_Wsstudio is a public workspace for a Codex-based media pipeline.
 
 - `Codex_image/` - shared media tooling, provider wrappers, and safety checks.
 - `Codex_DT/` - Dreamina/Seedance image-to-video pipeline and task workflow.
+- `Codex_Github/` - Tool Scout discovery pipeline for GitHub, npm, MCP, skills, extensions, and related tools.
 - `codex-global/` - portable Codex settings for a local Codex home.
 
 ## Requirements
 
 - Git
 - Python 3.11+
+- pytest 8.x (installed automatically by the initialization/deployment scripts)
 - PowerShell 7 or Windows PowerShell
 - Node.js LTS if you want the full bootstrap path
 - Provider API keys only for the services you actually use
@@ -55,6 +57,7 @@ root script is missing, stop before writing and report the problem.
 - Use the provided `.env.example` files as templates for local provider keys.
 - For deployment details, see [DEPLOYMENT.md](DEPLOYMENT.md).
 - For portable Codex settings, see [PORTABLE_CONFIG.md](PORTABLE_CONFIG.md).
+- Tool-discovery requests are automatically routed to the globally registered `tool-scout` skill during deployment.
 
 ## License
 

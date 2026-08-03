@@ -174,7 +174,7 @@ foreach ($setting in $managedSettings) {
 }
 
 if (-not $SkipProjectTrust) {
-    foreach ($projectPath in @($PSScriptRoot, (Join-Path $PSScriptRoot "Codex_DT"), (Join-Path $PSScriptRoot "Codex_image"))) {
+    foreach ($projectPath in @($PSScriptRoot, (Join-Path $PSScriptRoot "Codex_DT"), (Join-Path $PSScriptRoot "Codex_image"), (Join-Path $PSScriptRoot "Codex_Github"))) {
         if (Test-Path -LiteralPath $projectPath -PathType Container) {
             $resolvedProject = (Resolve-Path -LiteralPath $projectPath).Path.ToLowerInvariant()
             Set-TomlAssignment -Lines $targetLines -Table ("projects." + (ConvertTo-TomlLiteralString $resolvedProject)) -Key "trust_level" -Value '"trusted"'

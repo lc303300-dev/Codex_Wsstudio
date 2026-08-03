@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 $root = [System.IO.Path]::GetFullPath($PSScriptRoot)
 $imageRoot = Join-Path $root "Codex_image"
 $dtRoot = Join-Path $root "Codex_DT"
+$githubRoot = Join-Path $root "Codex_Github"
 $seedanceWrapper = Join-Path $imageRoot "CLI\Seedance-CLI\run.ps1"
 $previewTool = Join-Path $CodexHome "tools\Convert-CodexImagePreview.ps1"
 
@@ -30,7 +31,7 @@ foreach ($command in @("git", "python", "powershell.exe")) {
         throw "Required command is missing: $command"
     }
 }
-foreach ($directory in @($imageRoot, $dtRoot)) {
+foreach ($directory in @($imageRoot, $dtRoot, $githubRoot)) {
     if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
         throw "Required project directory is missing: $directory"
     }
@@ -70,6 +71,7 @@ Invoke-CheckedPowerShell -File (Join-Path $imageRoot "deploy-project.ps1") -Argu
 $dtDeployArgs = @("-PreviewTool", $previewTool, "-SeedanceCli", $seedanceWrapper)
 if ($SkipCreditCheck -or $SkipLogin) { $dtDeployArgs += "-SkipCreditCheck" }
 Invoke-CheckedPowerShell -File (Join-Path $dtRoot "scripts\deploy_project.ps1") -Arguments $dtDeployArgs
+Invoke-CheckedPowerShell -File (Join-Path $githubRoot "register-global-skill.ps1") -Arguments @("-CodexHome", $CodexHome)
 
 Write-Host ""
 Write-Host "New-machine deployment complete." -ForegroundColor Green
