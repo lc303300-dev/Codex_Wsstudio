@@ -39,6 +39,23 @@ function Test-CommandAvailable {
     return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Resolve-FirstExistingPath {
+    param([string[]]$Candidates)
+
+    foreach ($candidate in $Candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        $resolved = $candidate
+        try {
+            $resolved = (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path
+        } catch {
+        }
+        if (Test-Path -LiteralPath $resolved) {
+            return $resolved
+        }
+    }
+    return $null
+}
+
 if (-not (Test-Path -LiteralPath $configPath)) {
     throw "Missing pipeline config: $configPath"
 }
@@ -54,6 +71,7 @@ if ([string]::IsNullOrWhiteSpace($codexHome)) {
     $codexHome = Join-Path $env:USERPROFILE ".codex"
 }
 $previewFallback = Join-Path $codexHome "tools/Convert-CodexImagePreview.ps1"
+$codexImageRoot = Resolve-Path -LiteralPath (Join-Path $root "..\Codex_image")
 
 $localPreview = if ($null -ne $localConfig -and $null -ne $localConfig.paths) { [string]$localConfig.paths.preview_tool } else { $null }
 $localSeedance = if ($null -ne $localConfig -and $null -ne $localConfig.paths) { [string]$localConfig.paths.seedance_cli } else { $null }
@@ -65,12 +83,32 @@ $resolvedPreviewTool = Resolve-ConfiguredPath `
     -BaseValue ([string]$baseConfig.paths.preview_tool) `
     -Fallback $previewFallback
 
+if (-not (Test-Path -LiteralPath $resolvedPreviewTool)) {
+    $resolvedPreviewTool = Resolve-FirstExistingPath -Candidates @(
+        $PreviewTool,
+        $localPreview,
+        ([string]$baseConfig.paths.preview_tool),
+        $previewFallback,
+        (Join-Path $codexImageRoot "tools\Convert-CodexImagePreview.ps1")
+    )
+}
+
 $resolvedSeedanceCli = Resolve-ConfiguredPath `
     -Explicit $SeedanceCli `
     -EnvironmentNames @("SEEDANCE_CLI", "SEEDANCE_CLI_PATH", "DREAMINA_CLI") `
     -LocalValue $localSeedance `
     -BaseValue ([string]$baseConfig.paths.seedance_cli) `
     -Fallback $null
+
+if (-not (Test-Path -LiteralPath $resolvedSeedanceCli)) {
+    $resolvedSeedanceCli = Resolve-FirstExistingPath -Candidates @(
+        $SeedanceCli,
+        $localSeedance,
+        ([string]$baseConfig.paths.seedance_cli),
+        (Join-Path $codexImageRoot "CLI\Seedance-CLI\run.ps1"),
+        (Join-Path $codexImageRoot ".codex-image-private\bin\seedance-cli\run.ps1")
+    )
+}
 
 $requiredDirectories = @(
     "inputs",

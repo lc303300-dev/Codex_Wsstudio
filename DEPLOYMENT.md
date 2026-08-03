@@ -40,6 +40,8 @@ Key sources:
 
 Dreamina/Jimeng should be signed in ahead of time at [jimeng.jianying.com](https://jimeng.jianying.com/).
 
+Machine-local Codex paths such as `notify`, `mcp_servers.node_repl.*`, `CODEX_CLI_PATH`, `marketplaces.*`, `projects.*`, and `shell_environment_policy.*` are not copy-fill inputs. They are rebuilt or preserved by the Codex setup scripts on each computer.
+
 ## Before every new task
 
 Run:

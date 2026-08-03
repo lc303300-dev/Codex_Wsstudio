@@ -59,6 +59,8 @@ function Show-KeyChecklist {
     Write-Host "  COMFLY_API_KEY="
     Write-Host "  APIMART_API_KEY="
     Write-Host "  GEMINI_API_KEY="
+    Write-Host ""
+    Write-Host "Everything else, including Codex config paths, is handled automatically."
 }
 
 Write-Host "New machine deployment template"

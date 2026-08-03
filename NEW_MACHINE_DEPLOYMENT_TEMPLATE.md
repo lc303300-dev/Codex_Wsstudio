@@ -31,6 +31,8 @@ APIMART_API_KEY=
 GEMINI_API_KEY=
 ```
 
+除了 API Key 和 Jimeng 预登录，其它配置都由脚本自动处理。不要手工复制旧电脑里的 `AGENTS.md`、`config.toml` 或机器本地路径。
+
 ## 一键部署
 
 在仓库根目录运行：
