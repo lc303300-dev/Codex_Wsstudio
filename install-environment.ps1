@@ -115,6 +115,10 @@ if (-not $SkipPythonPackages) {
     if ($LASTEXITCODE -ne 0) {
         throw "Pillow verification failed."
     }
+    & python -c "import pytest; print('pytest OK: ' + pytest.__version__)"
+    if ($LASTEXITCODE -ne 0) {
+        throw "pytest verification failed."
+    }
 }
 
 Write-Host "Environment initialization complete." -ForegroundColor Green
