@@ -36,6 +36,8 @@ foreach ($directory in @($imageRoot, $dtRoot)) {
     }
 }
 
+Invoke-CheckedPowerShell -File (Join-Path $root "install-environment.ps1") -Arguments @("-InstallMissingTools")
+
 if (-not $SkipUpdateCheck) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "start-task.ps1") -RepositoryRoot $root
     $updateExit = $LASTEXITCODE

@@ -11,6 +11,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
 The command is repeatable. It:
 
 - checks the Git update state when a remote is configured;
+- installs missing Git, Python, Node.js, and Python packages when `winget` is available;
 - merges portable Codex settings without replacing machine-generated settings;
 - installs the repository's global `AGENTS.md` and merges the global `config.toml`;
 - migrates legacy credentials and binaries into `Codex_image/.codex-image-private/`;
