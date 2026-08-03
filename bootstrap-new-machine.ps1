@@ -44,7 +44,7 @@ if (-not $SkipUpdateCheck) {
     }
 }
 
-Invoke-CheckedPowerShell -File (Join-Path $root "setup-codex.ps1") -Arguments @("-CodexHome", $CodexHome)
+Invoke-CheckedPowerShell -File (Join-Path $root "sync-global-codex.ps1") -Arguments @("-CodexHome", $CodexHome, "-Yes")
 
 $legacyItems = @(
     (Join-Path $imageRoot "CLI\.env"),

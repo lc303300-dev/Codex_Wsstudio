@@ -12,6 +12,7 @@ The command is repeatable. It:
 
 - checks the Git update state when a remote is configured;
 - merges portable Codex settings without replacing machine-generated settings;
+- installs the repository's global `AGENTS.md` and merges the global `config.toml`;
 - migrates legacy credentials and binaries into `Codex_image/.codex-image-private/`;
 - installs Dreamina CLI when it is missing and starts login when required;
 - installs the bundled 512 px preview converter into `CODEX_HOME/tools/`;
