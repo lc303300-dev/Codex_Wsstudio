@@ -35,13 +35,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
 
 ## Start
 
-Run this before working in an existing checkout:
+Run this before writing files in this checkout:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\start-task.ps1
 ```
 
 That checks whether the checkout is up to date and only fast-forwards when it is safe.
+
+This check is scoped to this Git checkout. Pure chat, public web/GitHub searches,
+read-only tasks, projectless Codex directories, and unrelated repositories must not
+run or search for this script. If a requested edit targets this repository but the
+root script is missing, stop before writing and report the problem.
 
 ## Notes
 

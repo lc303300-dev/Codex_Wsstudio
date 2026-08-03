@@ -42,7 +42,7 @@ Dreamina/Jimeng should be signed in ahead of time at [jimeng.jianying.com](https
 
 Machine-local Codex paths such as `notify`, `mcp_servers.node_repl.*`, `CODEX_CLI_PATH`, `marketplaces.*`, `projects.*`, and `shell_environment_policy.*` are not copy-fill inputs. They are rebuilt or preserved by the Codex setup scripts on each computer.
 
-## Before every new task
+## Before writing in this checkout
 
 Run:
 
@@ -53,6 +53,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\start-task.ps1
 The script fetches the remote branch. It automatically pulls only when the checkout is clean, strictly behind, and can be fast-forwarded. It stops for local changes, divergence, detached HEAD, missing upstream, authentication failures, or network failures.
 
 It never runs `reset`, `stash`, merge, rebase, or a force operation.
+
+Only apply this check when the current or explicitly targeted path is inside this Git
+checkout and the root `start-task.ps1` exists. Do not run or search for the script for
+pure chat, public web/GitHub searches, read-only work, projectless Codex directories,
+or unrelated repositories. If an edit explicitly targets this repository but the root
+script is missing, report the problem and stop before writing.
 
 ## Synchronize global Codex files
 

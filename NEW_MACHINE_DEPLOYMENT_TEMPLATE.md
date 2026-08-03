@@ -70,11 +70,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
 
 ## 部署后怎么启动
 
-每次开始前先运行：
+准备在这个仓库中写入文件前运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\start-task.ps1
 ```
+
+这项检查只适用于当前路径或明确指定的目标路径位于本 Git 仓库内的情况。
+纯聊天、公开网络或 GitHub 搜索、只读任务、Codex 自动生成的 projectless
+临时目录，以及其他仓库，都不要运行或搜索此脚本。如果用户明确要求修改
+本仓库但根目录脚本缺失，应先报告异常并停止写入。
 
 ## 说明
 

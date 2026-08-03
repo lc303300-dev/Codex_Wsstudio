@@ -29,3 +29,9 @@ Do not ask the user to hand-copy machine-local Codex config paths such as `notif
 If the user asks for the older step-by-step flow instead, use `bootstrap-new-machine.ps1` and the existing manual deployment docs.
 
 Keep this root instruction aligned with `README.md`, `DEPLOYMENT.md`, and `NEW_MACHINE_DEPLOYMENT_TEMPLATE.md`.
+
+## Repository Update Check Scope
+
+Before writing files in this checkout, run the root `start-task.ps1`. This rule applies only when the current or explicitly targeted path resolves inside this Git checkout and the root script exists.
+
+Do not run or search for `start-task.ps1` for pure chat, public network or GitHub searches, read-only work, projectless Codex directories, or unrelated repositories. If the user explicitly requests changes to this repository but the root script is missing, report the problem and stop before writing.
