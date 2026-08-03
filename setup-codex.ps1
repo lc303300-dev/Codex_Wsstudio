@@ -12,7 +12,7 @@ if (-not $ConfigPath) {
     $ConfigPath = Join-Path $CodexHome "config.toml"
 }
 
-$templatePath = Join-Path $PSScriptRoot "config.portable.toml"
+$templatePath = Join-Path $PSScriptRoot "codex-global\config.portable.toml"
 if (-not (Test-Path -LiteralPath $templatePath -PathType Leaf)) {
     throw "Portable template not found: $templatePath"
 }

@@ -37,3 +37,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\start-task.ps1
 The script fetches the remote branch. It automatically pulls only when the checkout is clean, strictly behind, and can be fast-forwarded. It stops for local changes, divergence, detached HEAD, missing upstream, authentication failures, or network failures.
 
 It never runs `reset`, `stash`, merge, rebase, or a force operation.
+
+## Synchronize global Codex files
+
+The `codex-global/AGENTS.md` file is the shared global guidance source. The repository's
+`config.toml` is intentionally machine-local and must not be copied directly because
+it contains runtime and absolute-path settings. To update global Codex safely, double-click:
+
+```text
+Sync-CodexGlobal.cmd
+```
+
+Or run it from PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\sync-global-codex.ps1 -Yes
+```
+
+The script backs up the existing global `AGENTS.md`, replaces it from `codex-global/AGENTS.md`,
+and calls `setup-codex.ps1` to merge portable config settings while preserving
+machine-generated paths and existing MCP/project settings.

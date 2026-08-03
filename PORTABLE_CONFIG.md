@@ -1,6 +1,6 @@
 # Portable Codex configuration
 
-`config.portable.toml` contains settings that are safe to share between computers.
+`codex-global/config.portable.toml` contains settings that are safe to share between computers.
 `setup-codex.ps1` merges those settings into the current machine's Codex config.
 
 The installer deliberately preserves machine-generated sections such as:
@@ -30,5 +30,5 @@ If `cn-housing-mcp` is stored in a nonstandard location, pass its directory:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-codex.ps1 -CnHousingRoot D:\path\to\cn-housing-mcp
 ```
 
-The script creates a timestamped backup before changing an existing config. The legacy
-`config.toml` in this directory is machine-local and is excluded by the root `.gitignore`.
+The script creates a timestamped backup before changing an existing config. The machine-local
+`config.toml` lives under `CODEX_HOME` and is not part of this project repository.
