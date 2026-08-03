@@ -3,7 +3,8 @@ param(
     [string]$CodexHome = $(if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE ".codex" }),
     [string]$ConfigPath,
     [string]$CnHousingRoot,
-    [switch]$SkipProjectTrust
+    [switch]$SkipProjectTrust,
+    [switch]$SkipBackup
 )
 
 $ErrorActionPreference = "Stop"
@@ -208,7 +209,7 @@ if ($newText -eq $oldText) {
 }
 
 if ($PSCmdlet.ShouldProcess($ConfigPath, "merge portable Codex settings")) {
-    if (Test-Path -LiteralPath $ConfigPath -PathType Leaf) {
+    if ((Test-Path -LiteralPath $ConfigPath -PathType Leaf) -and -not $SkipBackup) {
         $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
         $backupPath = "$ConfigPath.backup-$stamp"
         Copy-Item -LiteralPath $ConfigPath -Destination $backupPath

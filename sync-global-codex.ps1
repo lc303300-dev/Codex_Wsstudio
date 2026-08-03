@@ -68,11 +68,24 @@ if (-not $SkipAgents) {
 
 if (-not $SkipConfig) {
     if ($PSCmdlet.ShouldProcess($targetConfig, "merge portable settings into global Codex config")) {
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $setupScript -CodexHome $CodexHome
+        $configBackup = Backup-IfPresent $targetConfig
+        $setupArgs = @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", $setupScript,
+            "-CodexHome", $CodexHome,
+            "-SkipBackup"
+        )
+        & powershell.exe @setupArgs
         if ($LASTEXITCODE -ne 0) {
             throw "Global config merge failed with exit code ${LASTEXITCODE}."
         }
-        Write-Host "Global config merge completed: $targetConfig"
+        if (Test-Path -LiteralPath $targetConfig -PathType Leaf) {
+            Write-Host "Updated global config.toml: $targetConfig"
+        }
+        else {
+            throw "Global config.toml was not created: $targetConfig"
+        }
     }
 }
 

@@ -54,6 +54,7 @@ Or run it from PowerShell:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\sync-global-codex.ps1 -Yes
 ```
 
-The script backs up the existing global `AGENTS.md`, replaces it from `codex-global/AGENTS.md`,
-and calls `setup-codex.ps1` to merge portable config settings while preserving
+The script backs up the existing global `AGENTS.md` and `config.toml`, replaces `AGENTS.md`
+from `codex-global/AGENTS.md`, and regenerates/updates `config.toml` from
+`codex-global/config.portable.toml` while preserving
 machine-generated paths and existing MCP/project settings.
