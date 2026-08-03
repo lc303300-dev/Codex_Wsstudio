@@ -52,6 +52,8 @@ function Show-KeyChecklist {
     Write-Host "  COMFLY_API_KEY   https://ai.comfly.org/"
     Write-Host "  APIMART_API_KEY  https://apimart.ai/zh"
     Write-Host "  GEMINI_API_KEY   https://aistudio.google.com/"
+    Write-Host "Please sign in ahead of time to Dreamina/Jimeng:"
+    Write-Host "  https://jimeng.jianying.com/"
     Write-Host ""
     Write-Host "Copy-fill template:"
     Write-Host "  COMFLY_API_KEY="

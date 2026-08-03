@@ -17,6 +17,10 @@
 - `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
 - `GEMINI_API_KEY` - [aistudio.google.com](https://aistudio.google.com/)
 
+Dreamina/Jimeng 也建议提前登录：
+
+- [jimeng.jianying.com](https://jimeng.jianying.com/)
+
 脚本会把它们写入本机的 `Codex_image/.codex-image-private/.env`，不会提交到 Git。
 
 复制填写模板：

@@ -22,6 +22,8 @@ Before starting a deployment, if the required API keys are not already present i
 - `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
 - `GEMINI_API_KEY` - [aistudio.google.com](https://aistudio.google.com/)
 
+Also ask the user to sign in ahead of time for Dreamina/Jimeng at [jimeng.jianying.com](https://jimeng.jianying.com/).
+
 If the user asks for the older step-by-step flow instead, use `bootstrap-new-machine.ps1` and the existing manual deployment docs.
 
 Keep this root instruction aligned with `README.md`, `DEPLOYMENT.md`, and `NEW_MACHINE_DEPLOYMENT_TEMPLATE.md`.

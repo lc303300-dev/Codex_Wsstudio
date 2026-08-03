@@ -38,6 +38,8 @@ Key sources:
 - `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
 - `GEMINI_API_KEY` - [aistudio.google.com](https://aistudio.google.com/)
 
+Dreamina/Jimeng should be signed in ahead of time at [jimeng.jianying.com](https://jimeng.jianying.com/).
+
 ## Before every new task
 
 Run:
