@@ -21,7 +21,7 @@ Codex_Wsstudio is a public workspace for a Codex-based media pipeline.
 1. Clone the repository.
 2. Copy [`.env.example`](.env.example) to `.env` if you want a single top-level place for local keys.
 3. Copy [`Codex_image/.env.example`](Codex_image/.env.example) to `Codex_image/.env` and fill in the provider keys you use.
-4. On a new machine, run:
+4. On a new machine, run [the deployment template](NEW_MACHINE_DEPLOYMENT_TEMPLATE.md) or:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1

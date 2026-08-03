@@ -8,6 +8,8 @@ Clone this repository, open PowerShell in the checkout root, and run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
 ```
 
+For a guided one-shot template that also prompts for API keys, use [NEW_MACHINE_DEPLOYMENT_TEMPLATE.md](NEW_MACHINE_DEPLOYMENT_TEMPLATE.md) and run `new-machine-deploy.ps1`.
+
 The command is repeatable. It:
 
 - checks the Git update state when a remote is configured;
