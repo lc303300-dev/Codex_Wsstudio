@@ -129,8 +129,8 @@ foreach ($item in $confirmed) {
         throw "Duration missing for $($manifest.id). Ask the user for a duration before generation."
     }
     $duration = [int]$manifest.mqrox_compile.duration
-    if ($duration -lt 4 -or $duration -gt 15) {
-        throw "Duration for $($manifest.id) must be 4 through 15 seconds; got $duration."
+    if ($duration -lt 4 -or $duration -gt 30) {
+        throw "Duration for $($manifest.id) must be 4 through 30 seconds; got $duration."
     }
     if ($null -eq $manifest.mqrox_compile.ratio -or [string]::IsNullOrWhiteSpace([string]$manifest.mqrox_compile.ratio)) {
         throw "Ratio missing for $($manifest.id). Ask the user for a ratio before generation."
@@ -144,7 +144,10 @@ foreach ($item in $confirmed) {
     if ([string]::IsNullOrWhiteSpace($resolution)) {
         $resolution = "720p"
     }
-    $modelVersion = "seedance2.0fast_vip"
+    if (@("480p", "720p") -notcontains $resolution) {
+        throw "Resolution for seedance2.5 must be 480p or 720p; got $resolution."
+    }
+    $modelVersion = "seedance2.5"
     if ($manifest.mqrox_compile.PSObject.Properties.Name -contains "model_version") {
         $modelVersion = [string]$manifest.mqrox_compile.model_version
     }

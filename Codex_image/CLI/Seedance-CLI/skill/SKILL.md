@@ -101,7 +101,7 @@ For image generation in this Codex_image checkout:
 
 For video generation in this Codex_image checkout:
 
-- default video commands that support `model_version` to Seedance 2.0 Fast VIP: `--model_version=seedance2.0fast_vip`
+- default video commands that support `model_version` to Seedance 2.5: `--model_version=seedance2.5`
 - default video commands that support `video_resolution` to `--video_resolution=720p` unless the user explicitly requests another supported resolution
 - the project wrapper injects these defaults for `text2video`, `image2video`, `frames2video`, and `multimodal2video` when the corresponding flags are absent
 - do not inject or request a model or resolution for `multiframe2video`; the current CLI help says those overrides are not supported for that command
@@ -127,7 +127,7 @@ Additional guidance:
 
 - some commands do not expose model selection at all
 - some models, especially the `seedance2.0` family, can be capacity-constrained
-- for supported video commands in this checkout, the default model is `seedance2.0fast_vip` unless the user explicitly selects another supported model
+- for supported video commands in this checkout, the default model is `seedance2.5` unless the user explicitly selects another supported model
 
 ## How to judge submit success
 
@@ -164,7 +164,7 @@ If you are running a test sweep, keep results in a machine-readable format so yo
 - Always close the loop when the login command finishes with a user-visible confirmation.
 - Prefer small, reviewable batches when running real generation tasks.
 - Keep a record of the command, arguments, `submit_id`, and final status for every paid test you run.
-- For supported video commands in this checkout, default to `seedance2.0fast_vip` unless the user explicitly selects another supported model.
+- For supported video commands in this checkout, default to `seedance2.5` unless the user explicitly selects another supported model.
 - For supported video commands in this checkout, default to `720p` unless the user explicitly selects another supported resolution.
 - If you are preparing a report, separate:
   - help-only inspection

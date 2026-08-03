@@ -47,7 +47,7 @@ def select_video_command(request: MediaRequest) -> str:
 def _prompt_preferences(prompt: str) -> tuple[str | None, str | None, str | None]:
     ratio = next((value for value in ("21:9", "16:9", "9:16", "4:3", "3:4", "1:1") if value in prompt), None)
     duration_match = re.search(r"(?i)(\d{1,2})\s*(?:秒|s(?:ec(?:onds?)?)?)", prompt)
-    duration = duration_match.group(1) if duration_match and 4 <= int(duration_match.group(1)) <= 15 else None
+    duration = duration_match.group(1) if duration_match and 4 <= int(duration_match.group(1)) <= 30 else None
     resolution = next((value for value in ("4k", "1080p", "720p") if value.lower() in prompt.lower()), None)
     return ratio, duration, resolution
 
@@ -79,7 +79,7 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
             args += ["--audio", str(path)]
         args += ["--prompt", request.prompt]
     if command != "multiframe2video":
-        args += ["--model_version", "seedance2.0fast_vip", "--video_resolution", resolution or "720p"]
+        args += ["--model_version", "seedance2.5", "--video_resolution", resolution or "720p"]
         if duration:
             args += ["--duration", duration]
         if ratio and command in ("text2video", "multimodal2video"):
@@ -96,8 +96,15 @@ class VideoRouter:
         if not request.prompt.strip():
             raise ValueError("prompt must not be empty")
         command = select_video_command(request)
-        image_limit = 20 if command == "multiframe2video" else 9
-        for values, limit, label in ((request.images, image_limit, "images"), (request.videos, 3, "videos"), (request.audios, 3, "audios")):
+        if command == "multiframe2video":
+            limits = ((request.images, 20, "images"),)
+        elif command == "multimodal2video":
+            limits = ((request.images, 30, "images"), (request.videos, 10, "videos"), (request.audios, 10, "audios"))
+            if sum(len(values) for values, _, _ in limits) > 50:
+                raise ValueError("At most 50 total inputs are allowed for seedance2.5 multimodal2video")
+        else:
+            limits = ((request.images, 1, "images"), (request.videos, 0, "videos"), (request.audios, 0, "audios"))
+        for values, limit, label in limits:
             if len(values) > limit:
                 raise ValueError(f"At most {limit} {label} are allowed")
             missing = [str(path) for path in values if not path.is_file()]
@@ -105,8 +112,8 @@ class VideoRouter:
                 raise FileNotFoundError("Missing local media: " + "; ".join(missing))
         for path in request.audios:
             duration = self.duration_probe(path)
-            if not 2 <= duration <= 15:
-                raise ValueError(f"Audio duration must be 2-15 seconds: {path}")
+            if not 2 <= duration <= 30:
+                raise ValueError(f"Audio duration must be 2-30 seconds: {path}")
         return command
 
     def execute(self, request: MediaRequest, context: TaskContext | None = None) -> MediaResult:

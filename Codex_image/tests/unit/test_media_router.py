@@ -321,7 +321,7 @@ class VideoRouterTests(unittest.TestCase):
             capacity_key = "seedance-cli"
             max_concurrency = 6
             provider_id = "dreamina-video"
-            model_id = "seedance2.0fast_vip"
+            model_id = "seedance2.5"
 
             def check_readiness(self):
                 return Readiness(True)

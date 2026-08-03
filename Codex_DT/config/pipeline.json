@@ -3,7 +3,7 @@
   "surface": "jimeng-zh",
   "mode": "first-frame",
   "duration": 5,
-  "model_version": "seedance2.0fast_vip",
+  "model_version": "seedance2.5",
   "video_resolution": "720p",
   "poll_seconds": 60,
   "preview_max_long_edge": 512,

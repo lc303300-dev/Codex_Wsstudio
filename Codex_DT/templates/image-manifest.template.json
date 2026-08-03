@@ -32,7 +32,7 @@
     "prompt_binding": "ordered_cli_image_arguments",
     "duration": null,
     "ratio": null,
-    "model_version": "seedance2.0fast_vip",
+    "model_version": "seedance2.5",
     "resolution": "720p",
     "asset_manifest": {
       "surface": "generic",

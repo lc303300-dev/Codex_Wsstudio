@@ -24,6 +24,31 @@ function Refresh-ProcessPath {
     }
 }
 
+function Resolve-InstalledCommand {
+    param([string]$Name)
+
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($command) { return $command }
+
+    # A freshly installed app (or an existing installation) may not be on the
+    # current process PATH yet. Check the standard machine locations so a
+    # deployment does not try to reinstall an already-present tool.
+    $knownPaths = switch ($Name) {
+        "node" { @("$env:ProgramFiles\nodejs\node.exe", "$env:LOCALAPPDATA\Programs\nodejs\node.exe") }
+        "python" { @("$env:LOCALAPPDATA\Programs\Python\Python311\python.exe", "$env:ProgramFiles\Python311\python.exe") }
+        "git" { @("$env:ProgramFiles\Git\cmd\git.exe", "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe") }
+        default { @() }
+    }
+    foreach ($path in $knownPaths) {
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            $dir = Split-Path -Parent $path
+            if ($env:Path -notlike "*$dir*") { $env:Path = "$dir;$env:Path" }
+            return Get-Command $Name -ErrorAction SilentlyContinue
+        }
+    }
+    return $null
+}
+
 function Install-WingetPackage {
     param([string]$Id, [string]$Label)
 
@@ -34,25 +59,38 @@ function Install-WingetPackage {
     Write-Host "Installing $Label with winget..."
     & $winget install --id $Id --exact --source winget --accept-source-agreements --accept-package-agreements --silent
     if ($LASTEXITCODE -ne 0) {
+        # winget returns a failure code when the package is already installed
+        # and no upgrade is available. Re-scan before treating it as fatal.
+        Refresh-ProcessPath
+        $resolvedName = switch ($Id) {
+            "OpenJS.NodeJS.LTS" { "node" }
+            "Python.Python.3.11" { "python" }
+            "Git.Git" { "git" }
+        }
+        if ($resolvedName -and (Resolve-InstalledCommand $resolvedName)) {
+            Write-Warning "$Label is already installed; continuing."
+            return
+        }
         throw "Could not install $Label with winget."
     }
 }
 
 Write-Host "Checking local build environment..."
-$git = Get-CommandPath "git"
-$python = Get-CommandPath "python"
-$node = Get-CommandPath "node"
+Refresh-ProcessPath
+$git = Resolve-InstalledCommand "git"
+$python = Resolve-InstalledCommand "python"
+$node = Resolve-InstalledCommand "node"
 
 if (-not $git) {
-    if ($InstallMissingTools) { Install-WingetPackage -Id "Git.Git" -Label "Git"; Refresh-ProcessPath; $git = Get-CommandPath "git" }
+    if ($InstallMissingTools) { Install-WingetPackage -Id "Git.Git" -Label "Git"; Refresh-ProcessPath; $git = Resolve-InstalledCommand "git" }
     else { throw "Git is missing. Rerun with -InstallMissingTools or install Git manually." }
 }
 if (-not $python) {
-    if ($InstallMissingTools) { Install-WingetPackage -Id "Python.Python.3.11" -Label "Python 3.11"; Refresh-ProcessPath; $python = Get-CommandPath "python" }
+    if ($InstallMissingTools) { Install-WingetPackage -Id "Python.Python.3.11" -Label "Python 3.11"; Refresh-ProcessPath; $python = Resolve-InstalledCommand "python" }
     else { throw "Python is missing. Rerun with -InstallMissingTools or install Python manually." }
 }
 if (-not $SkipNode -and -not $node) {
-    if ($InstallMissingTools) { Install-WingetPackage -Id "OpenJS.NodeJS.LTS" -Label "Node.js LTS"; Refresh-ProcessPath; $node = Get-CommandPath "node" }
+    if ($InstallMissingTools) { Install-WingetPackage -Id "OpenJS.NodeJS.LTS" -Label "Node.js LTS"; Refresh-ProcessPath; $node = Resolve-InstalledCommand "node" }
     else { Write-Warning "Node.js is missing. The current Python pipeline can run without it; use -InstallMissingTools to install it." }
 }
 
