@@ -30,4 +30,4 @@ See `references/provider.md` for installation and authentication details.
 
 ## Image Reading Guardrail
 
-Before Codex visually reads, inspects, previews, or calls `view_image` on any local raster image, create a preview with `C:/Users/A/.codex/tools/Convert-CodexImagePreview.ps1` and inspect only that preview. The preview's longest edge must be at most 512 px. Keep original image paths only for filesystem operations and provider inputs.
+Before Codex visually reads, inspects, previews, or calls `view_image` on any local raster image, create a preview with `$CODEX_HOME/tools/Convert-CodexImagePreview.ps1` and inspect only that preview. The preview's longest edge must be at most 512 px. Keep original image paths only for filesystem operations and provider inputs.

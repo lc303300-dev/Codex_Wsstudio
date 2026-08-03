@@ -55,10 +55,11 @@ def task_text(manifest_path: Path, manifest: dict[str, Any]) -> str:
         if user_motion
         else "\n用户指定动作/镜头要求：未在 manifest 中记录；如原始用户消息包含每图动作，主 Agent 必须先写入 manifest.user_requirements.motion_zh 再分派。\n"
     )
+    workspace_root = Path(__file__).resolve().parents[1].as_posix()
     return f"""你是当前 Codex 图生视频管线的单图处理子 Agent。只处理这一张图片，不要编辑其他图片的 manifest/prompt，不要修改 third_party、scripts、README 或 review 页面。
 
 工作区根目录：
-F:/LiuCan/AI/Codex/Codex_DT
+{workspace_root}
 
 必须阅读并遵守：
 docs/subagent_image_worker.md

@@ -674,13 +674,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 3. 只检查 `.env` 变量名，不显示值。
 4. 记录当前真实全局注册状态。
 5. 当前项目不是 Git 工作树，不要依赖 `git status` 或 `git diff`。
-6. 现有核心备份位于：
+6. 现有核心备份位于用户指定的外部备份目录（如果存在）：
 
 ```text
-F:\LiuCan\AI\Copy\Codex_image-core-backup
+`<external-backup-root>\Codex_image-core-backup`
 ```
 
-7. 不修改或删除该备份。
+7. 不修改或删除该外部备份。
 8. 发现工作期间出现无法解释的外部文件变更时停止并询问用户。
 
 ### 阶段 1：配置、schema 和错误类型
@@ -853,7 +853,7 @@ F:\LiuCan\AI\Copy\Codex_image-core-backup
 - 不得直接查看本地原始大图。
 - 不得覆盖用户已有输出，除非使用成功验证后的原子替换。
 - 不得删除没有本项目 marker 的全局技能。
-- 不得修改或删除 `F:\LiuCan\AI\Copy\Codex_image-core-backup`。
+- 不得修改或删除用户指定的外部备份目录。
 
 ## 20. 新 Codex 窗口的执行提示
 
@@ -861,8 +861,8 @@ F:\LiuCan\AI\Copy\Codex_image-core-backup
 
 ```text
 请完整读取：
-1. F:\LiuCan\AI\Codex\Codex_image\AGENTS.md
-2. F:\LiuCan\AI\Codex\Codex_image\UNIFIED_MEDIA_TOOL_REFACTOR_BLUEPRINT.md
+1. 当前 checkout 中的 `AGENTS.md`
+2. 当前 checkout 中的 `UNIFIED_MEDIA_TOOL_REFACTOR_BLUEPRINT.md`
 
 严格按蓝图分阶段实施 Codex_image 统一媒体工具重构。先建立基线和离线测试，不执行任何新的付费联网生成。所有 provider 默认并发设为 6；多任务最多维持 6 个子 Agent 并滚动补位，但单个图片任务中的七级 provider 回退必须严格串行。Comfly 三模型必须拆成三个独立 adapter。视频只使用 Seedance CLI，并公开 prompt、images、videos、audios。最终只注册 generate_image 和 generate_video 两个工具，以及两个对应默认技能。每完成一个阶段就更新计划并运行该阶段测试；离线验收全部通过后停止，汇报改动和预计联网测试费用，等待确认。
 ```
