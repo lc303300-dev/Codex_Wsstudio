@@ -10,6 +10,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
 
 For a guided one-shot template that also prompts for API keys, use [NEW_MACHINE_DEPLOYMENT_TEMPLATE.md](NEW_MACHINE_DEPLOYMENT_TEMPLATE.md) and run `new-machine-deploy.ps1`.
 
+In Codex chat, deployment-style requests such as `初始化`, `部署`, `更新部署`, `安装`, `一键部署`, or `初始化部署` should map to `new-machine-deploy.ps1` by default.
+
 The command is repeatable. It:
 
 - checks the Git update state when a remote is configured;
