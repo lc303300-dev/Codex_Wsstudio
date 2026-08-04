@@ -80,7 +80,7 @@ foreach ($item in @(
         Ask-YesNo "Configure $($item.Label) now?" $true
     }
     if ($shouldConfigure) {
-        Invoke-CheckedPowerShell -File (Join-Path $root "Codex_image\configure-api-key.ps1") -Arguments @("-Pipeline", $item.Pipeline)
+        Invoke-CheckedPowerShell -File (Join-Path $root "Codex_image\configure-api-key.ps1") -Arguments @("-Pipeline", $item.Pipeline, "-EnvFile", $envPath)
     }
 }
 

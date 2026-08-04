@@ -3,10 +3,14 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet("gemini-api", "gpt-api", "comfly-api")]
     [string]$Pipeline,
-    [string]$EnvFile = (Join-Path $PSScriptRoot ".codex-image-private\.env")
+    [string]$EnvFile
 )
 
 $ErrorActionPreference = "Stop"
+if ([string]::IsNullOrWhiteSpace($EnvFile)) {
+    $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+    $EnvFile = Join-Path $scriptRoot ".codex-image-private\.env"
+}
 $KeyNames = @{
     "gemini-api" = "GEMINI_API_KEY"
     "gpt-api" = "APIMART_API_KEY"
