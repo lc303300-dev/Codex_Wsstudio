@@ -21,7 +21,7 @@ Dreamina/Jimeng 也建议提前登录：
 
 - [jimeng.jianying.com](https://jimeng.jianying.com/)
 
-脚本会把它们写入本机的 `Codex_image/.codex-image-private/.env`，不会提交到 Git。
+脚本会把它们写入本机的 `packages/Codex_image/.codex-image-private/.env`，不会提交到 Git。
 
 复制填写模板：
 
@@ -55,15 +55,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\new-machine-deploy.ps1
 先跑基础部署：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deployment\bootstrap-new-machine.ps1
 ```
 
 再补 Key：
 
 ```powershell
-.\Codex_image\configure-api-key.ps1 -Pipeline comfly-api
-.\Codex_image\configure-api-key.ps1 -Pipeline gpt-api
-.\Codex_image\configure-api-key.ps1 -Pipeline gemini-api
+.\packages\Codex_image\configure-api-key.ps1 -Pipeline comfly-api
+.\packages\Codex_image\configure-api-key.ps1 -Pipeline gpt-api
+.\packages\Codex_image\configure-api-key.ps1 -Pipeline gemini-api
 ```
 
 最后再跑一次基础部署。

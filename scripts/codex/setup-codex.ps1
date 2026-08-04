@@ -13,7 +13,8 @@ if (-not $ConfigPath) {
     $ConfigPath = Join-Path $CodexHome "config.toml"
 }
 
-$templatePath = Join-Path $PSScriptRoot "codex-global\config.portable.toml"
+$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
+$templatePath = Join-Path $repositoryRoot "config\codex\config.portable.toml"
 if (-not (Test-Path -LiteralPath $templatePath -PathType Leaf)) {
     throw "Portable template not found: $templatePath"
 }
@@ -174,7 +175,7 @@ foreach ($setting in $managedSettings) {
 }
 
 if (-not $SkipProjectTrust) {
-    foreach ($projectPath in @($PSScriptRoot, (Join-Path $PSScriptRoot "Codex_DT"), (Join-Path $PSScriptRoot "Codex_image"), (Join-Path $PSScriptRoot "Codex_Github"))) {
+    foreach ($projectPath in @($repositoryRoot, (Join-Path $repositoryRoot "packages\Codex_DT"), (Join-Path $repositoryRoot "packages\Codex_image"), (Join-Path $repositoryRoot "packages\Codex_Github"))) {
         if (Test-Path -LiteralPath $projectPath -PathType Container) {
             $resolvedProject = (Resolve-Path -LiteralPath $projectPath).Path.ToLowerInvariant()
             Set-TomlAssignment -Lines $targetLines -Table ("projects." + (ConvertTo-TomlLiteralString $resolvedProject)) -Key "trust_level" -Value '"trusted"'

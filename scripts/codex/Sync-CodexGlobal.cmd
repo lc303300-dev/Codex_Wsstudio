@@ -1,7 +1,7 @@
 @echo off
 setlocal
-set "ROOT=%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%ROOT%sync-global-codex.ps1" -Yes
+set "SCRIPT_DIR=%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%sync-global-codex.ps1" -Yes
 set "EXITCODE=%ERRORLEVEL%"
 if not "%EXITCODE%"=="0" (
   echo.

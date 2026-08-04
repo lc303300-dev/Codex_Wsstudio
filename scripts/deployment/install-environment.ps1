@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$root = [System.IO.Path]::GetFullPath($PSScriptRoot)
+$root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 $requirements = Join-Path $root "requirements.txt"
 
 function Get-CommandPath {

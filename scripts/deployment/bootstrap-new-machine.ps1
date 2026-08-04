@@ -8,10 +8,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$root = [System.IO.Path]::GetFullPath($PSScriptRoot)
-$imageRoot = Join-Path $root "Codex_image"
-$dtRoot = Join-Path $root "Codex_DT"
-$githubRoot = Join-Path $root "Codex_Github"
+$root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
+$imageRoot = Join-Path $root "packages\Codex_image"
+$dtRoot = Join-Path $root "packages\Codex_DT"
+$githubRoot = Join-Path $root "packages\Codex_Github"
 $seedanceWrapper = Join-Path $imageRoot "CLI\Seedance-CLI\run.ps1"
 $previewTool = Join-Path $CodexHome "tools\Convert-CodexImagePreview.ps1"
 
@@ -37,7 +37,7 @@ foreach ($directory in @($imageRoot, $dtRoot, $githubRoot)) {
     }
 }
 
-Invoke-CheckedPowerShell -File (Join-Path $root "install-environment.ps1") -Arguments @("-InstallMissingTools")
+Invoke-CheckedPowerShell -File (Join-Path $root "scripts\deployment\install-environment.ps1") -Arguments @("-InstallMissingTools")
 
 if (-not $SkipUpdateCheck) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "start-task.ps1") -RepositoryRoot $root
@@ -47,7 +47,7 @@ if (-not $SkipUpdateCheck) {
     }
 }
 
-Invoke-CheckedPowerShell -File (Join-Path $root "sync-global-codex.ps1") -Arguments @("-CodexHome", $CodexHome, "-Yes")
+Invoke-CheckedPowerShell -File (Join-Path $root "scripts\codex\sync-global-codex.ps1") -Arguments @("-RepositoryRoot", $root, "-CodexHome", $CodexHome, "-Yes")
 
 $legacyItems = @(
     (Join-Path $imageRoot "CLI\.env"),
@@ -77,6 +77,6 @@ Write-Host ""
 Write-Host "New-machine deployment complete." -ForegroundColor Green
 Write-Host "Restart Codex, then run .\start-task.ps1 before beginning work on an older computer."
 Write-Host "API keys are intentionally not copied by Git. Configure missing keys with:"
-Write-Host "  .\Codex_image\configure-api-key.ps1 -Pipeline comfly-api"
-Write-Host "  .\Codex_image\configure-api-key.ps1 -Pipeline gpt-api"
-Write-Host "  .\Codex_image\configure-api-key.ps1 -Pipeline gemini-api"
+Write-Host "  .\packages\Codex_image\configure-api-key.ps1 -Pipeline comfly-api"
+Write-Host "  .\packages\Codex_image\configure-api-key.ps1 -Pipeline gpt-api"
+Write-Host "  .\packages\Codex_image\configure-api-key.ps1 -Pipeline gemini-api"

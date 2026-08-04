@@ -9,12 +9,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) { $RepositoryRoot = $scriptRoot }
+if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) { $RepositoryRoot = Join-Path $scriptRoot "..\.." }
 $RepositoryRoot = [System.IO.Path]::GetFullPath($RepositoryRoot)
 $CodexHome = [System.IO.Path]::GetFullPath($CodexHome)
-$sourceAgents = Join-Path $RepositoryRoot "codex-global\AGENTS.md"
-$sourcePortableConfig = Join-Path $RepositoryRoot "codex-global\config.portable.toml"
-$setupScript = Join-Path $RepositoryRoot "setup-codex.ps1"
+$sourceAgents = Join-Path $RepositoryRoot "config\codex\AGENTS.md"
+$sourcePortableConfig = Join-Path $RepositoryRoot "config\codex\config.portable.toml"
+$setupScript = Join-Path $RepositoryRoot "scripts\codex\setup-codex.ps1"
 $targetAgents = Join-Path $CodexHome "AGENTS.md"
 $targetConfig = Join-Path $CodexHome "config.toml"
 
@@ -89,7 +89,7 @@ if (-not $SkipConfig) {
     }
 }
 
-$githubRegistration = Join-Path $RepositoryRoot "Codex_Github\register-global-skill.ps1"
+$githubRegistration = Join-Path $RepositoryRoot "packages\Codex_Github\register-global-skill.ps1"
 if (Test-Path -LiteralPath $githubRegistration -PathType Leaf) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $githubRegistration -CodexHome $CodexHome
     if ($LASTEXITCODE -ne 0) {

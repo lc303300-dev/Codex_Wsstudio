@@ -11,10 +11,10 @@ This workspace builds a Codex-orchestrated pipeline for turning one or more stil
 
 ## Deploy on a New Machine
 
-When `Codex_DT` and `Codex_image` are checked out together under the shared `Copy` root, use the one-command deployment entry from that root:
+When `Codex_DT` and `Codex_image` are under the shared repository's `packages/` directory, use the one-command deployment entry from the repository root:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\new-machine-deploy.ps1
 ```
 
 This installs the portable Codex configuration, the bundled preview converter, unified media skills/plugin, the Dreamina CLI when missing, and both project-local configurations. API keys remain machine-private and are configured separately with hidden input.

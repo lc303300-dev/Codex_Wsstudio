@@ -16,7 +16,7 @@ Treat these as deployment triggers when they refer to this repository:
 - `初始化部署`
 - `新电脑部署`
 
-Before starting a deployment, if the required API keys are not already present in `Codex_image/.codex-image-private/.env`, ask the user to provide them as a copy-fill checklist and include clickable official links:
+Before starting a deployment, if the required API keys are not already present in `packages/Codex_image/.codex-image-private/.env`, ask the user to provide them as a copy-fill checklist and include clickable official links:
 
 - `COMFLY_API_KEY` - [ai.comfly.org](https://ai.comfly.org/)
 - `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
@@ -26,12 +26,24 @@ Also ask the user to sign in ahead of time for Dreamina/Jimeng at [jimeng.jianyi
 
 Do not ask the user to hand-copy machine-local Codex config paths such as `notify`, `mcp_servers.node_repl.*`, `CODEX_CLI_PATH`, `marketplaces.*`, `projects.*`, or `shell_environment_policy.*`. Those are regenerated or preserved by the Codex setup scripts on each machine.
 
-If the user asks for the older step-by-step flow instead, use `bootstrap-new-machine.ps1` and the existing manual deployment docs.
+If the user asks for the older step-by-step flow instead, use `scripts/deployment/bootstrap-new-machine.ps1` and the existing manual deployment docs.
 
-Keep this root instruction aligned with `README.md`, `DEPLOYMENT.md`, and `NEW_MACHINE_DEPLOYMENT_TEMPLATE.md`.
+Keep this root instruction aligned with `README.md`, `docs/DEPLOYMENT.md`, and `docs/NEW_MACHINE_DEPLOYMENT_TEMPLATE.md`.
 
 ## Repository Update Check Scope
 
 Before writing files in this checkout, run the root `start-task.ps1`. This rule applies only when the current or explicitly targeted path resolves inside this Git checkout and the root script exists.
 
 Do not run or search for `start-task.ps1` for pure chat, public network or GitHub searches, read-only work, projectless Codex directories, or unrelated repositories. If the user explicitly requests changes to this repository but the root script is missing, report the problem and stop before writing.
+
+## Standard Project Structure
+
+This repository uses the monorepo layout defined in `docs/PROJECT_STRUCTURE.md`:
+
+- application and tool projects belong under `packages/`;
+- repository documentation belongs under `docs/`;
+- shared configuration belongs under `config/`;
+- automation belongs under `scripts/`, grouped by purpose;
+- the root is reserved for repository metadata, dependency/test manifests, governance files, and stable entry scripts.
+
+Do not add new implementation scripts, project directories, generated output, or standalone design documents to the repository root. Before completing any change, run `scripts/maintenance/test-project-structure.ps1`. Structural changes must update the structure document, README, validation allowlist, path references, and both repository/global guidance when applicable.

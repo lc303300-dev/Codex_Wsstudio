@@ -1,63 +1,60 @@
 # Codex_Wsstudio
 
-Codex_Wsstudio is a public workspace for a Codex-based media pipeline.
+A Windows-first monorepo for Codex media tooling, image-to-video workflows, and reusable Codex configuration.
 
-## What this repo includes
+## Repository layout
 
-- `Codex_image/` - shared media tooling, provider wrappers, and safety checks.
-- `Codex_DT/` - Dreamina/Seedance image-to-video pipeline and task workflow.
-- `Codex_Github/` - Tool Scout discovery pipeline for GitHub, npm, MCP, skills, extensions, and related tools.
-- `codex-global/` - portable Codex settings for a local Codex home.
+```text
+Codex_Wsstudio/
+├─ config/codex/                 Portable Codex configuration
+├─ docs/                         Repository-level documentation
+├─ packages/
+│  ├─ Codex_image/              Media tools, provider wrappers, and safety checks
+│  ├─ Codex_DT/                 Dreamina/Seedance production workflow
+│  └─ Codex_Github/             Tool Scout discovery workflow
+├─ scripts/
+│  ├─ codex/                    Codex configuration synchronization
+│  ├─ deployment/               Installation and deployment implementation
+│  └─ maintenance/              Repository checks and maintenance
+├─ AGENTS.md                     Repository operating rules
+├─ new-machine-deploy.ps1        Stable one-click deployment entry
+└─ start-task.ps1                Stable pre-change safety entry
+```
+
+The root stays intentionally small. See [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for the rules enforced on future changes.
 
 ## Requirements
 
 - Git
 - Python 3.11+
-- pytest 8.x (installed automatically by the initialization/deployment scripts)
 - PowerShell 7 or Windows PowerShell
-- Node.js LTS if you want the full bootstrap path
-- Provider API keys only for the services you actually use
+- Node.js LTS for the full bootstrap path
+- Provider API keys only for services you use
 
-## Key links
+## Deploy
 
-- `COMFLY_API_KEY` - [ai.comfly.org](https://ai.comfly.org/)
-- `APIMART_API_KEY` - [apimart.ai/zh](https://apimart.ai/zh)
-- `GEMINI_API_KEY` - [aistudio.google.com](https://aistudio.google.com/)
-
-## Install
-
-1. Clone the repository.
-2. Copy [`.env.example`](.env.example) to `.env` if you want a single top-level place for local keys.
-3. Copy [`Codex_image/.env.example`](Codex_image/.env.example) to `Codex_image/.env` and fill in the provider keys you use.
-4. On a new machine, run [the deployment template](NEW_MACHINE_DEPLOYMENT_TEMPLATE.md) or:
+On a new computer, run from the repository root:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\new-machine-deploy.ps1
 ```
 
-## Start
-
-Run this before writing files in this checkout:
+Before writing files in this checkout, run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\start-task.ps1
 ```
 
-That checks whether the checkout is up to date and only fast-forwards when it is safe.
+This validates the standard layout, fetches the upstream branch, and only fast-forwards a clean checkout when safe.
 
-This check is scoped to this Git checkout. Pure chat, public web/GitHub searches,
-read-only tasks, projectless Codex directories, and unrelated repositories must not
-run or search for this script. If a requested edit targets this repository but the
-root script is missing, stop before writing and report the problem.
+## Documentation
 
-## Notes
+- [Deployment](docs/DEPLOYMENT.md)
+- [New-machine deployment template](docs/NEW_MACHINE_DEPLOYMENT_TEMPLATE.md)
+- [Portable Codex configuration](docs/PORTABLE_CONFIG.md)
+- [Project structure standard](docs/PROJECT_STRUCTURE.md)
 
-- Secrets are not stored in Git.
-- Local runtime data belongs under `.codex-image-private/`.
-- Use the provided `.env.example` files as templates for local provider keys.
-- For deployment details, see [DEPLOYMENT.md](DEPLOYMENT.md).
-- For portable Codex settings, see [PORTABLE_CONFIG.md](PORTABLE_CONFIG.md).
-- Tool-discovery requests are automatically routed to the globally registered `tool-scout` skill during deployment.
+Secrets and machine-local runtime data are excluded from Git. Use the provided `.env.example` templates and keep private media runtime files under `packages/Codex_image/.codex-image-private/`.
 
 ## License
 

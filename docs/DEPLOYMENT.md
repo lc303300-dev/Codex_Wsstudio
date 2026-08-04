@@ -5,7 +5,7 @@
 Clone this repository, open PowerShell in the checkout root, and run:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-new-machine.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deployment\bootstrap-new-machine.ps1
 ```
 
 For a guided one-shot template that also prompts for API keys, use [NEW_MACHINE_DEPLOYMENT_TEMPLATE.md](NEW_MACHINE_DEPLOYMENT_TEMPLATE.md) and run `new-machine-deploy.ps1`.
@@ -18,7 +18,7 @@ The command is repeatable. It:
 - installs missing Git, Python, Node.js, and Python packages when `winget` is available;
 - merges portable Codex settings without replacing machine-generated settings;
 - installs the repository's global `AGENTS.md` and merges the global `config.toml`;
-- migrates legacy credentials and binaries into `Codex_image/.codex-image-private/`;
+- migrates legacy credentials and binaries into `packages/Codex_image/.codex-image-private/`;
 - installs Dreamina CLI when it is missing and starts login when required;
 - installs the bundled 512 px preview converter into `CODEX_HOME/tools/`;
 - registers the unified image/video tools and plugin;
@@ -27,9 +27,9 @@ The command is repeatable. It:
 API keys are intentionally excluded from Git. Configure only the providers you use:
 
 ```powershell
-.\Codex_image\configure-api-key.ps1 -Pipeline comfly-api
-.\Codex_image\configure-api-key.ps1 -Pipeline gpt-api
-.\Codex_image\configure-api-key.ps1 -Pipeline gemini-api
+.\packages\Codex_image\configure-api-key.ps1 -Pipeline comfly-api
+.\packages\Codex_image\configure-api-key.ps1 -Pipeline gpt-api
+.\packages\Codex_image\configure-api-key.ps1 -Pipeline gemini-api
 ```
 
 Key sources:
@@ -62,21 +62,21 @@ script is missing, report the problem and stop before writing.
 
 ## Synchronize global Codex files
 
-The `codex-global/AGENTS.md` file is the shared global guidance source. The repository's
+The `config/codex/AGENTS.md` file is the shared global guidance source. The repository's
 `config.toml` is intentionally machine-local and must not be copied directly because
 it contains runtime and absolute-path settings. To update global Codex safely, double-click:
 
 ```text
-Sync-CodexGlobal.cmd
+scripts\codex\Sync-CodexGlobal.cmd
 ```
 
 Or run it from PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\sync-global-codex.ps1 -Yes
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\sync-global-codex.ps1 -Yes
 ```
 
 The script backs up the existing global `AGENTS.md` and `config.toml`, replaces `AGENTS.md`
-from `codex-global/AGENTS.md`, and regenerates/updates `config.toml` from
-`codex-global/config.portable.toml` while preserving
+from `config/codex/AGENTS.md`, and regenerates/updates `config.toml` from
+`config/codex/config.portable.toml` while preserving
 machine-generated paths and existing MCP/project settings.
