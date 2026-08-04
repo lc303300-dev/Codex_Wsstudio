@@ -29,14 +29,32 @@ try {
     $text = [System.IO.File]::ReadAllText((Join-Path $temporary "SKILL.md"))
     $text = [regex]::Replace($text, '(?m)^name:\s*tool-scout\s*$', 'name: codex-github')
     $note = "`r`n## Local Installation`r`n`r`nThis global skill is backed by the Codex_Github checkout at ``$($projectRoot.Replace('\','/'))``. Run the bundled ``scripts/tool_scout.py`` with Python 3.10+ when the task matches the discovery triggers.`r`n"
-    if ($text -notmatch '(?m)^## Local Installation\s*$') {
-        $text = [regex]::Replace($text, '\A(---\r?\n.*?\r?\n---\r?\n)', { param($m) $m.Groups[1].Value + $note }, [Text.RegularExpressions.RegexOptions]::Singleline)
-    }
+    $text = [regex]::Replace(
+        $text,
+        '(?ms)^## Local Installation\s*\r?\n.*?(?=^## |\z)',
+        ''
+    )
+    $text = [regex]::Replace($text, '\A(---\r?\n.*?\r?\n---\r?\n)', { param($m) $m.Groups[1].Value + $note }, [Text.RegularExpressions.RegexOptions]::Singleline)
     [IO.File]::WriteAllText((Join-Path $temporary "SKILL.md"), $text, [Text.UTF8Encoding]::new($false))
     [ordered]@{ skill = "codex-github"; source_root = $projectRoot; registered_at = (Get-Date).ToString("o") } |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $temporary ".codex-github-registration.json") -Encoding UTF8
     Move-Item -LiteralPath $temporary -Destination $destination
 } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force } }
+
+$installedSkill = Join-Path $destination "SKILL.md"
+$installedScript = Join-Path $destination "scripts\tool_scout.py"
+$registration = Get-Content -LiteralPath $marker -Encoding UTF8 -Raw | ConvertFrom-Json
+$expectedSource = $projectRoot.Replace('\','/')
+$installedText = [System.IO.File]::ReadAllText($installedSkill)
+if (-not (Test-Path -LiteralPath $installedScript -PathType Leaf)) {
+    throw "Tool Scout registration is incomplete: $installedScript"
+}
+if ([System.IO.Path]::GetFullPath([string]$registration.source_root) -ne $projectRoot) {
+    throw "Tool Scout registration source mismatch: $($registration.source_root)"
+}
+if ($installedText -notmatch [regex]::Escape("checkout at ``$expectedSource``")) {
+    throw "Tool Scout SKILL.md does not reference the current checkout: $expectedSource"
+}
 
 $instructionPath = Join-Path $CodexHome "codex-github-global-custom-instructions.md"
 $instructions = @"
