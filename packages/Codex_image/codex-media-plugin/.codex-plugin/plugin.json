@@ -5,6 +5,7 @@
   "author": {
     "name": "Codex_image"
   },
+  "skills": "./skills/",
   "interface": {
     "displayName": "Codex Media Plugin",
     "shortDescription": "Generate images and videos through one safe media router.",
