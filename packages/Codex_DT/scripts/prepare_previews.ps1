@@ -1,7 +1,7 @@
 param(
     [string]$InputDirectory = "inputs",
     [string]$OutputDirectory = "previews",
-    [int]$MaxLongEdge = 512,
+    [int]$MaxLongEdge = 1024,
     [string]$PreviewTool,
     [string]$Batch
 )
@@ -9,8 +9,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-if ($MaxLongEdge -lt 1 -or $MaxLongEdge -gt 512) {
-    throw "MaxLongEdge must be between 1 and 512. Codex visual inspection must never receive a larger local raster preview."
+if ($MaxLongEdge -lt 1 -or $MaxLongEdge -gt 1024) {
+    throw "MaxLongEdge must be between 1 and 1024. Codex visual inspection must never receive a larger local raster preview."
 }
 
 $root = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")
@@ -55,8 +55,8 @@ foreach ($image in $images) {
         -MaxLongEdge $MaxLongEdge `
         -OutputDirectory $outputRoot
     $record = $json | ConvertFrom-Json
-    if ([int]$record.preview_width -gt 512 -or [int]$record.preview_height -gt 512 -or [int]$record.max_long_edge -gt 512) {
-        throw "Preview converter returned an image larger than the permitted 512px long edge: $($record.preview_path)"
+    if ([int]$record.preview_width -gt 1024 -or [int]$record.preview_height -gt 1024 -or [int]$record.max_long_edge -gt 1024) {
+        throw "Preview converter returned an image larger than the permitted 1024px long edge: $($record.preview_path)"
     }
     $records += $record
 }

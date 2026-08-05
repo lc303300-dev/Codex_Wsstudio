@@ -6,7 +6,7 @@
   "model_version": "seedance2.5",
   "video_resolution": "720p",
   "poll_seconds": 60,
-  "preview_max_long_edge": 512,
+  "preview_max_long_edge": 1024,
   "private_runtime": ".codex-image-private",
   "paths": {
     "preview_tool": "",

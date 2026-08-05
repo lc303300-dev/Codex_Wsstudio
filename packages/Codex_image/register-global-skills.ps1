@@ -113,7 +113,7 @@ foreach ($name in $Selected) {
 
 ## Image Reading Guardrail
 
-Before Codex visually reads, inspects, previews, or calls ``view_image`` on any local raster image, create a preview with ``$env:CODEX_HOME/tools/Convert-CodexImagePreview.ps1`` and inspect only that preview. The preview's longest edge must be at most 512 px. Keep original image paths only for filesystem operations and provider inputs.
+Before Codex visually reads, inspects, previews, or calls ``view_image`` on any local raster image, create a preview with ``$env:CODEX_HOME/tools/Convert-CodexImagePreview.ps1`` and inspect only that preview. The preview's longest edge must be at most 1024 px. Keep original image paths only for filesystem operations and provider inputs.
 
 "@
         $installationNote = @"
@@ -174,7 +174,7 @@ $instructionLines += @(
     ""
     "The source checkout is ``$($ProjectRoot.Replace('\', '/'))``. Read the selected skill before using its pipeline. Follow the active project's AGENTS.md for project-specific rules."
     ""
-    "Before Codex visually reads any local raster image, create a preview with ``$env:CODEX_HOME/tools/Convert-CodexImagePreview.ps1`` and inspect only the preview. The preview's longest edge must be at most 512 px. Do not call image-reading tools on original-size images; keep originals only for file operations and provider inputs."
+    "Before Codex visually reads any local raster image, create a preview with ``$env:CODEX_HOME/tools/Convert-CodexImagePreview.ps1`` and inspect only the preview. The preview's longest edge must be at most 1024 px. Do not call image-reading tools on original-size images; keep originals only for file operations and provider inputs."
     ""
     "For providers that require the local proxy, use:"
     ""

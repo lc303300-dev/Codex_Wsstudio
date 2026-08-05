@@ -30,7 +30,7 @@ The subagent must not edit shared scripts, third-party repositories, review page
 
 The subagent must use:
 
-- Codex visual inspection on the 512px preview image.
+- Codex visual inspection on the 1024px preview image.
 - `third_party/seedance-forge` for similar prompt corpus search.
 - `third_party/seedance-2.0-prompt-skill` rules for Dreamina/Seedance prompt compilation and validation.
 
@@ -40,7 +40,7 @@ The subagent must not modify either `third_party` project.
 
 - Inspect only the preview image.
 - Do not inspect the original raster image directly.
-- Before inspection, verify the assigned preview metadata reports `preview_width`, `preview_height`, and `max_long_edge` no greater than 512. Stop and ask the main agent to regenerate the preview if this cannot be verified.
+- Before inspection, verify the assigned preview metadata reports `preview_width`, `preview_height`, and `max_long_edge` no greater than 1024. Stop and ask the main agent to regenerate the preview if this cannot be verified.
 - Use the original image path only in the manifest and final generation metadata.
 - Do not write credentials, cookies, provider responses, caches, or temporary files outside `.codex-image-private/`.
 

@@ -15,4 +15,4 @@ For one independent image task, call the tool directly without creating a child 
 
 The router allows each image backend at most 120 seconds, then records `provider_timeout` and tries the next backend serially. The complete image task has a 300-second deadline. If the tool returns `task_timeout`, the child agent must report that failure and exit immediately so its queue slot can be refilled; do not wait, retry, or invoke another provider yourself.
 
-Never inspect a local raster original directly. Resolve the preview converter from `CODEX_HOME`, falling back to the current user's `.codex/tools/Convert-CodexImagePreview.ps1`, create a preview with `-MaxLongEdge 512`, and inspect only that preview.
+Never inspect a local raster original directly. Resolve the preview converter from `CODEX_HOME`, falling back to the current user's `.codex/tools/Convert-CodexImagePreview.ps1`, create a preview with `-MaxLongEdge 1024`, and inspect only that preview.

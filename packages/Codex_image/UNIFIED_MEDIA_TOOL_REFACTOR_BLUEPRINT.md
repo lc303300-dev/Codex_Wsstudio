@@ -479,7 +479,7 @@ Adapter 禁止：
 - 下载后的本地文件存在且非空。
 - 可选用 `ffprobe` 做容器和时长验证，但输出不得写入公开源码树。
 
-视觉检查本地图片时，始终先运行 512 px 预览转换器，只查看预览。视频需要抽帧检查时，抽帧和预览也必须写入 `.codex-image-private/validation/`。
+视觉检查本地图片时，始终先运行 1024 px 预览转换器，只查看预览。视频需要抽帧检查时，抽帧和预览也必须写入 `.codex-image-private/validation/`。
 
 ## 11. 任务存储与恢复
 
@@ -790,7 +790,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 - dry-run 不读取图片、视频或音频内容。
 - 所有输出、日志、锁、缓存和验证产物都在 `.codex-image-private`。
 - 公开源码树没有 `__pycache__` 或 `.pyc`。
-- 本地图片视觉检查只查看 512 px 预览。
+- 本地图片视觉检查只查看 1024 px 预览。
 
 ### 16.5 注册
 
@@ -835,7 +835,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 - 单任务不创建子 Agent。
 - 任务可恢复，indeterminate 不自动重复扣费。
 - 所有敏感数据和运行产物保持在 `.codex-image-private`。
-- 512 px 图片预览限制保持有效。
+- 1024 px 图片预览限制保持有效。
 - 旧 provider CLI 仍可显式诊断。
 - 旧 provider 技能不再默认注册或隐式调用。
 - 离线测试、隔离注册、技能校验、Plugin 校验和 share-ready 检查全部通过。

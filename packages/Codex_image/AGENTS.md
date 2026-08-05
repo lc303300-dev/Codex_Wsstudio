@@ -109,10 +109,10 @@ State uses schema v2 with `registered_tools`, `setup_completed_tools`, and `prov
 Never inspect a local raster original directly. First create a preview with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:CODEX_HOME\tools\Convert-CodexImagePreview.ps1" -InputPath <image-path> -MaxLongEdge 512
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:CODEX_HOME\tools\Convert-CodexImagePreview.ps1" -InputPath <image-path> -MaxLongEdge 1024
 ```
 
-Inspect only the generated preview whose longest edge is at most 512 px. Use original paths only for file operations and provider inputs. Put video frames and visual validation artifacts under `.codex-image-private/validation/`.
+Inspect only the generated preview whose longest edge is at most 1024 px. Use original paths only for file operations and provider inputs. Put video frames and visual validation artifacts under `.codex-image-private/validation/`.
 
 ## Private Runtime and Safe Logs
 

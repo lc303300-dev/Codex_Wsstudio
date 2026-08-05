@@ -4,7 +4,7 @@ This step is performed by Codex, not by a local script, because image recognitio
 
 For each manifest:
 
-1. Inspect `preview_image` with Codex visual tools only, after verifying its longest edge is at most 512px from the preview metadata. Never open `source_image` with a visual inspection tool.
+1. Inspect `preview_image` with Codex visual tools only, after verifying its longest edge is at most 1024px from the preview metadata. Never open `source_image` with a visual inspection tool.
 2. Fill `photo_type`, `visual`, `motion_plan`, and `forge.queries_zh` / `forge.queries_en`.
 3. Run `scripts/update_forge_matches.py` so `seedance-forge` matches are stored in the manifest.
 4. Extract structure from matches as inspiration, not copied text.

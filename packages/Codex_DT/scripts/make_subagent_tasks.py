@@ -81,7 +81,7 @@ docs/codex_authoring_workflow.md
 {user_motion_section}
 
 任务：
-1. 先从 preview 元数据确认最长边不超过 512px，再只视觉检查 preview image；不要直接检查 original source image。若无法确认预览尺寸，停止并通知主 Agent 重新生成。
+1. 先从 preview 元数据确认最长边不超过 1024px，再只视觉检查 preview image；不要直接检查 original source image。若无法确认预览尺寸，停止并通知主 Agent 重新生成。
 2. 填写 manifest 里的 photo_type、visual、motion_plan、forge queries。
 3. 使用 seedance-forge 检索相似语料，把 matches 写回 manifest，保留 sourceLink，并提炼 extracted_patterns。
 4. 按 mqrox/build-seedance2-prompts 的 multimodal reference 规则，写一份中文即梦 CLI 图生视频提示词到 {prompt_file}。

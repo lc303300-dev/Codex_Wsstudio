@@ -63,8 +63,8 @@ def validate_preview_record(record: dict[str, Any]) -> None:
     width = int(record["preview_width"])
     height = int(record["preview_height"])
     max_long_edge = int(record["max_long_edge"])
-    if width < 1 or height < 1 or max(width, height) > 512 or max_long_edge > 512:
-        raise SystemExit(f"Preview exceeds the 512px inspection limit: {record['preview_path']}")
+    if width < 1 or height < 1 or max(width, height) > 1024 or max_long_edge > 1024:
+        raise SystemExit(f"Preview exceeds the 1024px inspection limit: {record['preview_path']}")
     if Path(record["input_path"]).resolve() == Path(record["preview_path"]).resolve():
         raise SystemExit("Preview path must not point to the original raster image.")
     metadata_path = Path(record["preview_path"]).with_suffix(".json")

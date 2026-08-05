@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$InputPath,
-    [ValidateRange(1, 512)][int]$MaxLongEdge = 512,
+    [ValidateRange(1, 1024)][int]$MaxLongEdge = 1024,
     [string]$OutputDirectory
 )
 

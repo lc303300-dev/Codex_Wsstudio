@@ -20,7 +20,7 @@ The command is repeatable. It:
 - installs the repository's global `AGENTS.md` and merges the global `config.toml`;
 - migrates legacy credentials and binaries into `packages/Codex_image/.codex-image-private/`;
 - installs Dreamina CLI when it is missing and starts login when required;
-- installs the bundled 512 px preview converter into `CODEX_HOME/tools/`;
+- installs the bundled 1024 px preview converter into `CODEX_HOME/tools/`;
 - registers the unified image/video tools and plugin;
 - deploys `Codex_DT` using the sibling `Codex_image` CLI.
 - runs a post-deployment verification that checks required paths, installed global guidance, the sub-agent delegation rule, and project structure.

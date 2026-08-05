@@ -12,7 +12,7 @@ The wrapper only fast-forwards a clean, non-diverged checkout. It never overwrit
 
 The global `$CODEX_HOME/AGENTS.md` media-safety rules still apply. In particular:
 
-- All local raster visual inspection must use a generated preview whose longest edge is at most 512px. Original raster files are file/generation inputs only and must never be opened with a visual inspection tool.
+- All local raster visual inspection must use a generated preview whose longest edge is at most 1024px. Original raster files are file/generation inputs only and must never be opened with a visual inspection tool.
 - Credentials, cookies, authorization data, provider logs, caches, temporary manifests, task state, and other generated runtime files belong under `.codex-image-private/`.
 - This repository pipeline is the configured workspace wrapper for image-to-video requests. Outside this custom workflow, ordinary media requests use only the unified `generate_image` / `generate_video` router selected by the active workspace.
 
@@ -108,7 +108,7 @@ This bootstrap rule applies even when the opening message says `全自动生成�
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare_previews.ps1 -Batch <batch>
    ```
 
-   `prepare_previews.ps1` hard-rejects `-MaxLongEdge` values above 512. Agents must inspect only the generated `previews/<batch>/` image paths, never `inputs/<batch>/` originals.
+   `prepare_previews.ps1` hard-rejects `-MaxLongEdge` values above 1024. Agents must inspect only the generated `previews/<batch>/` image paths, never `inputs/<batch>/` originals.
 
 3. Determine duration:
    - Duration is mandatory.

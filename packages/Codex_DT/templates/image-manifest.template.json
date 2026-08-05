@@ -1,7 +1,7 @@
 {
   "id": "image-001",
   "source_image": "inputs/image-001.jpg",
-  "preview_image": "previews/image-001.512px.jpg",
+  "preview_image": "previews/image-001.1024px.jpg",
   "photo_type": "样板间室内照片",
   "visual": {
     "description_zh": "",
