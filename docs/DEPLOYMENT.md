@@ -23,6 +23,7 @@ The command is repeatable. It:
 - installs the bundled 512 px preview converter into `CODEX_HOME/tools/`;
 - registers the unified image/video tools and plugin;
 - deploys `Codex_DT` using the sibling `Codex_image` CLI.
+- runs a post-deployment verification that checks required paths, installed global guidance, the sub-agent delegation rule, and project structure.
 
 API keys are intentionally excluded from Git. Configure only the providers you use:
 
@@ -80,3 +81,10 @@ The script backs up the existing global `AGENTS.md` and `config.toml`, replaces 
 from `config/codex/AGENTS.md`, and regenerates/updates `config.toml` from
 `config/codex/config.portable.toml` while preserving
 machine-generated paths and existing MCP/project settings.
+
+After deployment, the same pipeline runs `scripts/maintenance/verify-deployment.ps1`.
+Run it independently to audit an existing machine:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\maintenance\verify-deployment.ps1
+```

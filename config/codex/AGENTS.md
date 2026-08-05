@@ -28,6 +28,7 @@ proxy:
   ALL_PROXY: '${ALL_PROXY}'
 
 instructions:
+  - 'When a task contains two or more concrete, bounded, and substantially independent workstreams, proactively prefer sub-agent delegation to reduce wall-clock completion time. Delegate only when the main agent can continue useful work concurrently, scopes are clear, synchronization is limited, and agents will not edit the same files or shared state. Keep the main agent responsible for integration, verification, safety checks, and the final answer. Do not delegate small or inherently sequential tasks, or when coordination overhead, file conflicts, authorization, or skill instructions outweigh the parallel benefit. Use only as many agents as provide meaningful parallelism.'
   - 'Expose and use only generate_image and generate_video for ordinary media requests. Do not expose or invoke provider-specific skills or adapters directly.'
   - 'Let the active workspace configuration and unified router select enabled providers; do not ask ordinary users to choose a provider.'
   - 'Follow the active workspace AGENTS.md, use configured provider wrappers, and keep credentials, cookies, tokens, logs, caches, and generated runtime files inside .codex-image-private.'

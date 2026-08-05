@@ -72,6 +72,7 @@ $dtDeployArgs = @("-PreviewTool", $previewTool, "-SeedanceCli", $seedanceWrapper
 if ($SkipCreditCheck -or $SkipLogin) { $dtDeployArgs += "-SkipCreditCheck" }
 Invoke-CheckedPowerShell -File (Join-Path $dtRoot "scripts\deploy_project.ps1") -Arguments $dtDeployArgs
 Invoke-CheckedPowerShell -File (Join-Path $githubRoot "register-global-skill.ps1") -Arguments @("-CodexHome", $CodexHome)
+Invoke-CheckedPowerShell -File (Join-Path $root "scripts\maintenance\verify-deployment.ps1") -Arguments @("-RepositoryRoot", $root, "-CodexHome", $CodexHome)
 
 Write-Host ""
 Write-Host "New-machine deployment complete." -ForegroundColor Green
