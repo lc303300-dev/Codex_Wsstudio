@@ -23,7 +23,7 @@ def build_registry(config: dict) -> dict:
     registry["google-gemini-image"] = PythonImageAdapter("google-gemini-image", "gemini-3.1-flash-image", PROJECT_ROOT / "CLI" / "Gemini-API" / "gemini_api.py", "GEMINI_API_KEY")
     registry["dreamina-image"] = DreaminaAdapter("dreamina-image", "image", "4.0")
     registry["antigravity-image"] = PythonImageAdapter("antigravity-image", "antigravity", PROJECT_ROOT / "CLI" / "Gemini-CLI" / "agy_image.py", None)
-    registry["dreamina-video"] = DreaminaAdapter("dreamina-video", "video", "seedance2.5")
+    registry["dreamina-video"] = DreaminaAdapter("dreamina-video", "video", "seedance2.0_vip")
     for provider_id, adapter in registry.items():
         adapter.max_concurrency = providers[provider_id]["max_concurrency"]
         adapter.capacity_key = providers[provider_id].get("capacity_key", provider_id)

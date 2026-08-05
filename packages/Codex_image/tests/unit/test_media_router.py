@@ -304,6 +304,13 @@ class VideoRouterTests(unittest.TestCase):
         self.assertNotIn("--model_version", args)
         self.assertNotIn("--video_resolution", args)
 
+    def test_supported_commands_default_to_seedance_2_vip(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            request = self.request(Path(temporary))
+            args = build_video_arguments("text2video", request)
+        self.assertEqual(args[args.index("--model_version") + 1], "seedance2.0_vip")
+        self.assertEqual(args[args.index("--video_resolution") + 1], "720p")
+
     def test_limits_and_audio_duration(self):
         class Provider:
             pass
@@ -321,7 +328,7 @@ class VideoRouterTests(unittest.TestCase):
             capacity_key = "seedance-cli"
             max_concurrency = 6
             provider_id = "dreamina-video"
-            model_id = "seedance2.5"
+            model_id = "seedance2.0_vip"
 
             def check_readiness(self):
                 return Readiness(True)

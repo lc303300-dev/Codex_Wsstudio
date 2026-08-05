@@ -1,6 +1,6 @@
 ---
 name: seedance-cli
-description: Generate images and videos independently through the official Dreamina CLI, including Dreamina image generation with Image 4.0 by default and Image 5.0Pro for explicit maximum-quality requests, plus Seedance 2.5 at 720p by default for supported video workflows. Use for JiMeng/Dreamina/Seedance generation, login, credits, sessions, task queries, and downloads without Gemini or GPT fallback.
+description: Generate images and videos independently through the official Dreamina CLI, including Dreamina image generation with Image 4.0 by default and Image 5.0Pro for explicit maximum-quality requests, plus Seedance 2.0 VIP at 720p by default for supported video workflows. Use for JiMeng/Dreamina/Seedance generation, login, credits, sessions, task queries, and downloads without Gemini or GPT fallback.
 ---
 
 # Seedance CLI
@@ -77,7 +77,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ../CLI/Seedance-CLI/run.ps1 
 
 ## Video Model Routing
 
-- For video commands that support `--model_version`, use Seedance 2.5 by default: `--model_version=seedance2.5`. The project wrapper also injects this value when no video model flag is supplied.
+- For video commands that support `--model_version`, use Seedance 2.0 VIP by default: `--model_version=seedance2.0_vip`. The project wrapper also injects this value when no video model flag is supplied.
 - This default applies to `text2video`, `image2video`, `frames2video`, and `multimodal2video`.
 - Unless the user explicitly requests another supported resolution, use `--video_resolution=720p`. The project wrapper injects this value when no video resolution flag is supplied.
 - Do not inject or request a model or resolution for `multiframe2video`; the current CLI help says those overrides are not supported for that command.

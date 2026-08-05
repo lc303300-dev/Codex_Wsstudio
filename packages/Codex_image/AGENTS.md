@@ -46,7 +46,7 @@ Use only Dreamina/Seedance for video. Select the CLI subcommand from inputs:
 
 Validate local files before submit. For `multimodal2video`, allow at most 9 images, 3 videos, and 3 audio files; require every audio input to be 2-15 seconds and at least one image or video. Run the chosen subcommand `-h` before every real submit.
 
-For supported video commands, default to `seedance2.5` and `720p`. Never inject a model or resolution into `multiframe2video`, because the current CLI does not support them. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes.
+For supported video commands, default to Seedance 2.0 VIP (`seedance2.0_vip`) and `720p`. Never inject a model or resolution into `multiframe2video`, because the current CLI does not support them. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes.
 
 Save `submit_id`. Query and download successful tasks with `query_result --submit_id <id> --download_dir <private-output-dir>`. If a submission may have happened but its outcome is unknown, mark `needs_review` and do not submit again.
 
