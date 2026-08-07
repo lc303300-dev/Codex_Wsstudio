@@ -35,4 +35,11 @@ Every structural change must update all of the following in the same commit:
 5. `scripts/maintenance/test-project-structure.ps1`
 6. any scripts and documentation containing affected paths
 
+The workspace currently includes the following packaged projects:
+
+- `packages/Codex_image/`
+- `packages/Codex_DT/`
+- `packages/Codex_Gif/`
+- `packages/Codex_Github/`
+
 Do not create compatibility copies of moved implementation files at the root. If a root command must remain stable, keep a small forwarding entry script instead.

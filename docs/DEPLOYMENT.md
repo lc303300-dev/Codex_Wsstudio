@@ -22,6 +22,7 @@ The command is repeatable. It:
 - installs Dreamina CLI when it is missing and starts login when required;
 - installs the bundled 1024 px preview converter into `CODEX_HOME/tools/`;
 - registers the unified image/video tools and plugin;
+- registers the unified image/video tools, the video-to-GIF package skill, and the plugin;
 - deploys `Codex_DT` using the sibling `Codex_image` CLI.
 - runs a post-deployment verification that checks required paths, installed global guidance, the sub-agent delegation rule, and project structure.
 
@@ -81,6 +82,9 @@ The script backs up the existing global `AGENTS.md` and `config.toml`, replaces 
 from `config/codex/AGENTS.md`, and regenerates/updates `config.toml` from
 `config/codex/config.portable.toml` while preserving
 machine-generated paths and existing MCP/project settings.
+
+It also refreshes the globally registered `codex-github` and `video-to-gif` skills from
+`packages/Codex_Github/` and `packages/Codex_Gif/` when those package scripts are present.
 
 After deployment, the same pipeline runs `scripts/maintenance/verify-deployment.ps1`.
 Run it independently to audit an existing machine:

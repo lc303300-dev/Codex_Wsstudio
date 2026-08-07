@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 $imageRoot = Join-Path $root "packages\Codex_image"
 $dtRoot = Join-Path $root "packages\Codex_DT"
+$gifRoot = Join-Path $root "packages\Codex_Gif"
 $githubRoot = Join-Path $root "packages\Codex_Github"
 $seedanceWrapper = Join-Path $imageRoot "CLI\Seedance-CLI\run.ps1"
 $previewTool = Join-Path $CodexHome "tools\Convert-CodexImagePreview.ps1"
@@ -31,7 +32,7 @@ foreach ($command in @("git", "python", "powershell.exe")) {
         throw "Required command is missing: $command"
     }
 }
-foreach ($directory in @($imageRoot, $dtRoot, $githubRoot)) {
+foreach ($directory in @($imageRoot, $dtRoot, $gifRoot, $githubRoot)) {
     if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
         throw "Required project directory is missing: $directory"
     }
@@ -72,6 +73,7 @@ $dtDeployArgs = @("-PreviewTool", $previewTool, "-SeedanceCli", $seedanceWrapper
 if ($SkipCreditCheck -or $SkipLogin) { $dtDeployArgs += "-SkipCreditCheck" }
 Invoke-CheckedPowerShell -File (Join-Path $dtRoot "scripts\deploy_project.ps1") -Arguments $dtDeployArgs
 Invoke-CheckedPowerShell -File (Join-Path $githubRoot "register-global-skill.ps1") -Arguments @("-CodexHome", $CodexHome)
+Invoke-CheckedPowerShell -File (Join-Path $gifRoot "register-global-skill.ps1") -Arguments @("-CodexHome", $CodexHome)
 Invoke-CheckedPowerShell -File (Join-Path $root "scripts\maintenance\verify-deployment.ps1") -Arguments @("-RepositoryRoot", $root, "-CodexHome", $CodexHome)
 
 Write-Host ""

@@ -21,6 +21,9 @@ Require-Path (Join-Path $RepositoryRoot "AGENTS.md") "repository guidance"
 Require-Path (Join-Path $RepositoryRoot "config\codex\AGENTS.md") "global guidance source"
 Require-Path (Join-Path $RepositoryRoot "config\codex\config.portable.toml") "portable config source"
 Require-Path (Join-Path $RepositoryRoot "packages") "packages directory" "Container"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif") "GIF package" "Container"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif\register-global-skill.ps1") "GIF registration script"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif\.claude\skills\video-to-gif\SKILL.md") "GIF skill"
 Require-Path (Join-Path $RepositoryRoot "scripts") "scripts directory" "Container"
 Require-Path (Join-Path $CodexHome "AGENTS.md") "global Codex guidance"
 Require-Path (Join-Path $CodexHome "config.toml") "global Codex config"
@@ -39,6 +42,12 @@ if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not ((Get-Content -Lit
 }
 if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not ((Get-Content -LiteralPath $target -Raw -Encoding UTF8) -like "*$ruleText*")) {
     $errors.Add("Sub-agent delegation rule is absent from the installed global guidance.")
+}
+
+$gifRuleText = "video to GIF"
+$gifSource = Join-Path $RepositoryRoot "config\codex\AGENTS.md"
+if ((Test-Path -LiteralPath $gifSource -PathType Leaf) -and -not ((Get-Content -LiteralPath $gifSource -Raw -Encoding UTF8) -like "*$gifRuleText*")) {
+    $errors.Add("GIF trigger rule is absent from the repository global guidance source.")
 }
 
 $structure = Join-Path $RepositoryRoot "scripts\maintenance\test-project-structure.ps1"

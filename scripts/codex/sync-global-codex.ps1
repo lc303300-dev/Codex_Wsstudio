@@ -97,5 +97,13 @@ if (Test-Path -LiteralPath $githubRegistration -PathType Leaf) {
     }
 }
 
+$gifRegistration = Join-Path $RepositoryRoot "packages\Codex_Gif\register-global-skill.ps1"
+if (Test-Path -LiteralPath $gifRegistration -PathType Leaf) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $gifRegistration -CodexHome $CodexHome
+    if ($LASTEXITCODE -ne 0) {
+        throw "Codex_Gif global skill registration failed with exit code ${LASTEXITCODE}."
+    }
+}
+
 Write-Host ""
 Write-Host "Global Codex synchronization complete. Restart Codex or start a new task to reload changes." -ForegroundColor Green
