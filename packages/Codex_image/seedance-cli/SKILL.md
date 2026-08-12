@@ -1,6 +1,6 @@
 ---
 name: seedance-cli
-description: Generate images and videos independently through the official Dreamina CLI, including Dreamina image generation with Image 4.0 by default and Image 5.0Pro for explicit maximum-quality requests, plus Seedance 2.0 VIP at 720p by default for supported video workflows. Use for JiMeng/Dreamina/Seedance generation, login, credits, sessions, task queries, and downloads without Gemini or GPT fallback.
+description: Generate images and videos independently through the official Dreamina CLI, including Dreamina image generation with Image 4.0 by default and Image 5.0Pro for explicit maximum-quality requests, plus Seedance 2.5 at 480p by default for supported video workflows. Use for JiMeng/Dreamina/Seedance generation, login, credits, sessions, task queries, and downloads without Gemini or GPT fallback.
 ---
 
 # Seedance CLI
@@ -39,7 +39,7 @@ For login, use `../CLI/seedance-login.cmd`. It opens the OAuth page in the Windo
 - `image2video`: animate one main image.
 - `frames2video`: first/last-frame control.
 - `multiframe2video`: coherent story from multiple images.
-- `multimodal2video`: all-around image/video/audio references with the Seedance 2.0 family.
+- `multimodal2video`: all-around image/video/audio references with Seedance video models.
 
 ## All-Around Reference / 全能参考
 
@@ -48,7 +48,7 @@ Use `multimodal2video` for Dreamina Web's "全能参考" mode. It uploads local 
 - Use absolute local paths when possible, especially in automated workflows.
 - Use `--image` for main/reference images, `--video` for motion or video references, and `--audio` for music/audio references.
 - At least one image or video is required.
-- Current help allows up to 9 images, 3 videos, and 3 audio files; audio inputs must be 2-15 seconds.
+- Default Seedance 2.5 allows up to 30 images, 10 videos, 10 audio files, and 50 total reference inputs; video/audio inputs must be 2-30 seconds. Explicit non-2.5 models have lower limits from current CLI help.
 - Check every local file with `Test-Path -LiteralPath` before submission.
 - Keep `submit_id` and query/download later with `query_result`.
 
@@ -68,18 +68,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ../CLI/Seedance-CLI/run.ps1 
     --video $RefVideo `
     --audio $Bgm `
     --prompt "根据参考视频的运镜方式，配合音乐节奏，将静态图片转为动态视频" `
-    --model_version seedance2.0 `
+    --model_version seedance2.5 `
     --duration 8 `
     --ratio 16:9 `
-    --video_resolution 720p `
+    --video_resolution 480p `
     --poll 180
 ```
 
 ## Video Model Routing
 
-- For video commands that support `--model_version`, use Seedance 2.0 VIP by default: `--model_version=seedance2.0_vip`. The project wrapper also injects this value when no video model flag is supplied.
+- For video commands that support `--model_version`, use Seedance 2.5 by default: `--model_version=seedance2.5`. The project wrapper also injects this value when no video model flag is supplied.
 - This default applies to `text2video`, `image2video`, `frames2video`, and `multimodal2video`.
-- Unless the user explicitly requests another supported resolution, use `--video_resolution=720p`. The project wrapper injects this value when no video resolution flag is supplied.
+- Unless the user explicitly requests another supported resolution, use `--video_resolution=480p`. The project wrapper injects this value when no video resolution flag is supplied.
+- Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p` resolution.
 - Do not inject or request a model or resolution for `multiframe2video`; the current CLI help says those overrides are not supported for that command.
 - Honor an explicitly requested supported video model after checking the current subcommand help.
 - Honor an explicitly requested supported video resolution after checking the current subcommand help.

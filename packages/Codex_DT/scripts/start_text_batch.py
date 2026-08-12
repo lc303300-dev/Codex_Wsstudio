@@ -43,14 +43,14 @@ def main() -> int:
         )
     )
     parser.add_argument("--name", required=True, help="Descriptive suffix for YYYYMMDD-HHMM-<name>.")
-    parser.add_argument("--duration", type=int, required=True, help="Required video duration in seconds, 4 through 15.")
+    parser.add_argument("--duration", type=int, required=True, help="Required video duration in seconds, 4 through 30.")
     parser.add_argument("--ratio", help="Optional target ratio: 21:9, 16:9, 4:3, 1:1, 3:4, or 9:16.")
     parser.add_argument("--request", required=True, help="Original Chinese user request, including motion/camera constraints.")
     parser.add_argument("--auto-generate", action="store_true", help="Record that confirmation should be skipped after review finalization.")
     args = parser.parse_args()
 
     if not 4 <= args.duration <= 15:
-        raise SystemExit("--duration must be an integer from 4 through 15 seconds.")
+        raise SystemExit("--duration must be an integer from 4 through 30 seconds.")
     if args.ratio is not None and args.ratio not in SUPPORTED_RATIOS:
         raise SystemExit(f"--ratio must be one of: {', '.join(SUPPORTED_RATIOS)}.")
 

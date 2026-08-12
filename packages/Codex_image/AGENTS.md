@@ -15,7 +15,7 @@ Both tools are external open-world operations that may consume provider credits.
 
 Route each image task strictly serially and stop after the first validated non-empty local image:
 
-1. `comfly-gemini-lite` -> `gemini-3.1-flash-lite-image`
+1. `comfly-gemini-lite` -> `gemini-3.1-flash-image-preview`
 2. `comfly-gpt-image-2-all` -> `gpt-image-2-all`
 3. `comfly-gpt-image-2` -> `gpt-image-2`
 4. `apimart-gpt-image-2` -> APIMart `gpt-image-2`
@@ -38,15 +38,15 @@ Use only Dreamina/Seedance for video. Select the CLI subcommand from inputs:
 | Input | Command |
 | --- | --- |
 | prompt only | `text2video` |
-| one image | `image2video` |
+| one image | `multimodal2video` |
 | exactly two images with explicit first/last-frame semantics | `frames2video` |
-| multiple images without first/last semantics | `multiframe2video` |
+| multiple images without first/last semantics | `multimodal2video` |
 | any video, or audio plus an image/video | `multimodal2video` |
 | prompt plus audio only | reject as `input_error` |
 
-Validate local files before submit. For `multimodal2video`, allow at most 9 images, 3 videos, and 3 audio files; require every audio input to be 2-15 seconds and at least one image or video. Run the chosen subcommand `-h` before every real submit.
+Validate local files before submit. For the default Seedance 2.5 `multimodal2video` path, allow at most 30 images, 10 videos, 10 audio files, and 50 total reference inputs; audio-only is allowed by Seedance 2.5, and every video/audio input must be 2-30 seconds. For explicit non-2.5 models, keep their current CLI limits. Run the chosen subcommand `-h` before every real submit.
 
-For supported video commands, default to Seedance 2.0 VIP (`seedance2.0_vip`) and `720p`. Never inject a model or resolution into `multiframe2video`, because the current CLI does not support them. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes.
+For supported video commands, default to Seedance 2.5 (`seedance2.5`) and `480p`. Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p` resolution. Never inject a model or resolution into `multiframe2video`, because the current CLI does not support them. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes.
 
 Save `submit_id`. Query and download successful tasks with `query_result --submit_id <id> --download_dir <private-output-dir>`. If a submission may have happened but its outcome is unknown, mark `needs_review` and do not submit again.
 

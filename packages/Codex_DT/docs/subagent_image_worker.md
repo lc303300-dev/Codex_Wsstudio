@@ -81,9 +81,10 @@ The subagent must not modify either `third_party` project.
 10. Compile using mqrox multimodal reference rules:
     - `surface = "dreamina-cli"` for this local pipeline
     - `mode = "multimodal"`
-    - the source image is bound by `multimodal2video --image <source path>`
-    - the CLI-facing prompt must refer to the first ordered image upload as `图片1`
-    - do not type Web UI mention-chip forms such as `@Image 1` or `@图片1`
+    - references are bound by ordered `multimodal2video --image`, `--video`, and `--audio` arguments
+    - the CLI-facing prompt must refer to ordered uploads with bare Chinese labels such as `图片1`, `图片2`, `视频1`, and `音频1`
+    - do not type Web UI mention-chip forms such as `@Image 1`, `@图片1`, `@Video 1`, or `@视频1`
+    - never infer reference order from filenames or prompt prose when ordered CLI arguments are present
     - `transport_role = "reference_image"`
     - use the existing `duration` and `ratio`; do not invent or change them
     - final prompt is Chinese

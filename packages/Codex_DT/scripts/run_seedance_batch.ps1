@@ -142,7 +142,7 @@ foreach ($item in $confirmed) {
     }
     $resolution = [string]$manifest.mqrox_compile.resolution
     if ([string]::IsNullOrWhiteSpace($resolution)) {
-        $resolution = "720p"
+        $resolution = "480p"
     }
     if (@("480p", "720p") -notcontains $resolution) {
         throw "Resolution for seedance2.5 must be 480p or 720p; got $resolution."

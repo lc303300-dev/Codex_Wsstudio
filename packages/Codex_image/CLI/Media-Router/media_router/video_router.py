@@ -14,6 +14,13 @@ from .task_store import TaskStore
 
 
 FIRST_LAST_PATTERN = re.compile(r"(?i)(首尾帧|首帧.{0,8}尾帧|first.{0,8}last\s+frame|start.{0,8}end\s+frame)")
+DEFAULT_VIDEO_MODEL = "seedance2.5"
+DEFAULT_VIDEO_RESOLUTION = "480p"
+MULTIMODAL_IMAGE_ORDER_PREFIX = (
+    "参考引用规则：所有参考内容严格按命令行参数出现顺序绑定；图片1=第1个 --image，"
+    "图片2=第2个 --image，视频1=第1个 --video，音频1=第1个 --audio。"
+    "提示词必须使用这些裸标签，不得使用 @图片1、@Image 1，也不得按文件名、自然语言顺序或视觉猜测重新排序。\n"
+)
 
 
 def audio_duration(path: Path) -> float:
@@ -31,29 +38,34 @@ def audio_duration(path: Path) -> float:
 
 
 def select_video_command(request: MediaRequest) -> str:
-    if request.audios and not request.images and not request.videos:
-        raise ValueError("Audio input requires at least one image or video")
+    if request.video_command:
+        if request.video_command not in {"text2video", "image2video", "frames2video", "multiframe2video", "multimodal2video"}:
+            raise ValueError(f"Unsupported video command: {request.video_command}")
+        return request.video_command
+    if request.audios and not request.images and not request.videos and request.video_model not in (None, DEFAULT_VIDEO_MODEL):
+        raise ValueError(f"Audio-only multimodal input requires {DEFAULT_VIDEO_MODEL}")
     if request.videos or request.audios:
         return "multimodal2video"
     if not request.images:
         return "text2video"
-    if len(request.images) == 1:
-        return "image2video"
     if len(request.images) == 2 and FIRST_LAST_PATTERN.search(request.prompt):
         return "frames2video"
-    return "multiframe2video"
+    return "multimodal2video"
 
 
 def _prompt_preferences(prompt: str) -> tuple[str | None, str | None, str | None]:
     ratio = next((value for value in ("21:9", "16:9", "9:16", "4:3", "3:4", "1:1") if value in prompt), None)
     duration_match = re.search(r"(?i)(\d{1,2})\s*(?:秒|s(?:ec(?:onds?)?)?)", prompt)
-    duration = duration_match.group(1) if duration_match and 4 <= int(duration_match.group(1)) <= 15 else None
-    resolution = next((value for value in ("4k", "1080p", "720p") if value.lower() in prompt.lower()), None)
+    duration = duration_match.group(1) if duration_match and 4 <= int(duration_match.group(1)) <= 30 else None
+    resolution = next((value for value in ("4k", "1080p", "720p", "480p") if value.lower() in prompt.lower()), None)
     return ratio, duration, resolution
 
 
 def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
     ratio, duration, resolution = _prompt_preferences(request.prompt)
+    ratio = request.video_ratio or ratio
+    duration = request.video_duration or duration
+    resolution = request.video_resolution or resolution
     args: list[str] = []
     if command == "text2video":
         args += ["--prompt", request.prompt]
@@ -77,9 +89,12 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
             args += ["--video", str(path)]
         for path in request.audios:
             args += ["--audio", str(path)]
-        args += ["--prompt", request.prompt]
+        # Dreamina binds multimodal references by repeated --image occurrence.
+        # Make that contract explicit in the prompt so the model does not infer
+        # a different semantic order from filenames or natural-language labels.
+        args += ["--prompt", MULTIMODAL_IMAGE_ORDER_PREFIX + request.prompt]
     if command != "multiframe2video":
-        args += ["--model_version", "seedance2.0_vip", "--video_resolution", resolution or "720p"]
+        args += ["--model_version", request.video_model or DEFAULT_VIDEO_MODEL, "--video_resolution", resolution or DEFAULT_VIDEO_RESOLUTION]
         if duration:
             args += ["--duration", duration]
         if ratio and command in ("text2video", "multimodal2video"):
@@ -99,9 +114,14 @@ class VideoRouter:
         if command == "multiframe2video":
             limits = ((request.images, 20, "images"),)
         elif command == "multimodal2video":
-            limits = ((request.images, 9, "images"), (request.videos, 3, "videos"), (request.audios, 3, "audios"))
-            if sum(len(values) for values, _, _ in limits) > 12:
-                raise ValueError("At most 12 total inputs are allowed for seedance2.0_vip multimodal2video")
+            selected_model = request.video_model or DEFAULT_VIDEO_MODEL
+            if selected_model != DEFAULT_VIDEO_MODEL and request.audios and not request.images and not request.videos:
+                raise ValueError(f"Audio-only multimodal input requires {DEFAULT_VIDEO_MODEL}")
+            image_limit = 30 if selected_model == "seedance2.5" else 9
+            limits = ((request.images, image_limit, "images"), (request.videos, 10 if selected_model == "seedance2.5" else 3, "videos"), (request.audios, 10 if selected_model == "seedance2.5" else 3, "audios"))
+            max_total = 50 if selected_model == "seedance2.5" else 12
+            if sum(len(values) for values, _, _ in limits) > max_total:
+                raise ValueError(f"At most {max_total} total inputs are allowed for {selected_model} multimodal2video")
         else:
             limits = ((request.images, 1, "images"), (request.videos, 0, "videos"), (request.audios, 0, "audios"))
         for values, limit, label in limits:
@@ -110,10 +130,11 @@ class VideoRouter:
             missing = [str(path) for path in values if not path.is_file()]
             if missing:
                 raise FileNotFoundError("Missing local media: " + "; ".join(missing))
+        audio_max_duration = 30 if (request.video_model or DEFAULT_VIDEO_MODEL) == DEFAULT_VIDEO_MODEL else 15
         for path in request.audios:
             duration = self.duration_probe(path)
-            if not 2 <= duration <= 15:
-                raise ValueError(f"Audio duration must be 2-15 seconds: {path}")
+            if not 2 <= duration <= audio_max_duration:
+                raise ValueError(f"Audio duration must be 2-{audio_max_duration} seconds: {path}")
         return command
 
     def execute(self, request: MediaRequest, context: TaskContext | None = None) -> MediaResult:

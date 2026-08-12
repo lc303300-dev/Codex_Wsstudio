@@ -24,7 +24,16 @@ if ($CheckLogin -and $dreaminaReady) {
     try { $value = & $dreamina user_credit 2>&1; $dreaminaReady = $LASTEXITCODE -eq 0 -and (($value -join "`n") -match 'total_credit') } catch { $dreaminaReady = $false }
 }
 if ($CheckLogin -and $antigravityReady) {
-    try { $value = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectRoot "CLI\Gemini-CLI\agy-proxy.ps1") models 2>&1; $antigravityReady = $LASTEXITCODE -eq 0 -and @($value).Count -gt 0 } catch { $antigravityReady = $false }
+    try {
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        $value = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectRoot "CLI\Gemini-CLI\agy-proxy.ps1") models 2>&1
+        $antigravityReady = $LASTEXITCODE -eq 0 -and @($value | Where-Object { $_ -match "\S" }).Count -gt 0
+    } catch {
+        $antigravityReady = $false
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
 }
 
 $providerReady = [ordered]@{

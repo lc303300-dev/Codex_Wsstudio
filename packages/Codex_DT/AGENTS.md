@@ -113,7 +113,7 @@ This bootstrap rule applies even when the opening message says `全自动生成�
 3. Determine duration:
    - Duration is mandatory.
    - If the user did not provide duration, ask for it before manifest initialization.
-   - Valid range is 4 to 15 seconds.
+   - Valid range is 4 to 30 seconds for the default Seedance 2.5 path.
 
 4. Determine ratio:
    - Ratio is optional.
@@ -166,8 +166,10 @@ This bootstrap rule applies even when the opening message says `全自动生成�
 ## Prompt rules
 
 - User-visible prompts and final Dreamina CLI prompts must be Chinese.
-- For local Dreamina CLI generation, image binding is performed by `multimodal2video` with one or more ordered `--image <path>` arguments. The final prompt must reference those uploads with Chinese labels `图片1`, `图片2`, `图片3`, etc. The number must match the `--image` order exactly.
-- Do not use Web UI mention-chip forms such as `@Image 1` or `@图片1` in Dreamina CLI-facing prompts. Use bare Chinese labels such as `图片1作为首帧参考`.
+- When an Agent needs to supplement, newly write, repair, or rewrite any video prompt in this workspace, use this Codex_DT prompt-generation workflow first unless a more specific project pipeline explicitly overrides it.
+- For local Dreamina CLI generation, reference binding is performed by `multimodal2video` with ordered `--image <path>`, `--video <path>`, and `--audio <path>` arguments. The final prompt must reference those uploads with Chinese bare labels: `图片1`, `图片2`, `视频1`, `音频1`, etc. The number must match the corresponding CLI argument order exactly.
+- Do not use Web UI mention-chip forms such as `@Image 1`, `@图片1`, `@Video 1`, or `@视频1` in Dreamina CLI-facing prompts. Use bare Chinese labels such as `图片1作为首帧参考`.
+- Never infer reference order from filenames, visual layout, user wording order after upload, or natural-language aliases when CLI arguments are present. The ordered CLI argument list is authoritative.
 - For a single-image item, submit one `--image <path>` and write `图片1` in the prompt.
 
 ## Third-party projects

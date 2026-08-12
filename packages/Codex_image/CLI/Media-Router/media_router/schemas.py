@@ -13,6 +13,13 @@ class MediaRequest:
     images: tuple[Path, ...] = ()
     videos: tuple[Path, ...] = ()
     audios: tuple[Path, ...] = ()
+    video_command: str | None = None
+    video_model: str | None = None
+    video_ratio: str | None = None
+    video_duration: str | None = None
+    video_resolution: str | None = None
+    image_provider: str | None = None
+    image_model: str | None = None
 
 
 @dataclass(frozen=True)

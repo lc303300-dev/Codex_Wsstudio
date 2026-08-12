@@ -121,7 +121,7 @@ def main() -> int:
     parser.add_argument("--manifests", type=Path, default=ROOT / "manifests")
     parser.add_argument("--prompts", type=Path, default=ROOT / "prompts")
     parser.add_argument("--batch", help="Batch/task id. Uses previews/<batch>, manifests/<batch>, and prompts/<batch>.")
-    parser.add_argument("--duration", type=int, help="Required video duration in seconds, 4 through 15. Defaults to private batch request metadata when present.")
+    parser.add_argument("--duration", type=int, help="Required video duration in seconds, 4 through 30. Defaults to private batch request metadata when present.")
     parser.add_argument("--ratio", help="Optional target ratio: 21:9, 16:9, 4:3, 1:1, 3:4, or 9:16. If omitted, the nearest image ratio is used.")
     parser.add_argument("--brief", action="append", type=parse_brief, default=[], help="Per-image user motion brief as IMAGE_ID=TEXT. Keys may be manifest ids like 001-image1, input stems like image1, or 1-based indexes.")
     parser.add_argument("--request", type=Path, help="Optional request metadata JSON. Defaults to .codex-image-private/batches/<batch>/request.json when available.")
@@ -148,9 +148,9 @@ def main() -> int:
     if duration is None:
         raise SystemExit("--duration is required unless private batch request metadata provides duration.")
     if not isinstance(duration, int):
-        raise SystemExit("--duration must be an integer from 4 through 15 seconds.")
-    if not 4 <= duration <= 15:
-        raise SystemExit("--duration must be an integer from 4 through 15 seconds.")
+        raise SystemExit("--duration must be an integer from 4 through 30 seconds.")
+    if not 4 <= duration <= 30:
+        raise SystemExit("--duration must be an integer from 4 through 30 seconds.")
     if ratio is not None and ratio not in SUPPORTED_RATIOS:
         raise SystemExit(f"--ratio must be one of: {', '.join(SUPPORTED_RATIOS)}.")
 

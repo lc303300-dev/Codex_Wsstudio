@@ -9,12 +9,13 @@
 - Result URL: `data[0].url`; an empty `b64_json` is not a failure when the URL is usable
 - Download headers: browser `User-Agent`, image-oriented `Accept`, and `Referer: https://ai.comfly.org/`
 - Private configuration from the project root: `.codex-image-private/.env`
+- `gemini-3.1-flash-image-preview` uses the 1K output class only. Accept `1K` or the documented 1K aspect-ratio sizes, and reject `2K`/`4K`.
 
 ## Model Routing
 
 Use only this fixed, serial priority:
 
-1. `gemini-3.1-flash-lite-image`
+1. `gemini-3.1-flash-image-preview`
 2. `gpt-image-2-all`
 3. `gpt-image-2`
 

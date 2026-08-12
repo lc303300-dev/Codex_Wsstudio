@@ -33,14 +33,14 @@
     "duration": null,
     "ratio": null,
     "model_version": "seedance2.5",
-    "resolution": "720p",
+    "resolution": "480p",
     "asset_manifest": {
       "surface": "generic",
       "model_variant": "fast",
       "mode": "multimodal",
       "duration": null,
       "ratio": null,
-      "resolution": "720p",
+      "resolution": "480p",
       "generate_audio": false,
       "assets": [
         {

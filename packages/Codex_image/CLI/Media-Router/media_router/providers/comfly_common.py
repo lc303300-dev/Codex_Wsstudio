@@ -23,6 +23,20 @@ DOWNLOAD_HEADERS = {
     "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     "Referer": "https://ai.comfly.org/",
 }
+GEMINI_LITE_MODEL = "gemini-3.1-flash-image-preview"
+GEMINI_LITE_1K_SIZES = {
+    "1:1": "1024x1024",
+    "2:3": "848x1264",
+    "3:2": "1264x848",
+    "3:4": "896x1200",
+    "4:3": "1200x896",
+    "4:5": "928x1152",
+    "5:4": "1152x928",
+    "9:16": "768x1376",
+    "16:9": "1376x768",
+    "21:9": "1584x672",
+}
+GEMINI_LITE_DEFAULT_SIZE = GEMINI_LITE_1K_SIZES["1:1"]
 
 
 def _is_timeout_error(exc: BaseException) -> bool:
@@ -55,11 +69,30 @@ def opener() -> urllib.request.OpenerDirector:
     return urllib.request.build_opener(urllib.request.ProxyHandler(proxies))
 
 
+def normalize_size(model: str, size: str | None) -> str:
+    value = (size or "").strip()
+    if model != GEMINI_LITE_MODEL:
+        return value or "1024x1024"
+    if not value or value.upper() == "1K":
+        return GEMINI_LITE_DEFAULT_SIZE
+    if value in GEMINI_LITE_1K_SIZES:
+        return GEMINI_LITE_1K_SIZES[value]
+    allowed_sizes = set(GEMINI_LITE_1K_SIZES.values())
+    if value in allowed_sizes:
+        return value
+    raise MediaRouterError(
+        f"{GEMINI_LITE_MODEL} supports only 1K output sizes: " + ", ".join(f"{ratio}={size}" for ratio, size in GEMINI_LITE_1K_SIZES.items()),
+        FailureClass.INPUT_ERROR,
+    )
+
+
 def json_body(model: str, prompt: str, size: str) -> bytes:
+    size = normalize_size(model, size)
     return json.dumps({"model": model, "prompt": prompt, "n": 1, "size": size, "response_format": "url"}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 def multipart_body(model: str, prompt: str, size: str, images: tuple[Path, ...], boundary: str | None = None) -> tuple[bytes, str]:
+    size = normalize_size(model, size)
     boundary = boundary or f"----CodexMedia{uuid.uuid4().hex}"
     chunks: list[bytes] = []
     for name, value in (("model", model), ("prompt", prompt), ("n", "1"), ("size", size), ("response_format", "url")):

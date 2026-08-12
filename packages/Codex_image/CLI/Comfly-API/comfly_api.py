@@ -14,7 +14,7 @@ from media_router.safe_logging import write_json  # noqa: E402
 
 
 MODELS = (
-    "gemini-3.1-flash-lite-image",
+    "gemini-3.1-flash-image-preview",
     "gpt-image-2-all",
     "gpt-image-2",
 )
@@ -40,7 +40,7 @@ def main() -> None:
     parser.add_argument("--image", action="append", default=[])
     parser.add_argument("--out", required=True)
     parser.add_argument("--log", required=True)
-    parser.add_argument("--size", default="1024x1024")
+    parser.add_argument("--size")
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -58,7 +58,7 @@ def main() -> None:
         "endpoint": comfly_common.EDITS_URL if images else comfly_common.GENERATIONS_URL,
         "prompt": prompt_summary(prompt),
         "image_count": len(images),
-        "size": args.size,
+        "size": comfly_common.normalize_size(args.model, args.size),
         "dry_run": args.dry_run,
         "api_key_configured": bool(comfly_common.api_key()),
     }

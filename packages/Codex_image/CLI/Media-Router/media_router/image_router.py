@@ -17,9 +17,12 @@ class ImageRouter:
         self.config, self.registry = config, registry
         self.store = store or TaskStore()
 
-    def ordered_providers(self) -> list:
+    def ordered_providers(self, request: MediaRequest) -> list:
         configured = self.config["providers"]
-        image_ids = [provider_id for provider_id, provider in self.registry.items() if provider.capability == "image" and configured[provider_id].get("enabled", True)]
+        requested = request.image_provider
+        image_ids = [provider_id for provider_id, provider in self.registry.items() if provider.capability == "image" and (provider_id == requested or configured[provider_id].get("enabled", True))]
+        if requested:
+            image_ids = [item for item in image_ids if item == requested]
         return [self.registry[provider_id] for provider_id in sorted(image_ids, key=lambda item: configured[item]["priority"])]
 
     @staticmethod
@@ -71,7 +74,7 @@ class ImageRouter:
             self.store.write_result(context, final.to_dict())
             return final
 
-        for provider in self.ordered_providers():
+        for provider in self.ordered_providers(request):
             if time.monotonic() >= task_deadline:
                 return task_timeout()
             readiness = provider.check_readiness()

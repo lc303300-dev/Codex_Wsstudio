@@ -1,6 +1,6 @@
 ---
 name: comfly-api
-description: Generate or edit still images independently through Comfly's OpenAI-compatible image API. Use for Comfly text-to-image or local-image editing with strict serial fallback across gemini-3.1-flash-lite-image, gpt-image-2-all, and gpt-image-2, without Google, APIMart, Dreamina, Antigravity, or any other provider fallback.
+description: Generate or edit still images independently through Comfly's OpenAI-compatible image API. Use for Comfly text-to-image or local-image editing with strict serial fallback across gemini-3.1-flash-image-preview, gpt-image-2-all, and gpt-image-2, without Google, APIMart, Dreamina, Antigravity, or any other provider fallback.
 ---
 
 # Comfly API
@@ -23,7 +23,8 @@ Omit `--image` for text-to-image. Supply one or more local images for editing an
 
 - Submit prompt-only requests to `POST https://ai.comfly.org/v1/images/generations` as UTF-8 JSON with `Content-Type: application/json; charset=utf-8`.
 - Submit image edits to `POST https://ai.comfly.org/v1/images/edits` as multipart form data with repeated `image` fields.
-- Use models only in this order: `gemini-3.1-flash-lite-image`, `gpt-image-2-all`, then `gpt-image-2`.
+- Use models only in this order: `gemini-3.1-flash-image-preview`, `gpt-image-2-all`, then `gpt-image-2`.
+- For `gemini-3.1-flash-image-preview`, treat `1K` as the standard output class. Use `1K` or an equivalent 1K aspect-ratio size only; do not request `2K` or `4K`.
 - Try the next model only after the current request, URL extraction, download, or output validation fails. Stop immediately after success and never call models concurrently.
 - Read the result from `data[0].url`; do not depend on `b64_json`.
 - Download result URLs with the required browser `User-Agent`, image `Accept`, and `Referer: https://ai.comfly.org/` headers.

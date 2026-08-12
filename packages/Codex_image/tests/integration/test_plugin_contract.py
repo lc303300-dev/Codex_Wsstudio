@@ -36,6 +36,13 @@ class PluginContractTests(unittest.TestCase):
             value = (ROOT / name / "agents" / "openai.yaml").read_text(encoding="utf-8")
             self.assertIn("allow_implicit_invocation: false", value)
 
+    def test_default_video_prompt_sets_sound_effects_only(self):
+        skill = (PLUGIN / "skills" / "default-video-generation" / "SKILL.md").read_text(encoding="utf-8")
+        agent = (PLUGIN / "skills" / "default-video-generation" / "agents" / "openai.yaml").read_text(encoding="utf-8")
+        instruction = "不生成音乐，仅生成音效。"
+        self.assertIn(instruction, skill)
+        self.assertIn(instruction, agent)
+
 
 if __name__ == "__main__":
     unittest.main()

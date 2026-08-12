@@ -56,10 +56,10 @@ At a high level:
 - Use `list_task` to review recent saved tasks, especially when you want to filter by status or task type.
 - Use `text2image` for prompt-only image generation, `image2image` for image-guided editing, and `image_upscale` for upscaling.
 - Use `text2video` for prompt-only video generation.
-- Use `image2video` when one main image is enough; if the user has multiple images for a coherent story, prefer `multiframe2video`.
+- For ordinary default video generation with any image, video, or audio references, prefer `multimodal2video` so Seedance 2.5 all-around reference rules apply. Use `image2video` or `multiframe2video` only when the user explicitly requests those legacy command shapes or the active project wrapper requires them.
 - Use `frames2video` for first-and-last-frame driven video generation.
 - Use `multiframe2video` for Dreamina's intelligent multi-frame flow: multiple images in, one coherent story video out.
-- Use `multimodal2video` for Dreamina's flagship video mode when the task needs all-around references across images, video, and audio; it supports the `seedance2.0` family. If the legacy name `ref2video` appears, trust `dreamina -h` for the current command surface.
+- Use `multimodal2video` for Dreamina's flagship video mode when the task needs all-around references across images, video, and audio. If the legacy name `ref2video` appears, trust `dreamina -h` for the current command surface.
 
 ### All-around reference / 全能参考
 
@@ -67,8 +67,7 @@ At a high level:
 
 - Bind media through CLI flags: `--image`, `--video`, and `--audio`.
 - Use local absolute paths in automation so the CLI can upload the files reliably.
-- At least one `--image` or `--video` is required.
-- Current help allows image<=9, video<=3, audio<=3, and audio inputs must be 2-15 seconds.
+- Default Seedance 2.5 allows audio-only, image<=30, video<=10, audio<=10, total inputs<=50, and each/total video or audio reference duration 2-30 seconds. Explicit non-2.5 models have lower limits from current CLI help.
 - The prompt should describe how to use the references, for example: `根据参考视频的运镜方式，配合音乐节奏，将静态图片转为动态视频`.
 - Save the returned `submit_id`; download successful results with `query_result --submit_id=<id> --download_dir=<absolute-output-dir>`.
 
@@ -80,10 +79,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\CLI\Seedance-CLI\run.ps1 m
   --video "J:\素材\运镜参考.mp4" `
   --audio "J:\素材\音乐.mp3" `
   --prompt "根据参考视频的运镜方式，配合音乐节奏，将静态图片转为动态视频" `
-  --model_version seedance2.0 `
+  --model_version seedance2.5 `
   --duration 8 `
   --ratio 16:9 `
-  --video_resolution 720p `
+  --video_resolution 480p `
   --poll 180
 ```
 
@@ -101,13 +100,13 @@ For image generation in this Codex_image checkout:
 
 For video generation in this Codex_image checkout:
 
-- default video commands that support `model_version` to Seedance 2.0 VIP: `--model_version=seedance2.0_vip`
-- default video commands that support `video_resolution` to `--video_resolution=720p` unless the user explicitly requests another supported resolution
+- default video commands that support `model_version` to Seedance 2.5: `--model_version=seedance2.5`
+- default video commands that support `video_resolution` to `--video_resolution=480p` unless the user explicitly requests another supported resolution
 - the project wrapper injects these defaults for `text2video`, `image2video`, `frames2video`, and `multimodal2video` when the corresponding flags are absent
 - do not inject or request a model or resolution for `multiframe2video`; the current CLI help says those overrides are not supported for that command
 - honor an explicitly requested supported video model after checking subcommand help
 - honor an explicitly requested supported video resolution after checking subcommand help
-- if the provider rejects Fast VIP access or requires web-side authorization, report the provider error and ask before changing models
+- Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p`; if the provider rejects VIP access or requires web-side authorization, report the provider error and ask before changing models
 
 Apart from this project routing policy, do not hardcode model support from this skill.
 
@@ -126,8 +125,8 @@ Use the subcommand help to confirm:
 Additional guidance:
 
 - some commands do not expose model selection at all
-- some models, especially the `seedance2.0` family, can be capacity-constrained
-- for supported video commands in this checkout, the default model is `seedance2.0_vip` unless the user explicitly selects another supported model
+- some models, including `seedance2.5`, can be capacity-constrained
+- for supported video commands in this checkout, the default model is `seedance2.5` unless the user explicitly selects another supported model
 
 ## How to judge submit success
 
@@ -164,8 +163,8 @@ If you are running a test sweep, keep results in a machine-readable format so yo
 - Always close the loop when the login command finishes with a user-visible confirmation.
 - Prefer small, reviewable batches when running real generation tasks.
 - Keep a record of the command, arguments, `submit_id`, and final status for every paid test you run.
-- For supported video commands in this checkout, default to `seedance2.0_vip` unless the user explicitly selects another supported model.
-- For supported video commands in this checkout, default to `720p` unless the user explicitly selects another supported resolution.
+- For supported video commands in this checkout, default to `seedance2.5` unless the user explicitly selects another supported model.
+- For supported video commands in this checkout, default to `480p` unless the user explicitly selects another supported resolution.
 - If you are preparing a report, separate:
   - help-only inspection
   - submit-stage validation

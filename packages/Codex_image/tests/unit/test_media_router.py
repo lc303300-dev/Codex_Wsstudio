@@ -30,7 +30,12 @@ from media_router.safe_logging import prompt_metadata, safe_text, write_json
 from media_router.scheduler import rolling_map
 from media_router.schemas import MediaRequest, ProviderResult, Readiness
 from media_router.task_store import TaskStore
-from media_router.video_router import build_video_arguments, select_video_command, VideoRouter
+from media_router.video_router import (
+    MULTIMODAL_IMAGE_ORDER_PREFIX,
+    build_video_arguments,
+    select_video_command,
+    VideoRouter,
+)
 from media_router.providers import comfly_common
 from media_router.providers.command_adapter import _run
 
@@ -100,6 +105,18 @@ class ImageRouterTests(unittest.TestCase):
         result, calls = self.run_router([FailureClass.DEFINITE_PROVIDER_FAILURE, "success", "success"])
         self.assertEqual(result.status, "success")
         self.assertEqual(calls, ["p1", "p2"])
+
+    def test_explicit_image_provider_runs_only_requested_adapter(self):
+        calls = []
+        registry = {
+            "p1": FakeProvider("p1", "m1", "success", calls),
+            "p2": FakeProvider("p2", "m2", "success", calls),
+        }
+        config = router_config(registry)
+        with tempfile.TemporaryDirectory() as temporary:
+            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_provider="p2"))
+        self.assertEqual(result.status, "success")
+        self.assertEqual(calls, ["p2"])
 
     def test_seven_failures_are_recorded_in_order(self):
         result, calls = self.run_router([FailureClass.DEFINITE_PROVIDER_FAILURE] * 7)
@@ -282,20 +299,23 @@ class VideoRouterTests(unittest.TestCase):
             root = Path(temporary)
             cases = [
                 (self.request(root), "text2video"),
-                (self.request(root, images=1), "image2video"),
+                (self.request(root, images=1), "multimodal2video"),
                 (self.request(root, prompt="使用首尾帧", images=2), "frames2video"),
-                (self.request(root, images=3), "multiframe2video"),
+                (self.request(root, images=3), "multimodal2video"),
                 (self.request(root, videos=1), "multimodal2video"),
                 (self.request(root, images=1, audios=1), "multimodal2video"),
                 (self.request(root, videos=1, audios=1), "multimodal2video"),
+                (self.request(root, audios=1), "multimodal2video"),
             ]
             for request, expected in cases:
                 self.assertEqual(select_video_command(request), expected)
 
-    def test_audio_only_rejected(self):
+    def test_audio_only_rejected_for_non_seedance_25_model(self):
         with tempfile.TemporaryDirectory() as temporary:
+            request = self.request(Path(temporary), audios=1)
+            request = MediaRequest(request.prompt, request.images, request.videos, request.audios, video_model="seedance2.0_vip")
             with self.assertRaises(ValueError):
-                select_video_command(self.request(Path(temporary), audios=1))
+                select_video_command(request)
 
     def test_multiframe_has_no_model_or_resolution(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -304,12 +324,30 @@ class VideoRouterTests(unittest.TestCase):
         self.assertNotIn("--model_version", args)
         self.assertNotIn("--video_resolution", args)
 
-    def test_supported_commands_default_to_seedance_2_vip(self):
+    def test_supported_commands_default_to_seedance_25_480p(self):
         with tempfile.TemporaryDirectory() as temporary:
             request = self.request(Path(temporary))
             args = build_video_arguments("text2video", request)
-        self.assertEqual(args[args.index("--model_version") + 1], "seedance2.0_vip")
-        self.assertEqual(args[args.index("--video_resolution") + 1], "720p")
+        self.assertEqual(args[args.index("--model_version") + 1], "seedance2.5")
+        self.assertEqual(args[args.index("--video_resolution") + 1], "480p")
+
+    def test_explicit_video_preferences_are_preserved(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            request = self.request(Path(temporary))
+            request = MediaRequest(
+                request.prompt,
+                video_command="text2video",
+                video_model="seedance2.0mini",
+                video_ratio="9:16",
+                video_duration="8",
+                video_resolution="1080p",
+            )
+            self.assertEqual(select_video_command(request), "text2video")
+            args = build_video_arguments("text2video", request)
+        self.assertEqual(args[args.index("--model_version") + 1], "seedance2.0mini")
+        self.assertEqual(args[args.index("--ratio") + 1], "9:16")
+        self.assertEqual(args[args.index("--duration") + 1], "8")
+        self.assertEqual(args[args.index("--video_resolution") + 1], "1080p")
 
     def test_limits_and_audio_duration(self):
         class Provider:
@@ -328,7 +366,7 @@ class VideoRouterTests(unittest.TestCase):
             capacity_key = "seedance-cli"
             max_concurrency = 6
             provider_id = "dreamina-video"
-            model_id = "seedance2.0_vip"
+            model_id = "seedance2.5"
 
             def check_readiness(self):
                 return Readiness(True)
@@ -347,10 +385,40 @@ class VideoRouterTests(unittest.TestCase):
             result = VideoRouter(config, Provider(), TaskStore(root / "private")).execute(MediaRequest("motion", (source,)))
 
             self.assertEqual(result.status, "success")
-            self.assertEqual(received["command"], "image2video")
+            self.assertEqual(received["command"], "multimodal2video")
             self.assertEqual(png_dimensions(received["images"][0]), (1920, 1080))
             image_argument = received["arguments"][received["arguments"].index("--image") + 1]
             self.assertEqual(Path(image_argument), received["images"][0])
+
+    def test_multimodal_images_are_repeated_in_input_order(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            request = self.request(root, images=3)
+            args = build_video_arguments("multimodal2video", request)
+            image_values = [args[index + 1] for index, value in enumerate(args) if value == "--image"]
+            self.assertEqual([Path(value) for value in image_values], list(request.images))
+            self.assertEqual(args[args.index("--prompt") + 1], MULTIMODAL_IMAGE_ORDER_PREFIX + request.prompt)
+
+    def test_seedance_25_multimodal_allows_50_total_references(self):
+        class Provider:
+            pass
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            request = self.request(root, images=30, videos=10, audios=10)
+            router = VideoRouter({"providers": {}}, Provider(), TaskStore(root / "private"), duration_probe=lambda _: 2)
+            self.assertEqual(router.validate(request), "multimodal2video")
+
+    def test_seedance_25_multimodal_rejects_over_50_total_references(self):
+        class Provider:
+            pass
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            request = self.request(root, images=30, videos=10, audios=11)
+            router = VideoRouter({"providers": {}}, Provider(), TaskStore(root / "private"), duration_probe=lambda _: 2)
+            with self.assertRaises(ValueError):
+                router.validate(request)
 
 
 class ConcurrencyTests(unittest.TestCase):
@@ -481,6 +549,13 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(content_type, "multipart/form-data; boundary=OfflineBoundary")
         self.assertEqual(comfly_common.DOWNLOAD_HEADERS["Referer"], "https://ai.comfly.org/")
         self.assertIn("image/", comfly_common.DOWNLOAD_HEADERS["Accept"])
+
+    def test_comfly_gemini_lite_normalizes_to_1k_sizes_and_rejects_2k(self):
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1K"), "1024x1024")
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "3:4"), "896x1200")
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1024x1024"), "1024x1024")
+        with self.assertRaises(MediaRouterError):
+            comfly_common.normalize_size("gemini-3.1-flash-image-preview", "2K")
 
     def test_comfly_timeout_detection_does_not_reclassify_other_network_errors(self):
         self.assertTrue(comfly_common._is_timeout_error(TimeoutError()))

@@ -42,7 +42,7 @@ Codex 中只公开并注册两个默认工具：
 
 Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任务严格按以下顺序串行尝试：
 
-1. `comfly-gemini-lite` → Comfly `gemini-3.1-flash-lite-image`
+1. `comfly-gemini-lite` → Comfly `gemini-3.1-flash-image-preview`
 2. `comfly-gpt-image-2-all` → Comfly `gpt-image-2-all`
 3. `comfly-gpt-image-2` → Comfly `gpt-image-2`
 4. `apimart-gpt-image-2` → 现有 `gpt-api`
@@ -80,8 +80,8 @@ Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任�
 - 当前帮助允许最多 9 张图片、3 个视频、3 个音频。
 - 音频长度必须为 2–15 秒。
 - 每次真实提交前运行对应子命令 `-h` 并验证本地文件。
-- 支持模型的默认视频模型为 Seedance 2.0 VIP（`seedance2.0_vip`）。
-- 支持分辨率参数的默认值为 `720p`。
+- 支持模型的默认视频模型为 Seedance 2.5（`seedance2.5`）。
+- 支持分辨率参数的默认值为 `480p`。
 - `multiframe2video` 不注入其不支持的模型或分辨率参数。
 
 ## 2. 并发目标
@@ -404,7 +404,7 @@ class MediaProvider(Protocol):
 ```json
 {
   "provider_id": "comfly-gemini-lite",
-  "model_id": "gemini-3.1-flash-lite-image",
+  "model_id": "gemini-3.1-flash-image-preview",
   "status": "success",
   "failure_class": null,
   "request_id": null,

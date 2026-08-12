@@ -83,8 +83,9 @@ from `config/codex/AGENTS.md`, and regenerates/updates `config.toml` from
 `config/codex/config.portable.toml` while preserving
 machine-generated paths and existing MCP/project settings.
 
-It also refreshes the globally registered `codex-github` and `video-to-gif` skills from
-`packages/Codex_Github/` and `packages/Codex_Gif/` when those package scripts are present.
+It also refreshes the globally registered `codex-github`, `video-to-gif`, and
+`codex-dt-video-prompt` skills from `packages/Codex_Github/`, `packages/Codex_Gif/`,
+and `packages/Codex_DT/` when those package scripts are present.
 
 After deployment, the same pipeline runs `scripts/maintenance/verify-deployment.ps1`.
 Run it independently to audit an existing machine:

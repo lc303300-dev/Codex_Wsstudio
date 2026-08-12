@@ -67,7 +67,7 @@ docs/codex_authoring_workflow.md
 
 必须结合这两个 GitHub 项目：
 1. third_party/seedance-forge：用于检索相似 Seedance 真实提示词语料，并提炼镜头、动作、环境动效写法。
-2. third_party/seedance-2.0-prompt-skill：用于按照 Seedance/Dreamina multimodal reference image-to-video 规则编译中文提示词，并用 validator 校验；本地 CLI 的图片绑定来自 multimodal2video 的有序 `--image` 参数，CLI-facing prompt 应写 `图片1`，不要使用 `@Image 1` 或 `@图片1`。
+2. third_party/seedance-2.0-prompt-skill：用于按照 Seedance/Dreamina multimodal reference image-to-video 规则编译中文提示词，并用 validator 校验；本地 CLI 的参考绑定来自 multimodal2video 的有序 `--image`、`--video`、`--audio` 参数，CLI-facing prompt 应写 `图片1`、`视频1`、`音频1` 等裸标签，不要使用 `@Image 1`、`@图片1`、`@Video 1` 或 `@视频1`。
 
 你的唯一输入：
 - image id: {image_id}
@@ -86,7 +86,7 @@ docs/codex_authoring_workflow.md
 3. 使用 seedance-forge 检索相似语料，把 matches 写回 manifest，保留 sourceLink，并提炼 extracted_patterns。
 4. 按 mqrox/build-seedance2-prompts 的 multimodal reference 规则，写一份中文即梦 CLI 图生视频提示词到 {prompt_file}。
 5. 最终提示词必须是中文，用户确认页看到的也是中文。
-6. 更新 mqrox_compile.asset_manifest，确保 source、duration、ratio、resolution 一致；必须使用 manifest 中已有的时长和比例，不要自行改时长或比例。最终写给 CLI 的中文提示词不要包含 `@Image 1` 或 `@图片1`，应使用 `图片1` 指代第一个 `--image` 绑定的参考图。
+6. 更新 mqrox_compile.asset_manifest，确保 source、duration、ratio、resolution 一致；必须使用 manifest 中已有的时长和比例，不要自行改时长或比例。最终写给 CLI 的中文提示词不要包含 `@Image 1`、`@图片1`、`@Video 1` 或 `@视频1`，应使用 `图片1`、`视频1`、`音频1` 等裸标签指代对应的有序 CLI 参数。CLI 参数顺序高于文件名、视觉布局和自然语言别名。
 7. 设置 prompt.status = "ready_for_review"。
 8. 可选质量检查：如果时间允许，运行 python scripts/validate_batch.py --manifests {manifest_path.as_posix()}，把结果保留在 mqrox_compile.validator。不要因为 validator warning 阻止输出；本地 Dreamina CLI 通过 multimodal2video 的 `--image` 顺序绑定参考图，prompt 里必须保留对应的 `图片1` 标签。
 

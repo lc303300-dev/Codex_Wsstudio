@@ -157,10 +157,16 @@ class DreaminaAdapter:
 
     def execute_command(self, command_name: str, arguments: list[str], request: MediaRequest, context: TaskContext) -> ProviderResult:
         started, stamp = time.monotonic(), datetime.now(timezone.utc).isoformat()
+        requested_model = self.model_id
+        if "--model_version" in arguments:
+            model_index = arguments.index("--model_version") + 1
+            if model_index < len(arguments):
+                requested_model = arguments[model_index]
         help_log = context.job_dir / "logs" / f"{self.provider_id}-help.json"
         try:
             timeout_failure = FailureClass.PROVIDER_TIMEOUT if context.provider_deadline is not None else None
             _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), command_name, "-h"], _remaining_timeout(context, 60), help_log, submitted_on_start=False, timeout_failure=timeout_failure)
+            _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "user_credit"], _remaining_timeout(context, 30), context.job_dir / "logs" / f"{self.provider_id}-credit.json", submitted_on_start=False, timeout_failure=timeout_failure)
             completed = _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), command_name, *arguments], _remaining_timeout(context, 240), context.job_dir / "logs" / f"{self.provider_id}-submit.json", timeout_failure=timeout_failure)
             submit_id = self._submit_id(completed.stdout + "\n" + completed.stderr)
             if not submit_id:
@@ -169,17 +175,19 @@ class DreaminaAdapter:
             output = self._query_and_download(submit_id, context, self.capability)
             duration = int((time.monotonic()-started)*1000)
             self.runtime.record(True, duration)
-            return ProviderResult(self.provider_id, self.model_id, "success", submit_id=submit_id, output_path=str(output), output_bytes=output.stat().st_size, started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)
+            return ProviderResult(self.provider_id, requested_model, "success", submit_id=submit_id, output_path=str(output), output_bytes=output.stat().st_size, started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)
         except MediaRouterError as exc:
             duration = int((time.monotonic()-started)*1000)
             self.runtime.record(False, duration)
             status = "needs_review" if exc.failure_class == FailureClass.INDETERMINATE_SUBMISSION else "cancelled" if exc.failure_class == FailureClass.CANCELLED else "failed"
-            return ProviderResult(self.provider_id, self.model_id, status, failure_class=exc.failure_class, safe_reason=str(exc), started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)
+            return ProviderResult(self.provider_id, requested_model, status, failure_class=exc.failure_class, safe_reason=str(exc), started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)
 
     def execute(self, request: MediaRequest, context: TaskContext) -> ProviderResult:
         if self.capability == "image":
             command = "image2image" if request.images else "text2image"
-            args = ["--prompt", request.prompt, "--model_version", "4.0", "--generate_num", "1", "--poll", "180"]
+            model = request.image_model or "4.0"
+            resolution = "1k" if model == "5.0Pro" else "2k"
+            args = ["--prompt", request.prompt, "--model_version", model, "--resolution_type", resolution, "--generate_num", "1", "--poll", "180"]
             if request.images:
                 args += ["--images", ",".join(str(p) for p in request.images)]
             return self.execute_command(command, args, request, context)

@@ -73,11 +73,11 @@ def validate_cli_prompt(prompt_text: str, asset_manifest: dict[str, Any], durati
             "message": "Prompt is empty.",
             "basis": "pipeline",
         })
-    if re.search(r"@(图片|Image)\s*\d+", prompt_text):
+    if re.search(r"@(图片|Image|视频|Video|音频|Audio)\s*\d+", prompt_text):
         issues.append({
             "severity": "error",
             "code": "CLI_BINDING",
-            "message": "Dreamina CLI binding comes from multimodal2video ordered --image arguments; do not type Web UI mention labels such as @Image 1 or @图片1 in CLI prompts.",
+            "message": "Dreamina CLI binding comes from ordered multimodal2video arguments; do not type Web UI mention labels such as @Image 1, @图片1, @Video 1, or @视频1 in CLI prompts.",
             "basis": "Codex_image",
         })
     if "图片1" not in prompt_text:
@@ -104,7 +104,7 @@ def validate_cli_prompt(prompt_text: str, asset_manifest: dict[str, Any], durati
             "message": "The first image asset must be tagged 图片1 and match the first --image upload.",
             "basis": "pipeline",
         })
-    elif re.search(r"@(图片|Image)\s*\d+", str(image_assets[0].get("tag", ""))):
+    elif re.search(r"@(图片|Image|视频|Video|音频|Audio)\s*\d+", str(image_assets[0].get("tag", ""))):
         issues.append({
             "severity": "error",
             "code": "ASSET_MANIFEST",

@@ -33,13 +33,13 @@ def main() -> int:
     )
     parser.add_argument("--name", required=True, help="Descriptive suffix for YYYYMMDD-HHMM-<name>.")
     parser.add_argument("--images", nargs="+", type=Path, required=True, help="Image paths provided by Codex attachments.")
-    parser.add_argument("--duration", type=int, help="Optional known duration in seconds, 4 through 15.")
+    parser.add_argument("--duration", type=int, help="Optional known duration in seconds, 4 through 30.")
     parser.add_argument("--ratio", help="Optional target ratio: 21:9, 16:9, 4:3, 1:1, 3:4, or 9:16.")
     parser.add_argument("--wait-timeout", type=float, default=120.0)
     parser.add_argument("--stable-seconds", type=float, default=2.0)
     args = parser.parse_args()
     if args.duration is not None and not 4 <= args.duration <= 15:
-        raise SystemExit("--duration must be an integer from 4 through 15 seconds.")
+        raise SystemExit("--duration must be an integer from 4 through 30 seconds.")
     supported_ratios = {"21:9", "16:9", "4:3", "1:1", "3:4", "9:16"}
     if args.ratio is not None and args.ratio not in supported_ratios:
         raise SystemExit(f"--ratio must be one of: {', '.join(sorted(supported_ratios))}.")
