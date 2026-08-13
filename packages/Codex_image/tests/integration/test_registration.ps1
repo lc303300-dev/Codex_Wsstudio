@@ -10,6 +10,15 @@ Set-Content -LiteralPath (Join-Path $PersonalPluginsRoot "codex-media-plugin\.co
 New-Item -ItemType Directory -Path (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-plugin") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-plugin\plugin.json") -Value "{}" -Encoding UTF8
 [ordered]@{
+    stale = $true
+} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\stale-cache.json") -Encoding UTF8
+[ordered]@{
+    name = "codex-media-plugin"
+    kind = "plugin"
+    source_root = "Z:\missing\OlderCodex_image"
+    registered_at = (Get-Date).ToString("o")
+} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-image-registration.json") -Encoding UTF8
+[ordered]@{
     name = "codex-media-plugin"
     kind = "plugin"
     source_root = "Z:\missing\Codex_image"
@@ -51,6 +60,9 @@ $cacheRecord = Get-Content -LiteralPath $cacheMarker -Raw -Encoding UTF8 | Conve
 if ($cacheRecord.source_root -ne $ProjectRoot) { throw "Cached plugin did not refresh to the active project root." }
 if (-not (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\skills\default-video-generation\SKILL.md") -PathType Leaf)) {
     throw "Cached plugin was not fully refreshed."
+}
+if (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\stale-cache.json") -PathType Leaf) {
+    throw "Stale cache content was not cleared."
 }
 $backups = @(Get-ChildItem -LiteralPath (Join-Path $ProjectRoot ".codex-image-private\validation\state-migration") -File -Filter "state-v1-*.json")
 if (-not $backups.Count) { throw "State migration backup was not created." }

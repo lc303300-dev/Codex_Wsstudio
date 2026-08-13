@@ -84,16 +84,22 @@ function Refresh-ManagedPluginCaches {
         }
 
         $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($record.source_root -ne $ProjectRoot -and (Test-CodexImageSourceRoot -SourceRoot ([string]$record.source_root))) {
-            Write-Warning "Skipping cached codex-media-plugin from another available source root: $($record.source_root)"
-            return
+        if ($record.source_root -ne $ProjectRoot) {
+            if (Test-CodexImageSourceRoot -SourceRoot ([string]$record.source_root)) {
+                Write-Host "Refreshing cached codex-media-plugin from stale source root: $($record.source_root)"
+            } else {
+                Write-Host "Refreshing cached codex-media-plugin from unavailable source root: $($record.source_root)"
+            }
         }
-
-        Install-ManagedDirectory `
-            -Source (Join-Path $ProjectRoot "codex-media-plugin") `
-            -Destination $cachePlugin `
-            -Kind "cached plugin" `
-            -Name "codex-media-plugin"
+        try {
+            Install-ManagedDirectory `
+                -Source (Join-Path $ProjectRoot "codex-media-plugin") `
+                -Destination $cachePlugin `
+                -Kind "cached plugin" `
+                -Name "codex-media-plugin"
+        } catch {
+            Write-Warning "Skipping locked cached codex-media-plugin refresh: $cachePlugin"
+        }
     }
 }
 
