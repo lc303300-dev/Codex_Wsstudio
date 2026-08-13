@@ -41,6 +41,9 @@ enabled = true
 [plugins."browser@openai-bundled"]
 enabled = true
 
+[plugins."codex-media-plugin@personal"]
+enabled = true
+
 [features]
 js_repl = false
 

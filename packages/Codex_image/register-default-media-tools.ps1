@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$CodexHome,
+    [string]$PersonalPluginsRoot,
     [switch]$ProviderSkills,
     [switch]$KeepLegacyProviderSkills
 )
@@ -10,12 +11,28 @@ $ProjectRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
 if (-not $CodexHome) {
     $CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME ".codex" }
 }
+if (-not $PersonalPluginsRoot) {
+    $PersonalPluginsRoot = Join-Path $HOME "plugins"
+}
 $CodexHome = [System.IO.Path]::GetFullPath($CodexHome)
+$PersonalPluginsRoot = [System.IO.Path]::GetFullPath($PersonalPluginsRoot)
 $SkillsRoot = Join-Path $CodexHome "skills"
 $PluginsRoot = Join-Path $CodexHome "plugins"
 $MarkerName = ".codex-image-registration.json"
 $ToolNames = @("default-image-generation", "default-video-generation")
 $ProviderNames = @("gemini-api", "gemini-cli", "seedance-cli", "gpt-api", "comfly-api")
+
+function Test-CodexImageSourceRoot {
+    param([string]$SourceRoot)
+
+    if ([string]::IsNullOrWhiteSpace($SourceRoot)) { return $false }
+    try {
+        $candidate = [System.IO.Path]::GetFullPath($SourceRoot)
+    } catch {
+        return $false
+    }
+    return (Test-Path -LiteralPath (Join-Path $candidate "CLI\Media-Router") -PathType Container)
+}
 
 function Install-ManagedDirectory {
     param(
@@ -31,7 +48,12 @@ function Install-ManagedDirectory {
         $marker = Join-Path $Destination $MarkerName
         if (-not (Test-Path -LiteralPath $marker)) { throw "Refusing to replace unmanaged $Kind '$Name': $Destination" }
         $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($record.source_root -ne $ProjectRoot) { throw "Refusing to replace $Kind '$Name' from another source root." }
+        if ($record.source_root -ne $ProjectRoot) {
+            if (Test-CodexImageSourceRoot -SourceRoot ([string]$record.source_root)) {
+                throw "Refusing to replace $Kind '$Name' from another source root."
+            }
+            Write-Warning "Replacing stale managed $Kind '$Name' from unavailable source root: $($record.source_root)"
+        }
     }
     $temporary = Join-Path $parent (".codex-media-install-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $temporary | Out-Null
@@ -45,6 +67,33 @@ function Install-ManagedDirectory {
         Move-Item -LiteralPath $temporary -Destination $Destination
     } finally {
         if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force }
+    }
+}
+
+function Refresh-ManagedPluginCaches {
+    $cacheRoot = Join-Path $CodexHome "plugins\cache\personal\codex-media-plugin"
+    if (-not (Test-Path -LiteralPath $cacheRoot -PathType Container)) { return }
+
+    Get-ChildItem -LiteralPath $cacheRoot -Directory | ForEach-Object {
+        $cachePlugin = $_.FullName
+        if (-not (Test-Path -LiteralPath (Join-Path $cachePlugin ".codex-plugin\plugin.json") -PathType Leaf)) { return }
+        $marker = Join-Path $cachePlugin $MarkerName
+        if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) {
+            Write-Warning "Skipping unmanaged cached codex-media-plugin: $cachePlugin"
+            return
+        }
+
+        $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($record.source_root -ne $ProjectRoot -and (Test-CodexImageSourceRoot -SourceRoot ([string]$record.source_root))) {
+            Write-Warning "Skipping cached codex-media-plugin from another available source root: $($record.source_root)"
+            return
+        }
+
+        Install-ManagedDirectory `
+            -Source (Join-Path $ProjectRoot "codex-media-plugin") `
+            -Destination $cachePlugin `
+            -Kind "cached plugin" `
+            -Name "codex-media-plugin"
     }
 }
 
@@ -63,22 +112,13 @@ foreach ($name in $ToolNames) {
         -Name $name
 }
 
-$PersonalPlugin = Join-Path $HOME "plugins\codex-media-plugin"
-if (Test-Path -LiteralPath (Join-Path $PersonalPlugin ".codex-plugin\plugin.json")) {
-    $personalMarker = Join-Path $PersonalPlugin $MarkerName
-    if (Test-Path -LiteralPath $personalMarker) {
-        $personalRecord = Get-Content -LiteralPath $personalMarker -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($personalRecord.source_root -ne $ProjectRoot) {
-            Write-Warning "Skipping personal codex-media-plugin update because it is managed by another source root."
-            $PersonalPlugin = $null
-        }
-    }
-    if ($PersonalPlugin) {
-        Copy-Item -LiteralPath (Join-Path $ProjectRoot "codex-media-plugin\mcp\server.py") -Destination (Join-Path $PersonalPlugin "mcp\server.py") -Force
-        [ordered]@{ name="codex-media-plugin"; kind="plugin"; source_root=$ProjectRoot; registered_at=(Get-Date).ToString("o") } |
-            ConvertTo-Json | Set-Content -LiteralPath $personalMarker -Encoding UTF8
-    }
-}
+$PersonalPlugin = Join-Path $PersonalPluginsRoot "codex-media-plugin"
+Install-ManagedDirectory `
+    -Source (Join-Path $ProjectRoot "codex-media-plugin") `
+    -Destination $PersonalPlugin `
+    -Kind "personal plugin" `
+    -Name "codex-media-plugin"
+Refresh-ManagedPluginCaches
 
 if ($ProviderSkills) {
     foreach ($name in $ProviderNames) {

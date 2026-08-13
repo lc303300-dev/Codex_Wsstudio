@@ -24,11 +24,15 @@ Require-Path (Join-Path $RepositoryRoot "packages") "packages directory" "Contai
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif") "GIF package" "Container"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif\register-global-skill.ps1") "GIF registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif\.claude\skills\video-to-gif\SKILL.md") "GIF skill"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_image\register-default-media-tools.ps1") "Codex_image media tool registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\register-global-skill.ps1") "Codex_DT registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\codex-dt-video-prompt\SKILL.md") "Codex_DT skill"
 Require-Path (Join-Path $RepositoryRoot "scripts") "scripts directory" "Container"
 Require-Path (Join-Path $CodexHome "AGENTS.md") "global Codex guidance"
 Require-Path (Join-Path $CodexHome "config.toml") "global Codex config"
+Require-Path (Join-Path $CodexHome "skills\default-image-generation\SKILL.md") "global default image generation skill"
+Require-Path (Join-Path $CodexHome "skills\default-video-generation\SKILL.md") "global default video generation skill"
+Require-Path (Join-Path $CodexHome "plugins\codex-media-plugin\.codex-plugin\plugin.json") "global codex-media plugin"
 
 $source = Join-Path $RepositoryRoot "config\codex\AGENTS.md"
 $target = Join-Path $CodexHome "AGENTS.md"
@@ -44,6 +48,44 @@ if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not ((Get-Content -Lit
 }
 if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not ((Get-Content -LiteralPath $target -Raw -Encoding UTF8) -like "*$ruleText*")) {
     $errors.Add("Sub-agent delegation rule is absent from the installed global guidance.")
+}
+
+$expectedImageRoot = Join-Path $RepositoryRoot "packages\Codex_image"
+$mediaMarkers = @(
+    Join-Path $CodexHome "skills\default-image-generation\.codex-image-registration.json"
+    Join-Path $CodexHome "skills\default-video-generation\.codex-image-registration.json"
+    Join-Path $CodexHome "plugins\codex-media-plugin\.codex-image-registration.json"
+    Join-Path ([Environment]::GetFolderPath("UserProfile")) "plugins\codex-media-plugin\.codex-image-registration.json"
+)
+foreach ($marker in $mediaMarkers) {
+    if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) {
+        $errors.Add("Missing media registration marker: $marker")
+        continue
+    }
+    try {
+        $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ([System.IO.Path]::GetFullPath([string]$record.source_root) -ne $expectedImageRoot) {
+            $errors.Add("Media registration marker points to stale source root: $marker -> $($record.source_root)")
+        }
+    } catch {
+        $errors.Add("Invalid media registration marker: $marker")
+    }
+}
+
+$cacheRoot = Join-Path $CodexHome "plugins\cache\personal\codex-media-plugin"
+if (Test-Path -LiteralPath $cacheRoot -PathType Container) {
+    Get-ChildItem -LiteralPath $cacheRoot -Directory | ForEach-Object {
+        $cacheMarker = Join-Path $_.FullName ".codex-image-registration.json"
+        if (-not (Test-Path -LiteralPath $cacheMarker -PathType Leaf)) { return }
+        try {
+            $record = Get-Content -LiteralPath $cacheMarker -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ([System.IO.Path]::GetFullPath([string]$record.source_root) -ne $expectedImageRoot) {
+                $errors.Add("Cached media plugin marker points to stale source root: $cacheMarker -> $($record.source_root)")
+            }
+        } catch {
+            $errors.Add("Invalid cached media plugin marker: $cacheMarker")
+        }
+    }
 }
 
 $gifRuleText = "video to GIF"

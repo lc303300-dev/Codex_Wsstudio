@@ -89,6 +89,14 @@ if (-not $SkipConfig) {
     }
 }
 
+$imageRegistration = Join-Path $RepositoryRoot "packages\Codex_image\register-default-media-tools.ps1"
+if (Test-Path -LiteralPath $imageRegistration -PathType Leaf) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $imageRegistration -CodexHome $CodexHome
+    if ($LASTEXITCODE -ne 0) {
+        throw "Codex_image default media tool registration failed with exit code ${LASTEXITCODE}."
+    }
+}
+
 $githubRegistration = Join-Path $RepositoryRoot "packages\Codex_Github\register-global-skill.ps1"
 if (Test-Path -LiteralPath $githubRegistration -PathType Leaf) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $githubRegistration -CodexHome $CodexHome

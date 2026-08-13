@@ -165,6 +165,7 @@ $managedSettings = @(
     @{ Table = 'plugins."cowart@personal"'; Key = "enabled" },
     @{ Table = 'plugins."visualize@openai-bundled"'; Key = "enabled" },
     @{ Table = 'plugins."browser@openai-bundled"'; Key = "enabled" },
+    @{ Table = 'plugins."codex-media-plugin@personal"'; Key = "enabled" },
     @{ Table = "features"; Key = "js_repl" },
     @{ Table = "windows"; Key = "sandbox" }
 )
@@ -181,6 +182,11 @@ if (-not $SkipProjectTrust) {
             Set-TomlAssignment -Lines $targetLines -Table ("projects." + (ConvertTo-TomlLiteralString $resolvedProject)) -Key "trust_level" -Value '"trusted"'
         }
     }
+}
+
+$codexImageRoot = Join-Path $repositoryRoot "packages\Codex_image"
+if (Test-Path -LiteralPath (Join-Path $codexImageRoot "CLI\Media-Router") -PathType Container) {
+    Set-TomlAssignment -Lines $targetLines -Table "shell_environment_policy.set" -Key "CODEX_IMAGE_ROOT" -Value (ConvertTo-TomlLiteralString $codexImageRoot)
 }
 
 $housingRoot = Find-CnHousingRoot -ExplicitRoot $CnHousingRoot
