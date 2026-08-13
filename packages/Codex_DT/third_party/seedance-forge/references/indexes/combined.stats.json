@@ -1,0 +1,11 @@
+{
+  "built_at": "2026-08-13T03:07:02+00:00",
+  "total_rows": 2523,
+  "searchable_rows": 2477,
+  "duplicate_rows": 46,
+  "sources": {
+    "forge-original": 2366,
+    "youmind": 106,
+    "zerolu": 51
+  }
+}

@@ -11,8 +11,8 @@
 ![Codex CLI](https://img.shields.io/badge/Codex%20CLI-Compatible-00897B?style=for-the-badge)
 ![npm](https://img.shields.io/npm/v/seedance-forge?style=for-the-badge&logo=npm&logoColor=white&color=CB3837)
 
-**A portable Agent Skill packaging 2,366 real-world Seedance 2.0 video-generation prompts.**  
-Structural patterns. Authored exemplars. Source attribution. Zero dependencies.
+**A portable Agent Skill packaging decoupled Seedance video prompt corpora.**  
+Structural patterns. Authored exemplars. Source attribution. Rebuildable indexes. Zero dependencies.
 
 [Install](#install) · [Invoke](#invoke-the-skill) · [Search](#search-the-corpus) · [Examples](#example-output) · [Structure](#folder-structure) · [Registries](#add-to-skill-registries)
 
@@ -25,8 +25,8 @@ Structural patterns. Authored exemplars. Source attribution. Zero dependencies.
 When you're drafting a Seedance 2.0 video prompt, this skill:
 
 1. **Surfaces the canonical skeleton** — the 5–7 sections real community prompts share
-2. **Searches 2,366 authored prompts** by keyword, author, or length to find structural scaffolds
-3. **Cites every source** — every matched prompt comes with its `sourceLink` back to the original author
+2. **Searches decoupled source corpora** by keyword, source, author, or length to find structural scaffolds
+3. **Cites every source** — matched prompts include source metadata such as `source_project` and `sourceLink` where available
 
 It is a **reference library**, not a generator. It teaches structure, not words.
 
@@ -158,6 +158,8 @@ python scripts/search.py --author "KANA"
 # Length filters
 python scripts/search.py --min-length 1000          # long prompts only
 python scripts/search.py "anime" --max-length 200   # short anime prompts
+python scripts/search.py "直播带货" --source zerolu  # source filter
+python scripts/search.py "电影感" --source youmind   # source filter
 
 # Random samples (great for inspiration)
 python scripts/search.py --random 5
@@ -213,11 +215,45 @@ Full templates with fill-in-the-blanks examples → `references/structure-guide.
 
 ---
 
+## Corpus Layout
+
+All prompt corpora are source-local and independently traceable:
+
+```
+references/
+├── sources/
+│   ├── forge-original/
+│   │   ├── manifest.json
+│   │   └── prompts.csv
+│   ├── youmind/
+│   │   ├── manifest.json
+│   │   └── prompts.jsonl
+│   └── zerolu/
+│       ├── manifest.json
+│       └── prompts.jsonl
+└── indexes/
+    ├── combined.index.jsonl
+    └── combined.stats.json
+```
+
+`combined.index.jsonl` is disposable. Rebuild it from sources with:
+
+```bash
+python scripts/build_index.py
+```
+
+Import or refresh YouMind/ZeroLu clones with:
+
+```bash
+python scripts/import_sources.py --source-root /path/to/cloned/repos
+```
+
 ## Corpus Stats
 
 | Metric | Value |
 |---|---|
-| Total prompts | 2,366 |
+| Original prompts | 2,366 |
+| Additional source corpora | YouMind OpenLab, ZeroLu |
 | Unique authors | 797 |
 | Median prompt length | 432 chars |
 | Longest prompt | 7,929 chars |
@@ -235,10 +271,13 @@ seedance-forge/
 ├── SKILL.md                    ← Skill definition (auto-loaded by Claude Code / Codex)
 ├── README.md                   ← This file
 ├── references/
-│   ├── seedance-prompts.csv    ← Full 2,366-row corpus (~4 MB)
+│   ├── sources/                ← Decoupled source corpora
+│   ├── indexes/                ← Rebuildable search index
 │   ├── structure-guide.md      ← Canonical skeleton + 3 archetypes + camera glossary
 │   └── curated-examples.md     ← 13 hand-picked exemplars across all styles
 └── scripts/
+    ├── import_sources.py       ← Import YouMind/ZeroLu into source-local JSONL
+    ├── build_index.py          ← Rebuild combined search index
     ├── search.py               ← Stdlib CLI search tool (Python 3.9+, no deps)
     └── README.md               ← Install instructions
 ```
@@ -263,8 +302,8 @@ The skill auto-activates in Claude Code on any of:
 
 ## Attribution
 
-All prompts in `references/seedance-prompts.csv` are authored by the Seedance community.  
-Every search result surfaces the original author name and `sourceLink`.  
+Prompt sources live under `references/sources/`, each with its own manifest and license metadata.  
+Every search result surfaces source metadata and `sourceLink` when available.  
 Use prompts as structural scaffolds only — do not copy verbatim without crediting the source.
 
 ---

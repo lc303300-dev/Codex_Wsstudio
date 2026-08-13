@@ -1,0 +1,10 @@
+{
+  "source_id": "forge-original",
+  "name": "Seedance Forge original corpus",
+  "type": "csv",
+  "path": "prompts.csv",
+  "license": "upstream inherited",
+  "repo": "https://github.com/StreetJammer/seedance-forge",
+  "record_count": 2366,
+  "notes": "Original seedance-forge community corpus, moved under sources so every corpus is handled uniformly."
+}

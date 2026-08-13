@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static preflight checks for Seedance 2.0 prompts.
+"""Static preflight checks for Seedance 2.5 prompts.
 
 The checks separate official constraints from conservative heuristics. They do
 not predict generation quality and do not replace a provider schema check.
@@ -30,7 +30,8 @@ REF_PATTERNS = {
     "audio": re.compile(r"(?<!\w)(?:@|\[)?(?:audio|音声|音频)\s*[_#-]?\s*(\d+)\]?", re.IGNORECASE),
 }
 
-MEDIA_LIMITS = {"image": 9, "video": 3, "audio": 3}
+MEDIA_LIMITS = {"image": 50, "video": 50, "audio": 50}
+TOTAL_REFERENCE_LIMIT = 50
 SURFACES = (
     "generic",
     "dreamina",
@@ -91,7 +92,7 @@ CAMERA_GROUPS = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate a Seedance 2.0 prompt before generation.")
+    parser = argparse.ArgumentParser(description="Validate a Seedance 2.5 prompt before generation.")
     parser.add_argument("prompt_file", nargs="?", help="UTF-8 prompt file. Reads stdin when omitted.")
     parser.add_argument("--text", help="Prompt text supplied directly instead of a file/stdin.")
     parser.add_argument("--images", type=int, default=None, help="Number of attached images.")
@@ -178,7 +179,9 @@ def validate_manifest(manifest: dict, text: str, args: argparse.Namespace) -> li
     issues: list[Issue] = []
     allowed_top = {
         "surface",
+        "model_version",
         "model_variant",
+        "reference_mode",
         "mode",
         "duration",
         "ratio",
@@ -219,13 +222,21 @@ def validate_manifest(manifest: dict, text: str, args: argparse.Namespace) -> li
             "schema",
         )
 
+    model_version = manifest.get("model_version", "seedance-2.5")
+    if model_version not in {"seedance-2.5", "seedance-2.0"}:
+        add(issues, "error", "O638", "model_version must be seedance-2.5 or seedance-2.0.", "schema")
+
     variant = manifest.get("model_variant", "standard")
     if variant not in {"standard", "fast", "mini"}:
         add(issues, "error", "O607", "model_variant must be standard, fast, or mini.", "schema")
 
+    reference_mode = manifest.get("reference_mode", "all-around")
+    if reference_mode not in {"all-around", "strict-first-last", "provider-default"}:
+        add(issues, "error", "O639", "reference_mode must be all-around, strict-first-last, or provider-default.", "schema")
+
     duration = manifest.get("duration")
-    if duration is not None and (not isinstance(duration, int) or isinstance(duration, bool) or not 4 <= duration <= 15):
-        add(issues, "error", "O608", "Manifest duration must be an integer from 4 through 15.", "official")
+    if duration is not None and (not isinstance(duration, int) or isinstance(duration, bool) or not 4 <= duration <= 30):
+        add(issues, "error", "O608", "Manifest duration must be an integer from 4 through 30 for the default Seedance 2.5 path.", "project-default")
     elif duration is not None and args.duration != duration:
         add(
             issues,
@@ -305,7 +316,7 @@ def validate_manifest(manifest: dict, text: str, args: argparse.Namespace) -> li
                 "error",
                 "O618",
                 f"Transport role '{role}' cannot be assigned to a {modality} asset.",
-                "official",
+                "transport",
             )
         else:
             transport_roles.append(role)
@@ -372,7 +383,7 @@ def validate_manifest(manifest: dict, text: str, args: argparse.Namespace) -> li
                 "error",
                 "O625",
                 f"Manifest {modality} indices must be contiguous from 1; found {unique}.",
-                "official",
+                "transport",
             )
         cli_count = getattr(args, f"{modality}s")
         if cli_count is not None and cli_count != len(values):
@@ -383,6 +394,15 @@ def validate_manifest(manifest: dict, text: str, args: argparse.Namespace) -> li
                 f"CLI says {cli_count} {modality}(s), but manifest contains {len(values)}.",
                 "schema",
             )
+
+    if len(assets) > TOTAL_REFERENCE_LIMIT:
+        add(
+            issues,
+            "error",
+            "O640",
+            f"Manifest attaches {len(assets)} reference content item(s), exceeding the default Seedance 2.5 all-around limit of {TOTAL_REFERENCE_LIMIT}.",
+            "project-default",
+        )
 
     strict_roles = {role for role in transport_roles if role in {"first_frame", "last_frame"}}
     reference_roles = {role for role in transport_roles if role.startswith("reference_")}
@@ -448,12 +468,39 @@ def find_unaliased_references(text: str) -> set[str]:
     return unaliased
 
 
+def repeated_sentences(text: str) -> list[str]:
+    """Find exact repeated requirement-like sentence fragments after whitespace cleanup."""
+    fragments = [
+        re.sub(r"\s+", " ", fragment).strip(" \t\r\n。.!！?？；;")
+        for fragment in re.split(r"[。.!！?？；;\n]+", text)
+    ]
+    seen: set[str] = set()
+    repeated: list[str] = []
+    for fragment in fragments:
+        normalized = fragment.lower()
+        if len(normalized) < 12:
+            continue
+        if normalized in seen and fragment not in repeated:
+            repeated.append(fragment)
+        seen.add(normalized)
+    return repeated
+
+
 def check_media(
     issues: list[Issue],
     refs: dict[str, list[int]],
     counts: dict[str, int | None],
     mode: str,
 ) -> None:
+    total_attached = sum(count or 0 for count in counts.values())
+    if total_attached > TOTAL_REFERENCE_LIMIT:
+        add(
+            issues,
+            "error",
+            "O110",
+            f"{total_attached} attached reference item(s) exceed the default Seedance 2.5 all-around limit of {TOTAL_REFERENCE_LIMIT}.",
+            "project-default",
+        )
     for kind, limit in MEDIA_LIMITS.items():
         count = counts[kind]
         if count is not None:
@@ -465,8 +512,8 @@ def check_media(
                     issues,
                     "error",
                     "O102",
-                    f"{count} {kind} assets exceed the official Seedance 2.0 multimodal limit of {limit}.",
-                    "official",
+                    f"{count} {kind} assets exceed the default Seedance 2.5 all-around per-modality ceiling of {limit}.",
+                    "project-default",
                 )
             for index in sorted(set(refs[kind])):
                 if index < 1 or index > count:
@@ -549,13 +596,13 @@ def check_prompt(text: str, args: argparse.Namespace) -> list[Issue]:
             "heuristic",
         )
 
-    if args.duration is not None and not 4 <= args.duration <= 15:
+    if args.duration is not None and not 4 <= args.duration <= 30:
         add(
             issues,
             "error",
             "O003",
-            f"Duration {args.duration}s is outside the official Seedance 2.0 range of 4–15 seconds.",
-            "official",
+            f"Duration {args.duration}s is outside the default Seedance 2.5 range of 4–30 seconds.",
+            "project-default",
         )
 
     refs = refs_in(stripped)
@@ -563,16 +610,16 @@ def check_prompt(text: str, args: argparse.Namespace) -> list[Issue]:
     check_media(issues, refs, counts, args.mode)
 
     if re.search(r"\bseed\s*[:=]\s*-?\d+", stripped, re.IGNORECASE):
-        add(issues, "error", "O201", "Seedance 2.0 does not support the API seed control.", "official")
+        add(issues, "error", "O201", "Seed/API seed controls belong in provider parameters, not prompt prose.", "prompt-cleaning")
     if re.search(r"\bcamera_fixed\b", stripped, re.IGNORECASE):
-        add(issues, "error", "O202", "Seedance 2.0 does not currently support camera_fixed as an API control.", "official")
-    if re.search(r"\b(?:4k|8k)\b", stripped, re.IGNORECASE):
+        add(issues, "error", "O202", "camera_fixed is a provider/control-layer field, not prompt prose.", "prompt-cleaning")
+    if re.search(r"\b(?:480p|720p|1080p|4k|8k|resolution\s*[:=]|分辨率|清晰度\s*[:=])\b", stripped, re.IGNORECASE):
         add(
             issues,
             "warning",
             "H201",
-            "Resolution language appears in the prompt. Set supported resolution in provider controls/API instead of treating prose as a guarantee.",
-            "heuristic",
+            "Resolution/model-quality controls appear in prompt prose. Put 480P and other resolution settings in provider controls, not the prompt.",
+            "prompt-cleaning",
         )
 
     if re.search(r"asset[-_:][a-z0-9_-]{6,}", stripped, re.IGNORECASE):
@@ -581,7 +628,34 @@ def check_prompt(text: str, args: argparse.Namespace) -> list[Issue]:
             "warning",
             "O203",
             "An opaque asset ID appears in prompt prose. Keep it in the request/asset map and use a numbered readable label for the subject.",
-            "official",
+            "prompt-cleaning",
+        )
+
+    dirty_patterns = (
+        r"(?i)\b(?:model|workflow|api|endpoint|payload|json|curl|http|request|response|parameter|params|node|workflow_id)\b",
+        r"(?i)\b(?:Seedance\s*2\.5|Seedance\s*2\.0|Dreamina|Doubao|Jimeng)\b",
+        r"(?:模型|工作流|接口|端点|参数|请求体|返回|节点|调用|生成流程|提交任务|全能参考模式|参考模式|使用\s*default-video-generation|调用\s*default-video-generation)",
+        r"(?:你是一个.*?(?:专家|助手)|请严格遵守|系统规则|规则如下|以上规则|下面的规则)",
+    )
+    for pattern in dirty_patterns:
+        if re.search(pattern, stripped):
+            add(
+                issues,
+                "warning",
+                "H202",
+                "Prompt appears to contain model names, workflow/API terms, provider settings, or system-rule text that should be stripped before generation.",
+                "prompt-cleaning",
+            )
+            break
+
+    repeated = repeated_sentences(stripped)
+    if repeated:
+        add(
+            issues,
+            "warning",
+            "H203",
+            f"Prompt repeats the same requirement more than once: {repeated[0][:80]}",
+            "prompt-cleaning",
         )
 
     unaliased = sorted(find_unaliased_references(stripped))

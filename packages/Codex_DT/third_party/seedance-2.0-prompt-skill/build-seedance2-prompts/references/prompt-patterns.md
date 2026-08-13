@@ -1,4 +1,4 @@
-# Seedance 2.0 prompt patterns
+# Seedance prompt patterns
 
 Use placeholders as structural guides, not copy-paste filler. Remove every unused clause. Keep one clear creative thesis per generation.
 
@@ -165,7 +165,7 @@ If the output should include the original content, say so explicitly. Avoid repe
 @Video 1 (opening clip). As [last visible action/object] reaches [transition trigger], [specific physical/visual transition] carries the motion into @Video 2 (ending clip). Preserve the direction of movement, camera momentum, lighting logic, and audio rhythm through the join. [Optional continuation toward @Video 3].
 ```
 
-Maximum supported reference videos and total input duration depend on provider; BytePlus documents up to three videos and official completion examples within a 15-second total input window.
+Maximum supported reference videos and total input duration depend on provider. In Codex_Wsstudio's default Seedance 2.5 all-around reference path, use no more than 50 total reference content items and keep the generated clip within 4-30 seconds.
 
 ### 12. Generated titles, subtitles, or speech bubbles
 
@@ -247,5 +247,6 @@ These are field heuristics, not official hard limits:
 - 7–9 seconds: one rich shot or two simple shots;
 - 10–12 seconds: two or three clear beats;
 - 13–15 seconds: up to three or four compact shots, or a short dialogue exchange;
+- 16–30 seconds: a slower paced sequence, longer product/story arc, or staged multi-beat progression; keep each shot purposeful and avoid padding;
 - one principal action and one principal camera movement per shot;
 - if every reference, action, style, and constraint is “equally important,” the prompt has no priority. Remove or stage lower-priority ideas.

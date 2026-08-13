@@ -1,0 +1,16 @@
+{
+  "source_id": "zerolu",
+  "name": "ZeroLu awesome-seedance",
+  "type": "jsonl",
+  "path": "prompts.jsonl",
+  "license": "MIT",
+  "repo": "https://github.com/ZeroLu/awesome-seedance",
+  "input_files": [
+    "README-zh.md",
+    "prompts/*.md"
+  ],
+  "notes": "Chinese curated examples imported as an independently traceable source.",
+  "source_commit": "820b8e802cba5d10df3c39d94b6b8364bffb8c92",
+  "record_count": 51,
+  "imported_at": "2026-08-13T03:07:01+00:00"
+}

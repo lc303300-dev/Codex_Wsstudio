@@ -1,4 +1,4 @@
-# Seedance 2.0 official rules
+# Seedance official and project rules
 
 `last_checked: 2026-07-14`
 
@@ -36,6 +36,18 @@ The shorter English BytePlus snapshot was served at:
 Both declare the name `sd2-pe`. The Chinese package adds task routing, simple and complex paths, audio mapping, reference-person limits, exact-timing cautions, and failure handling. Neither downloaded file contains an explicit license grant, so this skill paraphrases and independently implements the rules instead of copying the official text verbatim.
 
 ## Official model and request limits
+
+## Codex_Wsstudio default override
+
+For this repository's `default-video-generation` path, use these project defaults unless a stronger active project or provider schema overrides them:
+
+- model/version: Seedance 2.5;
+- resolution: 480P;
+- reference mode: all-around reference mode;
+- duration: 4-30 seconds;
+- reference content: up to 50 total image/video/audio reference items.
+
+These defaults are control-layer settings. Keep them out of the final prompt prose and represent them in settings, provider controls, or the asset manifest. The upstream Seedance 2.0 limits below remain useful historical/provider context, not the default Codex_Wsstudio path.
 
 ### Model selection
 

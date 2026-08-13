@@ -52,6 +52,8 @@ Get-ChildItem "$env:USERPROFILE\.codex\skills\seedance-2-0-prompts"
 ```
 python scripts/search.py "keyword"              # top 5 results
 python scripts/search.py "keyword" --top 10    # top N
+python scripts/search.py "keyword" --source youmind
+python scripts/search.py "keyword" --source zerolu
 python scripts/search.py --author "KANA"       # filter by author
 python scripts/search.py --min-length 1000     # long prompts only
 python scripts/search.py --max-length 200      # short prompts only
@@ -63,4 +65,9 @@ Run from the skill folder: `cd seedance-2-0-prompts`
 
 ## Corpus Refresh
 
-CSV is frozen at build time. To update: replace `references/seedance-prompts.csv` and re-run install.
+The original CSV is stored at `references/sources/forge-original/prompts.csv`. YouMind and ZeroLu imports live in their own `references/sources/<source_id>/prompts.jsonl` files. To refresh external sources, clone or update the source repositories, then run:
+
+```bash
+python scripts/import_sources.py --source-root /path/to/cloned/repos
+python scripts/build_index.py
+```

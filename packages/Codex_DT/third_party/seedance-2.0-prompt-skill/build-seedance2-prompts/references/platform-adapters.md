@@ -8,6 +8,7 @@ Prompt labels and upload controls are different layers. Adapt both; never assume
 
 - Canonical internal representation
 - Surface tag compiler
+- Codex_DT/default-video-generation local surface
 - Dreamina/Volcengine UI
 - BytePlus ModelArk API
 - Higgsfield
@@ -80,6 +81,20 @@ Minimal manifest example:
   ]
 }
 ```
+
+## Codex_DT/default-video-generation local surface
+
+Codex_Wsstudio's local `default-video-generation` path defaults to Seedance 2.5, 480P, all-around reference mode, duration 4-30 seconds, and up to 50 total reference content items. These values are generation settings, not prompt prose.
+
+For CLI-facing Codex_DT prompts, compile ordered references to bare Chinese labels tied to upload order:
+
+| Stable key | Prompt label |
+|---|---|
+| `image:1` | `图片1` |
+| `video:1` | `视频1` |
+| `audio:1` | `音频1` |
+
+Do not type Web UI mention-chip forms such as `@Image 1`, `@图片1`, `@Video 1`, or `@视频1` into the local CLI-facing prompt. Do not write `Seedance 2.5`, `480P`, `all-around reference mode`, API fields, upload arguments, or tool-call instructions into the prompt body. Keep them in settings or the asset manifest.
 
 ## Dreamina/Volcengine UI
 

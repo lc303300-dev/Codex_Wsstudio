@@ -2,7 +2,7 @@
 
 These examples are scaffolds for structure, not copy targets. Study the section grammar each prompt uses — timestamps, bold headers, bracket sections, bilingual tags — then apply that same grammar to your own subject matter. A short prompt that nails its concept-only grammar can be as effective as a long storyboard prompt that specifies every lens and beat. Select the structural pattern that matches the complexity and fidelity requirements of your scene, then rebuild it around your character, setting, and action.
 
-Use these entries to answer the question: "What kind of structure does this type of scene need?" The entries below cover ultra-short concept frames, timestamped multi-beat storyboards, reference-image anchored setups, bilingual tagged structures, bracket-section cinematic briefs, and game-UI narrative forms. The full corpus is searchable at `references/seedance-prompts.csv` for additional examples by style, length, or subject.
+Use these entries to answer the question: "What kind of structure does this type of scene need?" The entries below cover ultra-short concept frames, timestamped multi-beat storyboards, reference-image anchored setups, bilingual tagged structures, bracket-section cinematic briefs, and game-UI narrative forms. The full source index is searchable with `scripts/search.py` for additional examples by style, source, length, or subject.
 
 ---
 
@@ -247,4 +247,4 @@ Visual & Atmospheric Foundation Facial Fidelity: The output must adhere strictly
 
 ---
 
-*For additional examples across all prompt lengths, styles, and subjects, search the full corpus at `references/seedance-prompts.csv`.*
+*For additional examples across all prompt lengths, styles, and subjects, search the full source index with `scripts/search.py`.*

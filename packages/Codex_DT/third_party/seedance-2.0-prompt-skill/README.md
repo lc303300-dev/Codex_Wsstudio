@@ -1,4 +1,4 @@
-# Seedance 2.0 Prompt Engineering Skill
+# Seedance Prompt Engineering Skill
 
 [日本語](README.ja.md)
 
@@ -6,7 +6,7 @@
 [![Seedance 2.0](https://img.shields.io/badge/Seedance-2.0-111827.svg)](https://seed.bytedance.com/en/seedance2_0)
 [![Codex Skill](https://img.shields.io/badge/Codex-skill-10A37F.svg)](build-seedance2-prompts/SKILL.md)
 
-An evidence-backed Codex skill for building production-ready **Seedance 2.0 prompts** across Dreamina, BytePlus ModelArk, Volcengine, Fal, Higgsfield, and other provider surfaces.
+An evidence-backed Codex skill for building production-ready **Seedance prompts** across Dreamina, BytePlus ModelArk, Volcengine, Fal, Higgsfield, and other provider surfaces. In Codex_Wsstudio, the default path is Seedance 2.5, 480P, all-around reference mode, 4-30 seconds, and up to 50 total reference content items.
 
 Stop re-explaining `@Image 1`, `@Video 1`, `@Audio 1`, first/last-frame roles, edit wording, shot structure, or provider-specific tag spelling. Give the creative brief and reference assets; the skill compiles the prompt, asset map, settings, and preflight checks.
 
@@ -25,7 +25,7 @@ This is not another prompt dump. It is a **role-aware prompt compiler and linter
 
 ## Core capabilities
 
-- Seedance 2.0 Standard by default; Fast/Mini only when requested.
+- Seedance 2.5, 480P, all-around reference mode by default in Codex_Wsstudio; provider-specific variants only when requested or required.
 - Japanese or English prompts without forcing translation.
 - `vibe-explore`, `balanced`, and `precision` control lanes.
 - Text-to-video, first-frame, first-and-last-frame, multimodal reference, edit, extend, and stitch modes.

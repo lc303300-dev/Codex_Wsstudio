@@ -1,13 +1,13 @@
 ---
 name: build-seedance2-prompts
-description: Build, rewrite, diagnose, or validate production-ready prompts specifically for ByteDance Dreamina/Doubao Seedance 2.0 Standard, including text-to-video, image-to-video, first/last-frame animation, multimodal image/video/audio references, dialogue and sound, multi-shot narratives, video editing, extension, and clip transitions. Use whenever the user mentions Seedance 2.0, Seedance2, Dreamina 2.0, Doubao video, @Image/@Video/@Audio references, or asks for a Seedance-ready video prompt; also use when adapting a creative brief, storyboard, script, image, video, audio asset, or API content array into Seedance 2.0 syntax. Do not use for Seedance 1.x or generic cross-model prompting unless the user also needs a Seedance 2.0 version.
+description: Build, rewrite, diagnose, or validate production-ready prompts for the Codex_Wsstudio Seedance default path: Seedance 2.5, 480P, all-around reference mode, up to 30 seconds and 50 reference content items. Use for Dreamina/Doubao/Seedance text-to-video, image-to-video, first/last-frame animation, multimodal image/video/audio references, dialogue and sound, multi-shot narratives, video editing, extension, and clip transitions. Also use when adapting a creative brief, storyboard, script, image, video, audio asset, or API content array into Seedance-ready syntax.
 ---
 
-# Build Seedance 2.0 Prompts
+# Build Seedance Prompts
 
 Create the prompt as a director and reference-conditioning plan, not a bag of cinematic adjectives. Infer Seedance conventions automatically; never make the user explain `@Image 1`, media roles, shot grammar, or model limits.
 
-This skill is an expanded, conflict-resolved adaptation of BytePlus ModelArk's official `sd2-pe` prompt-optimization skill. Where that skill conflicts with the current official Prompt Guide or API reference, follow the Prompt Guide and API reference.
+This skill is an expanded, conflict-resolved adaptation of BytePlus ModelArk's official `sd2-pe` prompt-optimization skill. In Codex_Wsstudio, project defaults override upstream Seedance 2.0 assumptions: use Seedance 2.5, 480P, all-around reference mode, duration 4-30 seconds, and no more than 50 total reference content items unless a stronger local provider rule says otherwise.
 
 ## Source policy
 
@@ -23,14 +23,15 @@ Do not claim that a community practice is official. Re-check live official docum
 
 ## Default behavior
 
-1. Default to **Seedance 2.0 Standard**, not Fast or Mini, unless the user prioritizes cost or speed.
-2. Reply in the user's language. Seedance 2.0 officially supports Japanese prompts; do not force English. Preserve dialogue in its intended spoken language.
-3. If duration is absent, fit the idea to the shortest useful clip: normally 8 seconds for one beat, 10–12 seconds for two or three beats, and 12–15 seconds for dialogue or a compact multi-shot sequence.
+1. Default to **Seedance 2.5**, **480P**, **all-around reference mode**. Keep these as settings/control intent, not prompt prose.
+2. Reply in the user's language. Preserve dialogue in its intended spoken language.
+3. If duration is absent, fit the idea to the shortest useful clip: normally 8 seconds for one beat, 10-12 seconds for two or three beats, 12-15 seconds for dialogue or a compact multi-shot sequence, and up to 30 seconds only when the brief needs slower pacing, more beats, or a longer product/story arc.
 4. If ratio is absent, infer it from delivery: `9:16` social vertical, `16:9` film/web, `1:1` square campaign. If delivery is unknown, use `16:9`.
 5. Keep API/UI settings outside prompt prose. Return model, duration, ratio, resolution, and audio generation as a separate settings block. Never add “4K” as prose to compensate for a lower resolution setting.
 6. Never invent a provider endpoint, model slug, field name, entitlement, or supported resolution. Use a current official/provider schema when exact submission fields are requested; otherwise label the intent in provider-neutral settings.
    Do not format unverified intent labels as a copy-paste API payload. Call them “control intent” or “provider setting to verify.”
 7. Do not generate media or spend credits unless the user explicitly asks for generation. This skill builds and validates prompts.
+8. Strip dirty prompt text before delivery: remove model names, resolution, seed, reference mode, API fields, upload instructions, workflow/tool-call wording, and system-rule prose such as “you are an expert” or “strictly follow these rules.” Express each actual visual/audio requirement once in the positive prompt; if extra protection is needed, add it once in the relevant negative/constraint tail instead of repeating it throughout the prompt.
 
 ## Workflow
 
@@ -162,7 +163,7 @@ Use visual-quality language only when it describes the look—clean detail, natu
 
 Do not forbid text when the user requests a title, logo, subtitle, label, or speech bubble. Do not mix conflicting style, camera, or subject instructions.
 
-### 7. Validate before delivery
+### 7. Clean and validate before delivery
 
 Check all of the following:
 
@@ -170,10 +171,12 @@ Check all of the following:
 - every subject has one stable alias and unambiguous binding;
 - each reference has a named job;
 - prompt mode matches media roles;
-- shot count and action density fit 4–15 seconds;
+- shot count and action density fit the selected duration, within the default Seedance 2.5 range of 4-30 seconds;
 - chronology, camera, body motion, and audio do not conflict;
 - the prompt retains every user must-have and does not add unsupported story beats;
 - settings are outside prompt prose;
+- model name, 480P/resolution, all-around reference mode, seed, API/payload fields, upload instructions, tool-call text, and system-rule language are absent from the final prompt prose;
+- repeated requirements are collapsed so each positive requirement appears once, with at most one matching negative/constraint clause where useful;
 - constraints do not contradict requested text, branding, dialogue, or motion;
 - copyrighted characters, unauthorized likenesses, and unlicensed brands are not silently introduced.
 
@@ -203,9 +206,9 @@ Lead with the paste-ready artifact. Do not explain Seedance basics before it.
 
 Use this order unless the user asks for prompt-only output:
 
-1. **Seedance 2.0 prompt** — one copy-ready block.
+1. **Seedance prompt** — one copy-ready block.
 2. **Asset order** — only when media is used; label, upload order, purpose, and platform role.
-3. **Settings** — Standard/Fast/Mini, duration, ratio, resolution, audio on/off.
+3. **Settings** — Seedance 2.5, 480P, all-around reference mode, duration, ratio, audio on/off.
 4. **Checks** — only material assumptions, provider caveats, or unresolved risks.
 
 When the user requests “prompt only,” return only the finished prompt, with no headings, tutorial, alternative versions, or follow-up question.

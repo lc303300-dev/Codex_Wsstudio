@@ -1,0 +1,15 @@
+{
+  "source_id": "youmind",
+  "name": "YouMind OpenLab awesome-seedance-2-prompts",
+  "type": "jsonl",
+  "path": "prompts.jsonl",
+  "license": "CC BY 4.0",
+  "repo": "https://github.com/YouMind-OpenLab/awesome-seedance-2-prompts",
+  "input_files": [
+    "README_zh.md"
+  ],
+  "notes": "Chinese README prompt entries imported as an independently traceable source.",
+  "source_commit": "419cdfa7b6fc94bd3066edb939696d4ce42f45d3",
+  "record_count": 106,
+  "imported_at": "2026-08-13T03:07:01+00:00"
+}
