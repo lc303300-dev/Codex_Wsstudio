@@ -1,0 +1,14 @@
+.venv/
+**/__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Local intake sources, reports, projects, and generated receipts are private runtime data.
+.codex-cs-private/
+staging/
+staging-migration/
+rejected/
+projects/
+
+# Media runtime data belongs to the unified media package, never this repository.
+.codex-image-private/

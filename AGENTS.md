@@ -49,6 +49,6 @@ This repository uses the monorepo layout defined in `docs/PROJECT_STRUCTURE.md`:
 - shared configuration belongs under `config/`;
 - automation belongs under `scripts/`, grouped by purpose;
 - the root is reserved for repository metadata, dependency/test manifests, governance files, and stable entry scripts.
-- packaged projects currently live in `packages/Codex_image/`, `packages/Codex_DT/`, `packages/Codex_Gif/`, and `packages/Codex_Github/`.
+- packaged projects currently live in `packages/Codex_image/`, `packages/Codex_DT/`, `packages/Codex_Gif/`, `packages/Codex_Github/`, and `packages/Codex_CS/`.
 
 Do not add new implementation scripts, project directories, generated output, or standalone design documents to the repository root. Before completing any change, run `scripts/maintenance/test-project-structure.ps1`. Structural changes must update the structure document, README, validation allowlist, path references, and both repository/global guidance when applicable.

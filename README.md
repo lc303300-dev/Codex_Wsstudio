@@ -12,7 +12,8 @@ Codex_Wsstudio/
 │  ├─ Codex_image/              Media tools, provider wrappers, and safety checks
 │  ├─ Codex_DT/                 Dreamina/Seedance production workflow and prompt optimization
 │  ├─ Codex_Gif/                Video-to-GIF package and global skill registration
-│  └─ Codex_Github/             Tool Scout discovery workflow
+│  ├─ Codex_Github/             Tool Scout discovery workflow
+│  └─ Codex_CS/                 Governed video business Skill intake and migration
 ├─ scripts/
 │  ├─ codex/                    Codex configuration synchronization
 │  ├─ deployment/               Installation and deployment implementation

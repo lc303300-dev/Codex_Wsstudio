@@ -130,5 +130,13 @@ if (Test-Path -LiteralPath $dtRegistration -PathType Leaf) {
     }
 }
 
+$csRegistration = Join-Path $RepositoryRoot "packages\Codex_CS\register-global-skill.ps1"
+if (Test-Path -LiteralPath $csRegistration -PathType Leaf) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $csRegistration -CodexHome $CodexHome
+    if ($LASTEXITCODE -ne 0) {
+        throw "Codex_CS global skill registration failed with exit code ${LASTEXITCODE}."
+    }
+}
+
 Write-Host ""
 Write-Host "Global Codex synchronization complete. Restart Codex or start a new task to reload changes." -ForegroundColor Green

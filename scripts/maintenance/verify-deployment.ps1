@@ -28,6 +28,8 @@ Require-Path (Join-Path $RepositoryRoot "packages\Codex_image\register-default-m
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\register-global-skill.ps1") "Codex_DT registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\codex-dt-video-prompt\SKILL.md") "Codex_DT skill"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\video-director-prompt\SKILL.md") "Codex_DT video director skill"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_CS\register-global-skill.ps1") "Codex_CS registration script"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_CS\codex-cs-skill-curator\SKILL.md") "Codex_CS curator skill"
 Require-Path (Join-Path $RepositoryRoot "scripts") "scripts directory" "Container"
 Require-Path (Join-Path $CodexHome "AGENTS.md") "global Codex guidance"
 Require-Path (Join-Path $CodexHome "config.toml") "global Codex config"

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codex-cs.local/schemas/video-skill-intake-report-v1.json",
+  "title": "Codex_CS Video Skill Intake Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "skill_id", "display_name", "sources", "duplicate_check", "extraction_summary", "reference_summary", "isolated_legacy_content", "creative_supplement", "contract_conflicts", "blocking_questions", "validation_issues", "experience_preservation", "user_approval"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "status": {"enum": ["needs_review", "ready_for_approval", "approved", "published", "rejected"]},
+    "skill_id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "display_name": {"type": "string", "minLength": 2},
+    "sources": {"type": "array", "minItems": 1},
+    "duplicate_check": {"type": "object"},
+    "extraction_summary": {"type": "object"},
+    "reference_summary": {"type": "array"},
+    "isolated_legacy_content": {"type": "array"},
+    "creative_supplement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "generated_by", "request_path", "draft_path", "requires_user_review", "reason"],
+      "properties": {
+        "status": {"enum": ["not_required", "creative_supplement_pending", "draft_received", "user_approved", "failed"]},
+        "generated_by": {"type": ["string", "null"]},
+        "request_path": {"type": ["string", "null"]},
+        "draft_path": {"type": ["string", "null"]},
+        "requires_user_review": {"type": "boolean"},
+        "reason": {"type": "string"}
+      }
+    },
+    "contract_conflicts": {"type": "array"},
+    "blocking_questions": {"type": "array"},
+    "validation_issues": {"type": "array"},
+    "experience_preservation": {"type": "object"},
+    "user_approval": {"type": "object"}
+  }
+}

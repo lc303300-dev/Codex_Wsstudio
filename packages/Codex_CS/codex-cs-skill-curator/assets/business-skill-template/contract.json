@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "skill_id": "{{skill_id}}",
+  "display_name": "{{display_name}}",
+  "description": "{{description}}",
+  "references": [
+    {
+      "id": "primary-reference",
+      "media_type": "image",
+      "role": "scene",
+      "description": "CURATOR-REQUIRED：根据原始资料填写准确的素材职责",
+      "required": true,
+      "min_count": 1,
+      "max_count": 1,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "video": {
+    "reference_required": true,
+    "allowed_modes": ["multimodal2video"]
+  },
+  "authoring": {
+    "primary_language": "zh-CN",
+    "preserve_professional_english": true,
+    "user_instruction_priority": "highest",
+    "timing_strategy": "adaptive",
+    "transition_strategy": "adaptive",
+    "requires_prompt_confirmation": true,
+    "requires_reference_binding": true
+  },
+  "knowledge": {
+    "creative_guidance": "references/creative-guidance.md",
+    "community_experience": "references/community-experience.md",
+    "failure_cases": "references/failure-cases.md",
+    "examples": "references/examples.md"
+  }
+}
+
