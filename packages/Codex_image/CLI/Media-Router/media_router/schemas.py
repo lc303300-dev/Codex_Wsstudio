@@ -15,6 +15,8 @@ class MediaRequest:
     audios: tuple[Path, ...] = ()
     video_command: str | None = None
     video_model: str | None = None
+    video_model_selection_source: str | None = None
+    video_execution_mode: str = "production"  # production_submit_only is reserved for trusted local pipelines
     video_ratio: str | None = None
     video_duration: str | None = None
     video_resolution: str | None = None
@@ -44,7 +46,7 @@ class Readiness:
 class ProviderResult:
     provider_id: str
     model_id: str
-    status: Literal["success", "failed", "needs_review", "cancelled"]
+    status: Literal["success", "submitted", "failed", "needs_review", "cancelled"]
     failure_class: FailureClass | None = None
     request_id: str | None = None
     submit_id: str | None = None
@@ -54,6 +56,8 @@ class ProviderResult:
     finished_at: str | None = None
     duration_ms: int = 0
     safe_reason: str | None = None
+    provider_status: str | None = None
+    polling_performed: bool | None = None
 
     def to_dict(self) -> dict:
         value = asdict(self)
@@ -65,13 +69,16 @@ class ProviderResult:
 @dataclass
 class MediaResult:
     task_id: str
-    status: Literal["success", "failed", "needs_review", "cancelled"]
+    status: Literal["success", "submitted", "failed", "needs_review", "cancelled"]
     output_path: str | None = None
     provider_id: str | None = None
     model_id: str | None = None
     attempts: list[dict] = field(default_factory=list)
     failure_class: str | None = None
     safe_reason: str | None = None
+    submit_id: str | None = None
+    next_action: str | None = None
+    user_message: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

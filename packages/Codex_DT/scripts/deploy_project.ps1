@@ -143,7 +143,8 @@ Add-Check "PowerShell" $true $PSVersionTable.PSVersion.ToString()
 Add-Check "Python" (Test-CommandAvailable "python") ($(if (Test-CommandAvailable "python") { (& python --version 2>&1) -join " " } else { "python not found in PATH" }))
 Add-Check "Preview tool" (Test-Path -LiteralPath $resolvedPreviewTool) $resolvedPreviewTool
 Add-Check "Seedance CLI" (-not [string]::IsNullOrWhiteSpace($resolvedSeedanceCli) -and (Test-Path -LiteralPath $resolvedSeedanceCli)) $resolvedSeedanceCli
-Add-Check "seedance-forge corpus" (Test-Path -LiteralPath (Join-Path $root "third_party/seedance-forge/references/seedance-prompts.csv")) "third_party/seedance-forge/references/seedance-prompts.csv"
+Add-Check "seedance-forge corpus" (Test-Path -LiteralPath (Join-Path $root "third_party/seedance-forge/references/indexes/combined.index.jsonl")) "third_party/seedance-forge/references/indexes/combined.index.jsonl"
+Add-Check "Video director skill" (Test-Path -LiteralPath (Join-Path $root ".claude/skills/video-director-prompt/SKILL.md")) ".claude/skills/video-director-prompt/SKILL.md"
 Add-Check "Seedance validator" (Test-Path -LiteralPath (Join-Path $root "third_party/seedance-2.0-prompt-skill/build-seedance2-prompts/scripts/validate_prompt.py")) "third_party/seedance-2.0-prompt-skill/build-seedance2-prompts/scripts/validate_prompt.py"
 
 if ((Test-CommandAvailable "python") -and -not $Force) {
@@ -165,7 +166,7 @@ $local = [ordered]@{
         preview_tool = $resolvedPreviewTool
         seedance_cli = $resolvedSeedanceCli
         forge_search = [string]$baseConfig.paths.forge_search
-        forge_csv = [string]$baseConfig.paths.forge_csv
+        forge_index = [string]$baseConfig.paths.forge_index
         mqrox_validator = [string]$baseConfig.paths.mqrox_validator
     }
 }

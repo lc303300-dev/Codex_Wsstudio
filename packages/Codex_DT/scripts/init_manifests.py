@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime_paths import existing_runtime_path
+from model_policy import DEFAULT_MODEL, build_model_selection, normalize_model, validate_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "templates" / "image-manifest.template.json"
@@ -72,7 +73,7 @@ def validate_preview_record(record: dict[str, Any]) -> None:
         raise SystemExit(f"Preview metadata file is missing: {metadata_path}")
 
 
-def build_manifest(template: dict[str, Any], index: int, record: dict[str, Any], duration: int, ratio: str | None, prompts: Path) -> dict[str, Any]:
+def build_manifest(template: dict[str, Any], index: int, record: dict[str, Any], duration: int, ratio: str | None, prompts: Path, model: str, model_selection: dict[str, Any]) -> dict[str, Any]:
     source = workspace_rel(str(record["input_path"]))
     preview = workspace_rel(str(record["preview_path"]))
     item_id = image_id(index, source)
@@ -85,6 +86,8 @@ def build_manifest(template: dict[str, Any], index: int, record: dict[str, Any],
     manifest["prompt"]["file"] = prompt_file
     manifest["prompt"]["status"] = "draft"
     manifest["mqrox_compile"]["duration"] = duration
+    manifest["mqrox_compile"]["model_version"] = model
+    manifest["mqrox_compile"]["model_selection"] = model_selection
     if ratio is None:
         ratio = nearest_ratio(int(record["original_width"]), int(record["original_height"]))
     manifest["mqrox_compile"]["ratio"] = ratio
@@ -121,10 +124,11 @@ def main() -> int:
     parser.add_argument("--manifests", type=Path, default=ROOT / "manifests")
     parser.add_argument("--prompts", type=Path, default=ROOT / "prompts")
     parser.add_argument("--batch", help="Batch/task id. Uses previews/<batch>, manifests/<batch>, and prompts/<batch>.")
-    parser.add_argument("--duration", type=int, help="Required video duration in seconds, 4 through 30. Defaults to private batch request metadata when present.")
+    parser.add_argument("--duration", type=int, help="Required video duration in seconds; allowed range depends on the selected model. Defaults to private batch request metadata when present.")
     parser.add_argument("--ratio", help="Optional target ratio: 21:9, 16:9, 4:3, 1:1, 3:4, or 9:16. If omitted, the nearest image ratio is used.")
     parser.add_argument("--brief", action="append", type=parse_brief, default=[], help="Per-image user motion brief as IMAGE_ID=TEXT. Keys may be manifest ids like 001-image1, input stems like image1, or 1-based indexes.")
     parser.add_argument("--request", type=Path, help="Optional request metadata JSON. Defaults to .codex-image-private/batches/<batch>/request.json when available.")
+    parser.add_argument("--model-version", help="Explicit user-selected video model. Defaults to request metadata, then Seedance 2.5.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing manifest files.")
     args = parser.parse_args()
     if args.batch:
@@ -144,6 +148,25 @@ def main() -> int:
     duration = args.duration if args.duration is not None else request.get("duration")
     ratio = args.ratio if args.ratio is not None else request.get("ratio")
     request_brief = str(request.get("user_request_zh", "")).strip()
+    request_model = request.get("model") if isinstance(request.get("model"), dict) else {}
+    if args.model_version is not None:
+        try:
+            model = normalize_model(args.model_version)
+            model_selection = build_model_selection(args.model_version, explicit=True, user_text=request_brief or None)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+    elif request_model:
+        try:
+            model = normalize_model(request_model.get("requested"))
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        model_selection = dict(request_model)
+        model_selection["requested"] = model
+        if model.startswith("seedance2.0") and model_selection.get("selection_source") != "user_explicit":
+            raise SystemExit("Seedance 2.0 request metadata must record selection_source=user_explicit.")
+    else:
+        model = DEFAULT_MODEL
+        model_selection = build_model_selection(DEFAULT_MODEL, explicit=False)
 
     if duration is None:
         raise SystemExit("--duration is required unless private batch request metadata provides duration.")
@@ -167,7 +190,12 @@ def main() -> int:
     brief_by_key = dict(args.brief)
     for index, record in enumerate(records, start=1):
         validate_preview_record(record)
-        manifest = build_manifest(template, index, record, duration, ratio, args.prompts)
+        effective_ratio = ratio or nearest_ratio(int(record["original_width"]), int(record["original_height"]))
+        try:
+            validate_settings(model, duration, str(template["mqrox_compile"].get("resolution") or "480p"), effective_ratio)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        manifest = build_manifest(template, index, record, duration, effective_ratio, args.prompts, model, model_selection)
         source_stem = Path(manifest["source_image"]).stem
         brief = brief_by_key.get(manifest["id"]) or brief_by_key.get(source_stem) or brief_by_key.get(str(index)) or request_brief
         if brief:

@@ -155,6 +155,16 @@ class DreaminaAdapter:
         match = re.search(r'(?i)["\']?submit_id["\']?\s*[:=]\s*["\']?([A-Za-z0-9_-]+)', text)
         return match.group(1) if match else None
 
+    @staticmethod
+    def _provider_status(text: str) -> str | None:
+        match = re.search(r'(?i)["\']?gen_status["\']?\s*[:=]\s*["\']?([A-Za-z_]+)', text)
+        return match.group(1).lower() if match else None
+
+    @staticmethod
+    def _fail_reason(text: str) -> str | None:
+        match = re.search(r'(?i)["\']?fail_reason["\']?\s*[:=]\s*["\']?([^\r\n"\'}]+)', text)
+        return safe_text(match.group(1).strip()) if match else None
+
     def execute_command(self, command_name: str, arguments: list[str], request: MediaRequest, context: TaskContext) -> ProviderResult:
         started, stamp = time.monotonic(), datetime.now(timezone.utc).isoformat()
         requested_model = self.model_id
@@ -168,7 +178,21 @@ class DreaminaAdapter:
             _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), command_name, "-h"], _remaining_timeout(context, 60), help_log, submitted_on_start=False, timeout_failure=timeout_failure)
             _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "user_credit"], _remaining_timeout(context, 30), context.job_dir / "logs" / f"{self.provider_id}-credit.json", submitted_on_start=False, timeout_failure=timeout_failure)
             completed = _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), command_name, *arguments], _remaining_timeout(context, 240), context.job_dir / "logs" / f"{self.provider_id}-submit.json", timeout_failure=timeout_failure)
-            submit_id = self._submit_id(completed.stdout + "\n" + completed.stderr)
+            transcript = completed.stdout + "\n" + completed.stderr
+            submit_id = self._submit_id(transcript)
+            provider_status = self._provider_status(transcript)
+            fail_reason = self._fail_reason(transcript)
+            if request.video_execution_mode in {"test_submit_only", "production_submit_only"}:
+                if provider_status in {"fail", "failed"}:
+                    raise MediaRouterError(fail_reason or "Dreamina test submission failed", FailureClass.DEFINITE_PROVIDER_FAILURE, submitted=bool(submit_id))
+                if not submit_id:
+                    raise MediaRouterError("Dreamina test submission returned no submit_id", FailureClass.INDETERMINATE_SUBMISSION, submitted=True)
+                if provider_status not in {"querying", "success"}:
+                    raise MediaRouterError("Dreamina test submission returned an unknown status", FailureClass.INDETERMINATE_SUBMISSION, submitted=True)
+                duration = int((time.monotonic()-started)*1000)
+                write_json(context.job_dir / "state.json", {"task_id": context.task_id, "status": "submitted", "submit_id": submit_id, "model_id": requested_model, "provider_status": provider_status, "polling_performed": False, "updated_at": datetime.now(timezone.utc).isoformat()})
+                self.runtime.record(True, duration)
+                return ProviderResult(self.provider_id, requested_model, "submitted", submit_id=submit_id, started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration, provider_status=provider_status, polling_performed=False)
             if not submit_id:
                 raise MediaRouterError("Dreamina submission returned no submit_id", FailureClass.INDETERMINATE_SUBMISSION, submitted=True)
             write_json(context.job_dir / "state.json", {"task_id": context.task_id, "status": "running", "submit_id": submit_id, "updated_at": datetime.now(timezone.utc).isoformat()})

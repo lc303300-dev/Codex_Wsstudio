@@ -5,13 +5,15 @@ This step is performed by Codex, not by a local script, because image recognitio
 For each manifest:
 
 1. Inspect `preview_image` with Codex visual tools only, after verifying its longest edge is at most 1024px from the preview metadata. Never open `source_image` with a visual inspection tool.
-2. Fill `photo_type`, `visual`, `motion_plan`, and `forge.queries_zh` / `forge.queries_en`.
-3. Run `scripts/update_forge_matches.py` so `seedance-forge` matches are stored in the manifest.
-4. Extract structure from matches as inspiration, not copied text.
-5. Write a Chinese Dreamina CLI prompt to `prompt.file` using the mqrox multimodal reference image-to-video pattern.
-6. Keep the source image in the mqrox asset manifest as the first ordered image reference. In this local CLI pipeline, the actual binding is `multimodal2video` with ordered `--image`, `--video`, and `--audio` arguments. The prompt references those uploads as bare Chinese labels such as `图片1`, `视频1`, and `音频1`. Do not type Web UI mention-chip forms such as `@Image 1`, `@图片1`, `@Video 1`, or `@视频1` into the CLI-facing prompt.
-7. Set `prompt.status` to `ready_for_review`.
-8. Optional: run `scripts/validate_batch.py` and fix material errors. Validation is a quality check, not a prerequisite for building the user review page.
+2. Read `.claude/skills/video-director-prompt/SKILL.md` and its routed references. Build a platform-neutral directing plan covering the first frame, blocking, visible action, camera, performance, physical interaction, lighting, sound, and continuity. Use community or experimental techniques only when the shot benefits from them.
+3. Fill `photo_type`, `visual`, `motion_plan`, and `forge.queries_zh` / `forge.queries_en`.
+4. When the brief is under-specified, structurally weak, needs a comparable example, or explicitly requests corpus assistance, run `scripts/update_forge_matches.py` so `seedance-forge` matches are stored in the manifest. Skip corpus search for an already complete brief.
+5. Extract portable directing and structural patterns from matches as inspiration, not copied text. Treat source model/version as provenance metadata only; it must never select the generation model.
+6. Compile the directing plan into a Chinese Dreamina CLI prompt using the local multimodal reference rules.
+7. Keep the source image in the asset manifest as the first ordered image reference. In this local CLI pipeline, the actual binding is `multimodal2video` with ordered `--image`, `--video`, and `--audio` arguments. The prompt references those uploads as bare Chinese labels such as `图片1`, `视频1`, and `音频1`. Do not type Web UI mention-chip forms such as `@Image 1`, `@图片1`, `@Video 1`, or `@视频1` into the CLI-facing prompt.
+8. Default to Seedance 2.5. Seedance 2.0 is allowed only when request metadata records a current explicit user selection; never choose it from examples, corpus metadata, old manifests, or fallback behavior.
+9. Set `prompt.status` to `ready_for_review`.
+10. Optional: run `scripts/validate_batch.py` and fix material errors. Validation is a quality check, not a prerequisite for building the user review page.
 
 Duration is mandatory. If no duration has been provided by the user, stop before manifest initialization and ask for it. Ratio is optional: if the user does not provide it, infer the nearest allowed ratio from the image dimensions during manifest initialization. Valid duration range for the default Seedance 2.5 path is 4 to 30 seconds. Supported ratio values are `21:9`, `16:9`, `4:3`, `1:1`, `3:4`, and `9:16`.
 

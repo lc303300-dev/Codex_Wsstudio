@@ -3,6 +3,7 @@ param(
     [string]$OutputsDirectory = "outputs",
     [string]$PrivateRuntimeDirectory = ".codex-image-private/batches",
     [string]$SeedanceCli,
+    [string]$MediaRouter,
     [string]$Batch,
     [switch]$SkipCreditCheck,
     [switch]$Yes
@@ -14,6 +15,17 @@ $ErrorActionPreference = "Stop"
 $root = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")
 $localConfigPath = Join-Path $root "config/pipeline.local.json"
 $configPath = Join-Path $root "config/pipeline.json"
+if ([string]::IsNullOrWhiteSpace($MediaRouter)) {
+    foreach ($candidate in @(
+        (Join-Path $root "..\Codex_image\CLI\Media-Router\run.ps1"),
+        (Join-Path $root "..\Codex_image\CLI\media-router.cmd")
+    )) {
+        if (Test-Path -LiteralPath $candidate) {
+            $MediaRouter = [IO.Path]::GetFullPath($candidate)
+            break
+        }
+    }
+}
 if ([string]::IsNullOrWhiteSpace($SeedanceCli)) {
     foreach ($envName in @("SEEDANCE_CLI", "SEEDANCE_CLI_PATH", "DREAMINA_CLI")) {
         $envValue = [Environment]::GetEnvironmentVariable($envName)
@@ -43,21 +55,15 @@ $outputsRoot = Join-Path $root $OutputsDirectory
 $runtimeRoot = Join-Path $root $PrivateRuntimeDirectory
 $logsRoot = Join-Path $runtimeRoot "dreamina-logs"
 
-if ([string]::IsNullOrWhiteSpace($SeedanceCli)) {
-    throw "Seedance CLI wrapper is not configured. Run scripts/deploy_project.ps1 first."
-}
-if (-not (Test-Path -LiteralPath $SeedanceCli)) {
-    throw "Seedance CLI wrapper not found: $SeedanceCli"
+if ([string]::IsNullOrWhiteSpace($MediaRouter) -or -not (Test-Path -LiteralPath $MediaRouter)) {
+    throw "Unified Media Router is not configured. Codex_DT may not submit directly to Seedance CLI."
 }
 
 New-Item -ItemType Directory -Force -Path $outputsRoot | Out-Null
 New-Item -ItemType Directory -Force -Path $runtimeRoot | Out-Null
 New-Item -ItemType Directory -Force -Path $logsRoot | Out-Null
 
-if (-not $SkipCreditCheck) {
-    Write-Host "Checking Dreamina user credit..."
-    powershell -NoProfile -ExecutionPolicy Bypass -File $SeedanceCli user_credit
-}
+if (-not $SkipCreditCheck) { Write-Host "Media Router will check Dreamina credit before each paid submit." }
 
 $manifestFiles = Get-ChildItem -LiteralPath $manifestRoot -Filter *.json -File
 $confirmed = @()
@@ -85,6 +91,12 @@ $tasksPath = Join-Path $runtimeRoot "tasks.jsonl"
 
 foreach ($item in $confirmed) {
     $manifest = $item.Manifest
+    $policyOutput = @(& python (Join-Path $PSScriptRoot "model_policy.py") --manifest $item.File.FullName 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Model policy validation failed for $($manifest.id). $($policyOutput -join ' ')"
+    }
+    $policyJson = $policyOutput -join "`n"
+    $modelPolicy = $policyJson | ConvertFrom-Json
     $sourceImage = [string]$manifest.source_image
     if (-not [IO.Path]::IsPathRooted($sourceImage)) {
         $sourceImage = Join-Path $root $sourceImage
@@ -129,33 +141,15 @@ foreach ($item in $confirmed) {
         throw "Duration missing for $($manifest.id). Ask the user for a duration before generation."
     }
     $duration = [int]$manifest.mqrox_compile.duration
-    if ($duration -lt 4 -or $duration -gt 30) {
-        throw "Duration for $($manifest.id) must be 4 through 30 seconds; got $duration."
-    }
     if ($null -eq $manifest.mqrox_compile.ratio -or [string]::IsNullOrWhiteSpace([string]$manifest.mqrox_compile.ratio)) {
         throw "Ratio missing for $($manifest.id). Ask the user for a ratio before generation."
     }
     $ratio = [string]$manifest.mqrox_compile.ratio
-    $supportedRatios = @("21:9", "16:9", "4:3", "1:1", "3:4", "9:16")
-    if ($supportedRatios -notcontains $ratio) {
-        throw "Ratio for $($manifest.id) must be one of $($supportedRatios -join ', '); got $ratio."
-    }
-    $resolution = [string]$manifest.mqrox_compile.resolution
-    if ([string]::IsNullOrWhiteSpace($resolution)) {
-        $resolution = "480p"
-    }
-    if (@("480p", "720p") -notcontains $resolution) {
-        throw "Resolution for seedance2.5 must be 480p or 720p; got $resolution."
-    }
-    $modelVersion = "seedance2.5"
-    if ($manifest.mqrox_compile.PSObject.Properties.Name -contains "model_version") {
-        $modelVersion = [string]$manifest.mqrox_compile.model_version
-    }
-    $poll = 60
-
+    $resolution = [string]$modelPolicy.resolution
+    $modelVersion = [string]$modelPolicy.model_version
     Write-Host "Submitting $($manifest.id)..."
     $logPath = Join-Path $logsRoot ("{0}.submit.log" -f $manifest.id)
-    $commandArgs = @("multimodal2video")
+    $commandArgs = @("generate_video")
     foreach ($asset in $imageAssets) {
         $assetSource = [string]$asset.source
         if ([string]::IsNullOrWhiteSpace($assetSource)) {
@@ -170,20 +164,26 @@ foreach ($item in $confirmed) {
     }
     $commandArgs += @(
         "--prompt", $prompt,
-        "--duration", [string]$duration,
-        "--ratio", $ratio,
-        "--video_resolution", $resolution,
-        "--model_version", $modelVersion,
-        "--poll", [string]$poll
+        "--video-duration", [string]$duration,
+        "--video-ratio", $ratio,
+        "--video-resolution", $resolution,
+        "--video-model", $modelVersion,
+        "--video-execution-mode", "production_submit_only"
     )
-    $output = powershell -NoProfile -ExecutionPolicy Bypass -File $SeedanceCli @commandArgs 2>&1
+    if ($modelVersion -ne "seedance2.5") {
+        $commandArgs += @("--video-model-selection-source", "user_explicit")
+    }
+    $output = powershell -NoProfile -ExecutionPolicy Bypass -File $MediaRouter @commandArgs 2>&1
     $output | Set-Content -LiteralPath $logPath -Encoding UTF8
 
     $submitId = $null
     $joined = ($output -join "`n")
-    if ($joined -match 'submit_id[''":=\s]+([0-9a-fA-F-]{12,})') {
-        $submitId = $Matches[1]
+    $routerResult = $joined | ConvertFrom-Json
+    if ([string]$routerResult.status -ne "submitted") {
+        throw "Media Router did not accept $($manifest.id): $([string]$routerResult.safe_reason)"
     }
+    $submitId = [string]$routerResult.submit_id
+    if ([string]::IsNullOrWhiteSpace($submitId)) { throw "Media Router returned submitted without submit_id for $($manifest.id)." }
 
     $record = [ordered]@{
         id = $manifest.id

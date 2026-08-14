@@ -48,7 +48,7 @@ class TaskStore:
         status = state.get("status")
         if status == "success" and result_path.is_file():
             return {"action": "return_result", "result_path": str(result_path)}
-        if status in {"failed", "needs_review", "cancelled"}:
+        if status in {"submitted", "failed", "needs_review", "cancelled"}:
             return {"action": "do_not_retry", "status": status}
         if status == "running":
             if state.get("submit_id"):

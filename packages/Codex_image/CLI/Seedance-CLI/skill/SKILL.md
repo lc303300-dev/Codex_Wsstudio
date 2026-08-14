@@ -56,9 +56,9 @@ At a high level:
 - Use `list_task` to review recent saved tasks, especially when you want to filter by status or task type.
 - Use `text2image` for prompt-only image generation, `image2image` for image-guided editing, and `image_upscale` for upscaling.
 - Use `text2video` for prompt-only video generation.
-- For ordinary default video generation with any image, video, or audio references, prefer `multimodal2video` so Seedance 2.5 all-around reference rules apply. Use `image2video` or `multiframe2video` only when the user explicitly requests those legacy command shapes or the active project wrapper requires them.
+- For ordinary default video generation with any image, video, or audio references, prefer `multimodal2video` so Seedance 2.5 all-around reference rules apply. Use `image2video` only when the user explicitly requests that legacy command shape or the active project wrapper requires it.
 - Use `frames2video` for first-and-last-frame driven video generation.
-- Use `multiframe2video` for Dreamina's intelligent multi-frame flow: multiple images in, one coherent story video out.
+- Treat `multiframe2video` as disabled legacy functionality in this workspace. Never select, suggest, or submit it; route multiple-image work through `multimodal2video`.
 - Use `multimodal2video` for Dreamina's flagship video mode when the task needs all-around references across images, video, and audio. If the legacy name `ref2video` appears, trust `dreamina -h` for the current command surface.
 
 ### All-around reference / 全能参考
@@ -103,7 +103,6 @@ For video generation in this Codex_image checkout:
 - default video commands that support `model_version` to Seedance 2.5: `--model_version=seedance2.5`
 - default video commands that support `video_resolution` to `--video_resolution=480p` unless the user explicitly requests another supported resolution
 - the project wrapper injects these defaults for `text2video`, `image2video`, `frames2video`, and `multimodal2video` when the corresponding flags are absent
-- do not inject or request a model or resolution for `multiframe2video`; the current CLI help says those overrides are not supported for that command
 - honor an explicitly requested supported video model after checking subcommand help
 - honor an explicitly requested supported video resolution after checking subcommand help
 - Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p`; if the provider rejects VIP access or requires web-side authorization, report the provider error and ask before changing models

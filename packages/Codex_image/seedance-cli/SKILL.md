@@ -38,8 +38,9 @@ For login, use `../CLI/seedance-login.cmd`. It opens the OAuth page in the Windo
 - `text2video`: prompt-only video generation.
 - `image2video`: animate one main image.
 - `frames2video`: first/last-frame control.
-- `multiframe2video`: coherent story from multiple images.
 - `multimodal2video`: all-around image/video/audio references with Seedance video models.
+
+Treat the CLI's `multiframe2video` command as disabled legacy functionality. Never select, suggest, or submit it; use `multimodal2video` for multiple-image work.
 
 ## All-Around Reference / 全能参考
 
@@ -81,7 +82,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ../CLI/Seedance-CLI/run.ps1 
 - This default applies to `text2video`, `image2video`, `frames2video`, and `multimodal2video`.
 - Unless the user explicitly requests another supported resolution, use `--video_resolution=480p`. The project wrapper injects this value when no video resolution flag is supplied.
 - Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p` resolution.
-- Do not inject or request a model or resolution for `multiframe2video`; the current CLI help says those overrides are not supported for that command.
 - Honor an explicitly requested supported video model after checking the current subcommand help.
 - Honor an explicitly requested supported video resolution after checking the current subcommand help.
 - Do not assume VIP availability from the project configuration alone. If the provider rejects the model or requires web-side authorization, report the provider error and ask before changing models.

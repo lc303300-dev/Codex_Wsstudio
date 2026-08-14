@@ -46,9 +46,11 @@ Use only Dreamina/Seedance for video. Select the CLI subcommand from inputs:
 
 Validate local files before submit. For the default Seedance 2.5 `multimodal2video` path, allow at most 30 images, 10 videos, 10 audio files, and 50 total reference inputs; audio-only is allowed by Seedance 2.5, and every video/audio input must be 2-30 seconds. For explicit non-2.5 models, keep their current CLI limits. Run the chosen subcommand `-h` before every real submit.
 
-For supported video commands, default to Seedance 2.5 (`seedance2.5`) and `480p`. Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p` resolution. Never inject a model or resolution into `multiframe2video`, because the current CLI does not support them. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes.
+For supported video commands, default to Seedance 2.5 (`seedance2.5`) and `480p`. Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p` resolution. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes. Treat `multiframe2video` as a disabled legacy CLI command: never select, suggest, expose, or submit it. Route ordinary multiple-image work through `multimodal2video`.
 
 Save `submit_id`. Query and download successful tasks with `query_result --submit_id <id> --download_dir <private-output-dir>`. If a submission may have happened but its outcome is unknown, mark `needs_review` and do not submit again.
+
+For an explicit Codex video-function test, use the existing `generate_video` tool with `video_execution_mode=test_submit_only`; do not add or expose a provider-specific test tool. This real paid channel must force the non-VIP CLI model `seedance2.0`, `720p`, and `--poll 0`, regardless of ordinary model inputs. Treat `submit_id` plus `gen_status=querying|success` as terminal `submitted`, persist the ID, and never call `query_result`, wait, or download. Report only `测试任务已发送，请到即梦网站后台查看结果。` Ordinary generation remains Seedance 2.5 by default, while ordinary explicit `2.0` continues to normalize to `seedance2.0_vip`.
 
 ## Concurrency and Multi-Task Scheduling
 

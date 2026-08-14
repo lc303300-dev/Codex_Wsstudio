@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from model_policy import DEFAULT_MODEL, normalize_model, validate_settings
+
 ROOT = Path(__file__).resolve().parents[1]
 BATCH_RE = re.compile(r"^batch=(?P<batch>\S+)$", re.MULTILINE)
 
@@ -35,11 +37,16 @@ def main() -> int:
     parser.add_argument("--images", nargs="+", type=Path, required=True, help="Image paths provided by Codex attachments.")
     parser.add_argument("--duration", type=int, help="Optional known duration in seconds, 4 through 30.")
     parser.add_argument("--ratio", help="Optional target ratio: 21:9, 16:9, 4:3, 1:1, 3:4, or 9:16.")
+    parser.add_argument("--model-version", help=f"Explicit user-selected video model. Default: {DEFAULT_MODEL}.")
     parser.add_argument("--wait-timeout", type=float, default=120.0)
     parser.add_argument("--stable-seconds", type=float, default=2.0)
     args = parser.parse_args()
-    if args.duration is not None and not 4 <= args.duration <= 15:
-        raise SystemExit("--duration must be an integer from 4 through 30 seconds.")
+    try:
+        model = normalize_model(args.model_version)
+        if args.duration is not None:
+            validate_settings(model, args.duration, "480p", args.ratio or "16:9")
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     supported_ratios = {"21:9", "16:9", "4:3", "1:1", "3:4", "9:16"}
     if args.ratio is not None and args.ratio not in supported_ratios:
         raise SystemExit(f"--ratio must be one of: {', '.join(sorted(supported_ratios))}.")
@@ -85,6 +92,8 @@ def main() -> int:
         ]
         if args.ratio:
             manifest_command.extend(["--ratio", args.ratio])
+        if args.model_version:
+            manifest_command.extend(["--model-version", model])
         run_capture(manifest_command)
 
     print()

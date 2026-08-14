@@ -2,12 +2,18 @@
 
 This workspace builds a Codex-orchestrated pipeline for turning one or more still images into Chinese Dreamina/Jimeng image-to-video prompts, then generating videos after user confirmation.
 
+Prompt authoring is layered: `video-director-prompt` supplies platform-neutral directing knowledge and community techniques, `seedance-forge` supplies searchable real-world examples as structural inspiration, and the local compiler/adapter converts the result into the active platform syntax. Source model versions are provenance metadata, not routing instructions. Generation defaults to Seedance 2.5; Seedance 2.0 is used only after an explicit current-user request.
+
 `AGENTS.md` defines the default trigger rules for this workspace. When images are submitted here, Codex should use this pipeline first instead of directly invoking the global Seedance CLI.
 
 ## Third-party projects used
 
 - `third_party/seedance-forge`: real Seedance prompt corpus and structural examples.
 - `third_party/seedance-2.0-prompt-skill`: Seedance/Dreamina prompt rules, platform adapters, asset manifest schema, and validator.
+
+Project-owned authoring skill:
+
+- `.claude/skills/video-director-prompt`: Chinese general video-directing workflow with retained professional English terminology and clearly labelled community/experimental techniques.
 
 ## Deploy on a New Machine
 
@@ -47,6 +53,8 @@ For the normal text-first flow, start by recording the user's Chinese video brie
 python scripts/start_text_batch.py --name window --duration 5 --request "帮我生成视频，5秒，镜头运动幅度不要太大。"
 ```
 
+This defaults to Seedance 2.5. Only when the user explicitly requests Seedance 2.0, add a supported selection such as `--model-version seedance2.0_vip`; the request and manifests retain the explicit-selection evidence.
+
 Show the printed `image_drop_dir` to the user as a clickable local path and ask them to put source images into that folder. After the user confirms the files are there, continue with:
 
 ```powershell
@@ -67,12 +75,12 @@ Then continue from the printed `bootstrap_batch=...` value in a follow-up turn. 
 
 1. Create one isolated batch/task directory set. In the normal text-first flow, use `scripts/start_text_batch.py` and wait for the user to place images in `inputs/<batch>/`. If image files are already available, copy them into `inputs/<batch>/`. Batch ids should include the current hour and minute, for example `20260730-1534-window`; `scripts/new_batch.py --name window` generates that shape automatically. If the user dropped multiple images directly into the opening Codex dialog, use `scripts/import_dialog_images.py` so the pipeline waits for attachment files to become readable and size-stable before copying them. Duration is required for every batch. Ratio is optional; if omitted, the pipeline chooses the nearest allowed ratio from the image dimensions.
 2. Run `scripts/prepare_previews.ps1 -Batch <batch>` to create 1024px previews in `previews/<batch>/`.
-3. Run `scripts/init_manifests.py --batch <batch> [--duration <seconds>] [--ratio <ratio>]` to create draft manifests from `previews/<batch>/_previews.json`. Text-first batches can omit duration/ratio because they are read from private batch request metadata.
+3. Run `scripts/init_manifests.py --batch <batch> [--duration <seconds>] [--ratio <ratio>] [--model-version <explicit-user-selection>]` to create draft manifests from `previews/<batch>/_previews.json`. Text-first batches can omit recorded settings because they are read from private batch request metadata. Do not pass a 2.0 model unless the current user explicitly selected it.
 4. Generate subagent task prompts with `scripts/make_subagent_tasks.py --batch <batch> --status draft`.
 5. The main Codex agent must actually spawn one subagent per task prompt. Task prompt files are only dispatch inputs; they do not execute work by themselves.
 6. After subagents finish, run `scripts/finalize_review.py --batch <batch>` to build the review page and print final status. This default path does not require main-agent image inspection, subagent-output review, validator gating, or result recording.
 7. Show `review/<batch>/index.html` for user confirmation. The page only shows each image and its Chinese Dreamina/Jimeng prompt.
-8. After user confirmation, run `scripts/run_seedance_batch.ps1 -Batch <batch> -Yes` to submit confirmed items to Dreamina CLI. If the user explicitly asks for auto-generation, for example `自动生成视频` or `全自动生成视频`, skip the confirmation wait and use `scripts/finalize_review.py --batch <batch> --auto-generate`.
+8. After user confirmation, run `scripts/run_seedance_batch.ps1 -Batch <batch> -Yes` to submit confirmed items through the unified Media Router. Codex_DT must not submit directly to Dreamina CLI. If the user explicitly asks for auto-generation, for example `自动生成视频` or `全自动生成视频`, skip the confirmation wait and use `scripts/finalize_review.py --batch <batch> --auto-generate`.
 
 For parallel processing, the main Codex agent can delegate each manifest to a subagent. Generate per-image task prompts with:
 
@@ -138,5 +146,5 @@ docs/        Codex authoring instructions.
 - For local Dreamina CLI generation, references are bound by ordered `multimodal2video --image`, `--video`, and `--audio` arguments. The final CLI prompt uses bare labels such as `图片1`, `视频1`, and `音频1`, never Web UI mention syntax such as `@图片1` or `@Video 1`. CLI argument order is authoritative.
 - Codex image inspection must use previews generated by `$CODEX_HOME/tools/Convert-CodexImagePreview.ps1`; the longest edge must be at most 1024px, and original images are only used for file operations and Dreamina CLI inputs.
 - Credentials, cookies, authorization data, provider logs, caches, temporary manifests, submission records, and other runtime state stay under `.codex-image-private/`.
-- Generation consumes Dreamina credits. Check `user_credit` before a paid batch.
+- Generation consumes Dreamina credits. The unified Media Router checks `user_credit` before each paid submission.
 - Do not modify `third_party` projects for local pipeline behavior; add wrappers in `scripts/`.

@@ -33,6 +33,12 @@
     "duration": null,
     "ratio": null,
     "model_version": "seedance2.5",
+    "model_selection": {
+      "requested": "seedance2.5",
+      "selection_source": "default",
+      "selection_evidence": "pipeline_default",
+      "user_text": null
+    },
     "resolution": "480p",
     "asset_manifest": {
       "surface": "generic",

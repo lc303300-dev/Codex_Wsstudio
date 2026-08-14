@@ -17,14 +17,30 @@ def parser() -> argparse.ArgumentParser:
     video.add_argument("--image", action="append", default=[])
     video.add_argument("--video", action="append", default=[])
     video.add_argument("--audio", action="append", default=[])
+    video.add_argument("--video-duration")
+    video.add_argument("--video-ratio")
+    video.add_argument("--video-model")
+    video.add_argument("--video-model-selection-source", choices=("user_explicit",))
+    video.add_argument("--video-execution-mode", choices=("production", "production_submit_only", "test_submit_only"), default="production")
+    video.add_argument("--video-resolution")
     return root
 
 
 def main() -> int:
     args = parser().parse_args()
-    result = execute(args.command, args.prompt, args.image, getattr(args, "video", ()), getattr(args, "audio", ()))
+    options = {}
+    if args.command == "generate_video":
+        options = {
+            "video_duration": args.video_duration,
+            "video_ratio": args.video_ratio,
+            "video_model": args.video_model,
+            "video_model_selection_source": args.video_model_selection_source,
+            "video_execution_mode": args.video_execution_mode,
+            "video_resolution": args.video_resolution,
+        }
+    result = execute(args.command, args.prompt, args.image, getattr(args, "video", ()), getattr(args, "audio", ()), **options)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0 if result["status"] == "success" else 2
+    return 0 if result["status"] in {"success", "submitted"} else 2
 
 
 if __name__ == "__main__":

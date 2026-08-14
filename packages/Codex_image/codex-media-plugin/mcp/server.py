@@ -59,6 +59,23 @@ def response(identifier, result=None, error=None) -> dict:
     return payload
 
 
+def _configure_stdio() -> None:
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+def _write_json(payload: dict) -> None:
+    data = (json.dumps(payload, ensure_ascii=False) + "\n").encode("utf-8")
+    sys.stdout.buffer.write(data)
+    sys.stdout.buffer.flush()
+
+
 def handle(message: dict) -> dict | None:
     identifier, method = message.get("id"), message.get("method")
     if method == "initialize":
@@ -75,21 +92,23 @@ def handle(message: dict) -> dict | None:
         if name not in {"generate_image", "generate_video"}:
             return response(identifier, error={"code": -32602, "message": "Unknown tool"})
         try:
-            result = execute(name, arguments.get("prompt", ""), arguments.get("images", []), arguments.get("videos", []), arguments.get("audios", []))
+            options = {key: arguments[key] for key in ("video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution") if key in arguments}
+            result = execute(name, arguments.get("prompt", ""), arguments.get("images", []), arguments.get("videos", []), arguments.get("audios", []), **options)
         except Exception as exc:
             result = {"status": "failed", "safe_reason": type(exc).__name__}
-        return response(identifier, {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}], "structuredContent": result, "isError": result.get("status") != "success"})
+        return response(identifier, {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}], "structuredContent": result, "isError": result.get("status") not in {"success", "submitted"}})
     return response(identifier, error={"code": -32601, "message": "Method not found"}) if identifier is not None else None
 
 
 def main() -> None:
-    for line in sys.stdin:
+    _configure_stdio()
+    for raw_line in sys.stdin.buffer:
         try:
-            result = handle(json.loads(line))
+            result = handle(json.loads(raw_line.decode("utf-8")))
             if result is not None:
-                print(json.dumps(result, ensure_ascii=False), flush=True)
+                _write_json(result)
         except json.JSONDecodeError:
-            print(json.dumps(response(None, error={"code": -32700, "message": "Parse error"})), flush=True)
+            _write_json(response(None, error={"code": -32700, "message": "Parse error"}))
 
 
 if __name__ == "__main__":

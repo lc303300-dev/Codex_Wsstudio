@@ -3,4 +3,4 @@ interface:
   short_description: "Generate videos with the default Seedance router"
   default_prompt: "Use $default-video-generation to generate a video. 默认不生成音乐，仅生成音效。"
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

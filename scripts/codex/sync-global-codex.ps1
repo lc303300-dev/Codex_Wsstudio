@@ -97,6 +97,15 @@ if (Test-Path -LiteralPath $imageRegistration -PathType Leaf) {
     }
 }
 
+$previewSource = Join-Path $RepositoryRoot "packages\Codex_image\tools\Convert-CodexImagePreview.ps1"
+$previewTargetRoot = Join-Path $CodexHome "tools"
+$previewTarget = Join-Path $previewTargetRoot "Convert-CodexImagePreview.ps1"
+if (Test-Path -LiteralPath $previewSource -PathType Leaf) {
+    New-Item -ItemType Directory -Path $previewTargetRoot -Force | Out-Null
+    Copy-Item -LiteralPath $previewSource -Destination $previewTarget -Force
+    Write-Host "Updated preview converter: $previewTarget"
+}
+
 $githubRegistration = Join-Path $RepositoryRoot "packages\Codex_Github\register-global-skill.ps1"
 if (Test-Path -LiteralPath $githubRegistration -PathType Leaf) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $githubRegistration -CodexHome $CodexHome

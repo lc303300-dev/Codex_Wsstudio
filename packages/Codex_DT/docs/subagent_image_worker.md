@@ -31,6 +31,7 @@ The subagent must not edit shared scripts, third-party repositories, review page
 The subagent must use:
 
 - Codex visual inspection on the 1024px preview image.
+- `.claude/skills/video-director-prompt` for platform-neutral directing, including first-frame blocking, visible performance, camera, physics, lighting, sound, continuity, and optional community techniques.
 - `third_party/seedance-forge` for similar prompt corpus search.
 - `third_party/seedance-2.0-prompt-skill` rules for Dreamina/Seedance prompt compilation and validation.
 
@@ -61,8 +62,9 @@ The subagent must not modify either `third_party` project.
 5. Fill `motion_plan` in Chinese.
    - Preserve every concrete user motion/camera requirement from `manifest.user_requirements.motion_zh`.
    - If that field is empty but the task prompt says the original user request included per-image actions, stop and ask the main agent to populate it.
-6. Add Chinese and English forge search queries.
-7. Run:
+6. Build a platform-neutral directing plan before writing platform syntax. Preserve useful professional English terms with Chinese explanations.
+7. Add Chinese and English forge search queries. Treat corpus version fields as source metadata, never as a model-selection signal.
+8. Run corpus search only when the brief needs structural inspiration or a comparable example:
 
    ```powershell
    python scripts/update_forge_matches.py --manifests <temp-dir-or-single-manifest-workaround>
@@ -76,9 +78,9 @@ The subagent must not modify either `third_party` project.
 
    Then write the returned matches into `forge.matches`.
 
-8. Extract patterns from the matches as inspiration. Do not copy full corpus prompts.
-9. Write a Chinese Dreamina CLI image-to-video prompt to `prompts/<id>.prompt.txt`.
-10. Compile using mqrox multimodal reference rules:
+9. Extract patterns from the matches as inspiration. Do not copy full corpus prompts.
+10. Write a Chinese Dreamina CLI image-to-video prompt to `prompts/<id>.prompt.txt`.
+11. Compile using the local multimodal reference rules:
     - `surface = "dreamina-cli"` for this local pipeline
     - `mode = "multimodal"`
     - references are bound by ordered `multimodal2video --image`, `--video`, and `--audio` arguments
@@ -88,8 +90,9 @@ The subagent must not modify either `third_party` project.
     - `transport_role = "reference_image"`
     - use the existing `duration` and `ratio`; do not invent or change them
     - final prompt is Chinese
-11. Set `prompt.status = "ready_for_review"`.
-12. Optional quality check: run the repository CLI-aware validator for the assigned manifest:
+12. Keep the request's model policy unchanged: Seedance 2.5 by default; Seedance 2.0 only with recorded current-user explicit selection. Never infer or fall back to 2.0.
+13. Set `prompt.status = "ready_for_review"`.
+14. Optional quality check: run the repository CLI-aware validator for the assigned manifest:
 
     ```powershell
     python scripts/validate_batch.py --manifests manifests/<batch>/<id>.json
@@ -97,7 +100,7 @@ The subagent must not modify either `third_party` project.
 
     Do not use the upstream mqrox validator result as the final status for `dreamina-cli`; this pipeline binds ordered references with `multimodal2video --image <path>`, and prompt labels such as `图片1` must match that upload order.
 
-13. If validation is run, ensure the validator result is written to `mqrox_compile.validator`. Do not block review-page output on warnings.
+15. If validation is run, ensure the validator result is written to `mqrox_compile.validator`. Do not block review-page output on warnings.
 
 ## Prompt requirements
 

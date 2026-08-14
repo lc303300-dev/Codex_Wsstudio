@@ -69,6 +69,8 @@ docs/codex_authoring_workflow.md
 1. third_party/seedance-forge：用于检索相似 Seedance 真实提示词语料，并提炼镜头、动作、环境动效写法。
 2. third_party/seedance-2.0-prompt-skill：用于按照 Seedance/Dreamina multimodal reference image-to-video 规则编译中文提示词，并用 validator 校验；本地 CLI 的参考绑定来自 multimodal2video 的有序 `--image`、`--video`、`--audio` 参数，CLI-facing prompt 应写 `图片1`、`视频1`、`音频1` 等裸标签，不要使用 `@Image 1`、`@图片1`、`@Video 1` 或 `@视频1`。
 
+必须先使用项目自有 `.claude/skills/video-director-prompt` 作为平台无关的导演规划层。保留其中的专业英文术语和全部社区/实验经验，但只按镜头需要选用；语料或第三方目录中的 2.0/2.5 版本信息仅是来源元数据，绝不能据此切换生成模型。模型默认 Seedance 2.5，只有 manifest 中记录了当前用户显式选择证据时才允许 Seedance 2.0，禁止自动回退。
+
 你的唯一输入：
 - image id: {image_id}
 - manifest: {manifest_path.as_posix()}

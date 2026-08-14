@@ -27,6 +27,7 @@ Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif\.claude\skills\video
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_image\register-default-media-tools.ps1") "Codex_image media tool registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\register-global-skill.ps1") "Codex_DT registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\codex-dt-video-prompt\SKILL.md") "Codex_DT skill"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\video-director-prompt\SKILL.md") "Codex_DT video director skill"
 Require-Path (Join-Path $RepositoryRoot "scripts") "scripts directory" "Container"
 Require-Path (Join-Path $CodexHome "AGENTS.md") "global Codex guidance"
 Require-Path (Join-Path $CodexHome "config.toml") "global Codex config"
@@ -69,6 +70,16 @@ foreach ($marker in $mediaMarkers) {
         }
     } catch {
         $errors.Add("Invalid media registration marker: $marker")
+    }
+}
+
+$expectedPreview = Join-Path $CodexHome "tools\Convert-CodexImagePreview.ps1"
+if (-not (Test-Path -LiteralPath $expectedPreview -PathType Leaf)) {
+    $errors.Add("Missing global preview converter: $expectedPreview")
+} else {
+    $previewText = Get-Content -LiteralPath $expectedPreview -Raw -Encoding UTF8
+    if ($previewText -notmatch '\[ValidateRange\(1, 1024\)\]\[int\]\$MaxLongEdge = 1024') {
+        $errors.Add("Global preview converter is not updated to the 1024px limit: $expectedPreview")
     }
 }
 

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Codex DT Video"
+  short_description: "Normalize prompts and orchestrate video generation"
+  default_prompt: "Use $codex-dt-video-prompt to normalize this prompt without changing its meaning, then generate the video."
+policy:
+  allow_implicit_invocation: true

@@ -88,8 +88,11 @@ def main() -> int:
             match["extracted_patterns"] = infer_patterns(match)
             if not args.include_content:
                 match.pop("content", None)
-        manifest.setdefault("forge", {})["last_query"] = payload.get("query", "")
-        manifest["forge"]["matches"] = matches
+        forge = manifest.setdefault("forge", {})
+        forge["last_query"] = payload.get("query", "")
+        forge["corpus_role"] = "general_video_generation_reference"
+        forge["model_versions_are_source_metadata"] = True
+        forge["matches"] = matches
         write_json(path, manifest)
         print(f"Updated {path.name}: {len(matches)} match(es)")
         updated += 1

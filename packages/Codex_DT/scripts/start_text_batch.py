@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime_paths import runtime_path
+from model_policy import DEFAULT_MODEL, SUPPORTED_MODELS, build_model_selection, normalize_model, validate_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 BATCH_RE = re.compile(r"^batch=(?P<batch>\S+)$", re.MULTILINE)
@@ -43,14 +44,22 @@ def main() -> int:
         )
     )
     parser.add_argument("--name", required=True, help="Descriptive suffix for YYYYMMDD-HHMM-<name>.")
-    parser.add_argument("--duration", type=int, required=True, help="Required video duration in seconds, 4 through 30.")
+    parser.add_argument("--duration", type=int, required=True, help="Required video duration in seconds; allowed range depends on the selected model.")
     parser.add_argument("--ratio", help="Optional target ratio: 21:9, 16:9, 4:3, 1:1, 3:4, or 9:16.")
     parser.add_argument("--request", required=True, help="Original Chinese user request, including motion/camera constraints.")
     parser.add_argument("--auto-generate", action="store_true", help="Record that confirmation should be skipped after review finalization.")
+    parser.add_argument(
+        "--model-version",
+        help=f"Explicit user-selected model. Default: {DEFAULT_MODEL}. Canonical choices: {', '.join(SUPPORTED_MODELS)}; common aliases are accepted.",
+    )
     args = parser.parse_args()
 
-    if not 4 <= args.duration <= 15:
-        raise SystemExit("--duration must be an integer from 4 through 30 seconds.")
+    try:
+        model = normalize_model(args.model_version)
+        model_selection = build_model_selection(args.model_version, explicit=args.model_version is not None, user_text=args.request)
+        validate_settings(model, args.duration, "480p", args.ratio or "16:9")
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if args.ratio is not None and args.ratio not in SUPPORTED_RATIOS:
         raise SystemExit(f"--ratio must be one of: {', '.join(SUPPORTED_RATIOS)}.")
 
@@ -71,6 +80,7 @@ def main() -> int:
             "ratio": args.ratio,
             "user_request_zh": args.request,
             "auto_generate": bool(args.auto_generate),
+            "model": model_selection,
             "image_drop_dir": str(input_dir),
         },
     )
@@ -84,6 +94,8 @@ def main() -> int:
     init_command = f"  python scripts/init_manifests.py --batch {batch}"
     if args.ratio:
         init_command += f" --ratio {args.ratio}"
+    if args.model_version:
+        init_command += f" --model-version {model}"
     print(init_command)
     print(f"  python scripts/make_subagent_tasks.py --batch {batch} --status draft")
     return 0

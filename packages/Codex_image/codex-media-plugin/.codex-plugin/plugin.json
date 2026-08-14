@@ -1,6 +1,6 @@
 {
   "name": "codex-media-plugin",
-  "version": "0.1.0",
+  "version": "0.1.0+codex.20260814083558",
   "description": "Unified default image and Seedance video generation tools for Codex.",
   "author": {
     "name": "Codex_image"
@@ -12,8 +12,13 @@
     "longDescription": "Generate or edit images with serial provider fallback and generate videos only with Seedance/Dreamina. Provider credentials, models, logs, and concurrency stay internal.",
     "developerName": "Codex_image",
     "category": "Creative",
-    "capabilities": ["Write"],
-    "defaultPrompt": ["Generate an image from my prompt", "Turn my reference image into a video"]
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Generate an image from my prompt",
+      "Turn my reference image into a video"
+    ]
   },
   "mcpServers": "./.mcp.json"
 }

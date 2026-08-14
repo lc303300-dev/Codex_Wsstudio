@@ -15,6 +15,7 @@ import zlib
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "CLI" / "Media-Router"))
@@ -28,16 +29,17 @@ from media_router.output_validation import atomic_write_bytes, is_valid_image, i
 from media_router.provider_runtime import ProviderRuntime
 from media_router.safe_logging import prompt_metadata, safe_text, write_json
 from media_router.scheduler import rolling_map
-from media_router.schemas import MediaRequest, ProviderResult, Readiness
+from media_router.schemas import MediaRequest, ProviderResult, Readiness, TaskContext
 from media_router.task_store import TaskStore
 from media_router.video_router import (
-    MULTIMODAL_IMAGE_ORDER_PREFIX,
     build_video_arguments,
+    _prompt_preferences,
     select_video_command,
     VideoRouter,
 )
+from media_router.service import validate_prompt_completeness
 from media_router.providers import comfly_common
-from media_router.providers.command_adapter import _run
+from media_router.providers.command_adapter import DreaminaAdapter, _run
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"offline-image"
 
@@ -286,6 +288,18 @@ class ProviderImageInputTests(unittest.TestCase):
 
 
 class VideoRouterTests(unittest.TestCase):
+    def test_terminal_wrapped_prompt_is_rejected(self):
+        prompt = "Exit code: 0\nWall time: 0.7 seconds\nOutput:\n画面比例：9:16，视频时长：20秒。"
+        with self.assertRaisesRegex(ValueError, "terminal execution metadata"):
+            validate_prompt_completeness(prompt)
+
+    def test_shared_boundary_does_not_apply_project_specific_prompt_rules(self):
+        validate_prompt_completeness("画面比例9:16，视频时长20秒。每个5秒镜头使用对应图片。0-5秒对应图片2。")
+        validate_prompt_completeness("JH_11，10-20秒。")
+    def test_duration_parser_ignores_terminal_wall_time(self):
+        prompt = "Exit code: 0\nWall time: 0.6 seconds\nOutput:\n画面比例：9:16 视频时长：20秒"
+        self.assertEqual(_prompt_preferences(prompt), ("9:16", "20", None))
+
     def request(self, root, prompt="motion", images=0, videos=0, audios=0):
         paths = []
         for index in range(images + videos + audios):
@@ -313,16 +327,18 @@ class VideoRouterTests(unittest.TestCase):
     def test_audio_only_rejected_for_non_seedance_25_model(self):
         with tempfile.TemporaryDirectory() as temporary:
             request = self.request(Path(temporary), audios=1)
-            request = MediaRequest(request.prompt, request.images, request.videos, request.audios, video_model="seedance2.0_vip")
+            request = MediaRequest(request.prompt, request.images, request.videos, request.audios, video_model="seedance2.0_vip", video_model_selection_source="user_explicit")
             with self.assertRaises(ValueError):
                 select_video_command(request)
 
-    def test_multiframe_has_no_model_or_resolution(self):
+    def test_legacy_multiframe_command_is_disabled(self):
         with tempfile.TemporaryDirectory() as temporary:
             request = self.request(Path(temporary), images=3)
-            args = build_video_arguments("multiframe2video", request)
-        self.assertNotIn("--model_version", args)
-        self.assertNotIn("--video_resolution", args)
+            request = MediaRequest(request.prompt, request.images, video_command="multiframe2video")
+            with self.assertRaisesRegex(ValueError, "disabled legacy"):
+                select_video_command(request)
+            with self.assertRaisesRegex(ValueError, "disabled legacy"):
+                build_video_arguments("multiframe2video", request)
 
     def test_supported_commands_default_to_seedance_25_480p(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -330,6 +346,113 @@ class VideoRouterTests(unittest.TestCase):
             args = build_video_arguments("text2video", request)
         self.assertEqual(args[args.index("--model_version") + 1], "seedance2.5")
         self.assertEqual(args[args.index("--video_resolution") + 1], "480p")
+        self.assertEqual(args[args.index("--poll") + 1], "180")
+
+    def test_test_channel_forces_non_vip_seedance_20_720p_without_polling(self):
+        request = MediaRequest(
+            "motion",
+            video_command="text2video",
+            video_model="seedance2.5",
+            video_resolution="480p",
+            video_execution_mode="test_submit_only",
+        )
+        args = build_video_arguments("text2video", request)
+        self.assertEqual(args[args.index("--model_version") + 1], "seedance2.0")
+        self.assertEqual(args[args.index("--video_resolution") + 1], "720p")
+        self.assertEqual(args[args.index("--poll") + 1], "0")
+
+    def test_trusted_production_submit_only_keeps_model_and_disables_polling(self):
+        request = MediaRequest(
+            "motion",
+            video_command="text2video",
+            video_model="seedance2.5",
+            video_resolution="480p",
+            video_execution_mode="production_submit_only",
+        )
+        args = build_video_arguments("text2video", request)
+        self.assertEqual(args[args.index("--model_version") + 1], "seedance2.5")
+        self.assertEqual(args[args.index("--video_resolution") + 1], "480p")
+        self.assertEqual(args[args.index("--poll") + 1], "0")
+
+    def test_test_channel_does_not_require_user_explicit_model_source(self):
+        router = VideoRouter({}, type("Provider", (), {})())
+        request = MediaRequest("motion", video_command="text2video", video_execution_mode="test_submit_only")
+        self.assertEqual(router.validate(request), "text2video")
+
+    def test_test_channel_also_rejects_legacy_multiframe_command(self):
+        router = VideoRouter({}, type("Provider", (), {})())
+        request = MediaRequest("motion", video_command="multiframe2video", video_execution_mode="test_submit_only")
+        with self.assertRaisesRegex(ValueError, "disabled legacy"):
+            router.validate(request)
+
+    def test_test_channel_rejects_duration_over_15_seconds(self):
+        router = VideoRouter({}, type("Provider", (), {})())
+        request = MediaRequest("视频时长：20秒", video_command="text2video", video_execution_mode="test_submit_only")
+        with self.assertRaisesRegex(ValueError, "4-15"):
+            router.validate(request)
+
+    def test_test_adapter_returns_submitted_without_querying(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            job = root / "job"
+            output = job / "outputs"
+            logs = job / "logs"
+            output.mkdir(parents=True)
+            logs.mkdir()
+            prompt = job / "prompt.txt"
+            prompt.write_text("motion", encoding="utf-8")
+            context = TaskContext("batch", "task", job, output, prompt, job / "cancel")
+            request = MediaRequest("motion", video_execution_mode="test_submit_only")
+            adapter = DreaminaAdapter("dreamina-video", "video", "seedance2.5")
+            completed = subprocess.CompletedProcess([], 0, 'submit_id=task_XY-9\ngen_status=querying', "")
+            with mock.patch("media_router.providers.command_adapter._run", side_effect=[subprocess.CompletedProcess([], 0, "", ""), subprocess.CompletedProcess([], 0, "", ""), completed]), mock.patch.object(adapter, "_query_and_download") as query:
+                result = adapter.execute_command("text2video", ["--prompt", "motion", "--model_version", "seedance2.0", "--poll", "0"], request, context)
+            self.assertEqual(result.status, "submitted")
+            self.assertEqual(result.submit_id, "task_XY-9")
+            self.assertEqual(result.model_id, "seedance2.0")
+            self.assertEqual(result.provider_status, "querying")
+            self.assertFalse(result.polling_performed)
+            query.assert_not_called()
+
+    def test_production_submit_only_returns_submitted_without_querying(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            job = root / "job"
+            (job / "outputs").mkdir(parents=True)
+            (job / "logs").mkdir()
+            prompt = job / "prompt.txt"
+            prompt.write_text("motion", encoding="utf-8")
+            context = TaskContext("batch", "task", job, job / "outputs", prompt, job / "cancel")
+            request = MediaRequest("motion", video_execution_mode="production_submit_only")
+            adapter = DreaminaAdapter("dreamina-video", "video", "seedance2.5")
+            completed = subprocess.CompletedProcess([], 0, 'submit_id=prod-task\ngen_status=success', "")
+            with mock.patch("media_router.providers.command_adapter._run", side_effect=[subprocess.CompletedProcess([], 0, "", ""), subprocess.CompletedProcess([], 0, "", ""), completed]), mock.patch.object(adapter, "_query_and_download") as query:
+                result = adapter.execute_command("text2video", ["--model_version", "seedance2.5", "--poll", "0"], request, context)
+            self.assertEqual(result.status, "submitted")
+            self.assertEqual(result.model_id, "seedance2.5")
+            self.assertEqual(result.submit_id, "prod-task")
+            query.assert_not_called()
+
+    def test_test_adapter_rejects_provider_failure_and_missing_submit_id(self):
+        cases = [
+            ('gen_status=fail\nfail_reason=moderation rejected', "failed"),
+            ('gen_status=querying', "needs_review"),
+        ]
+        for transcript, expected in cases:
+            with self.subTest(transcript=transcript), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                job = root / "job"
+                (job / "outputs").mkdir(parents=True)
+                (job / "logs").mkdir()
+                prompt = job / "prompt.txt"
+                prompt.write_text("motion", encoding="utf-8")
+                context = TaskContext("batch", "task", job, job / "outputs", prompt, job / "cancel")
+                adapter = DreaminaAdapter("dreamina-video", "video", "seedance2.5")
+                completed = subprocess.CompletedProcess([], 0, transcript, "")
+                with mock.patch("media_router.providers.command_adapter._run", side_effect=[subprocess.CompletedProcess([], 0, "", ""), subprocess.CompletedProcess([], 0, "", ""), completed]), mock.patch.object(adapter, "_query_and_download") as query:
+                    result = adapter.execute_command("text2video", ["--model_version", "seedance2.0", "--poll", "0"], MediaRequest("motion", video_execution_mode="test_submit_only"), context)
+                self.assertEqual(result.status, expected)
+                query.assert_not_called()
 
     def test_explicit_video_preferences_are_preserved(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -338,6 +461,7 @@ class VideoRouterTests(unittest.TestCase):
                 request.prompt,
                 video_command="text2video",
                 video_model="seedance2.0mini",
+                video_model_selection_source="user_explicit",
                 video_ratio="9:16",
                 video_duration="8",
                 video_resolution="1080p",
@@ -348,6 +472,30 @@ class VideoRouterTests(unittest.TestCase):
         self.assertEqual(args[args.index("--ratio") + 1], "9:16")
         self.assertEqual(args[args.index("--duration") + 1], "8")
         self.assertEqual(args[args.index("--video_resolution") + 1], "1080p")
+
+    def test_seedance_20_requires_explicit_user_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            request = MediaRequest("motion", images=(root / "image.png",), video_model="seedance2.0_vip")
+            (root / "image.png").write_bytes(b"image")
+            router = VideoRouter({}, type("Provider", (), {})())
+            with self.assertRaisesRegex(ValueError, "user_explicit"):
+                router.validate(request)
+
+    def test_structured_video_preferences_override_prompt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            request = MediaRequest(
+                "Exit code: 0\nWall time: 0.6 seconds\nOutput:\n画面比例：16:9 视频时长：6秒",
+                images=(root / "image.png",),
+                video_duration="20",
+                video_ratio="9:16",
+                video_model="seedance2.5",
+                video_resolution="480p",
+            )
+            args = build_video_arguments("multimodal2video", request)
+        self.assertEqual(args[args.index("--duration") + 1], "20")
+        self.assertEqual(args[args.index("--ratio") + 1], "9:16")
 
     def test_limits_and_audio_duration(self):
         class Provider:
@@ -397,7 +545,17 @@ class VideoRouterTests(unittest.TestCase):
             args = build_video_arguments("multimodal2video", request)
             image_values = [args[index + 1] for index, value in enumerate(args) if value == "--image"]
             self.assertEqual([Path(value) for value in image_values], list(request.images))
-            self.assertEqual(args[args.index("--prompt") + 1], MULTIMODAL_IMAGE_ORDER_PREFIX + request.prompt)
+            self.assertEqual(args[args.index("--prompt") + 1], request.prompt)
+
+    def test_multimodal_prompt_is_not_prefixed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            request = self.request(root, images=1, videos=1, audios=1)
+            args = build_video_arguments("multimodal2video", request)
+            prompt = args[args.index("--prompt") + 1]
+            self.assertNotIn("参考引用规则", prompt)
+            self.assertNotIn("--image", prompt)
+            self.assertNotIn("@Image 1", prompt)
 
     def test_seedance_25_multimodal_allows_50_total_references(self):
         class Provider:
@@ -582,7 +740,7 @@ class RecoveryAndRuntimeTests(unittest.TestCase):
             store = TaskStore(Path(temporary))
             job = Path(temporary) / "job"
             job.mkdir()
-            for status, action in (("failed", "do_not_retry"), ("needs_review", "do_not_retry"), ("cancelled", "do_not_retry")):
+            for status, action in (("submitted", "do_not_retry"), ("failed", "do_not_retry"), ("needs_review", "do_not_retry"), ("cancelled", "do_not_retry")):
                 write_json(job / "state.json", {"status": status})
                 self.assertEqual(store.recovery_action(job)["action"], action)
             write_json(job / "state.json", {"status": "running"})

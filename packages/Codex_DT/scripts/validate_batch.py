@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime_paths import PRIVATE_RUNTIME_ROOT, runtime_path
+from model_policy import validate_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = ROOT / "third_party" / "seedance-2.0-prompt-skill" / "build-seedance2-prompts" / "scripts" / "validate_prompt.py"
@@ -156,6 +157,15 @@ def main() -> int:
         duration = manifest.get("mqrox_compile", {}).get("duration")
         ratio = manifest.get("mqrox_compile", {}).get("ratio")
         preflight_issues = []
+        try:
+            validate_manifest(manifest)
+        except ValueError as exc:
+            preflight_issues.append({
+                "severity": "error",
+                "code": "MODEL_POLICY",
+                "message": str(exc),
+                "basis": "pipeline",
+            })
         if duration is None:
             preflight_issues.append({
                 "severity": "error",

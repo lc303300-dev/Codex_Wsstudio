@@ -16,11 +16,9 @@ from .task_store import TaskStore
 FIRST_LAST_PATTERN = re.compile(r"(?i)(首尾帧|首帧.{0,8}尾帧|first.{0,8}last\s+frame|start.{0,8}end\s+frame)")
 DEFAULT_VIDEO_MODEL = "seedance2.5"
 DEFAULT_VIDEO_RESOLUTION = "480p"
-MULTIMODAL_IMAGE_ORDER_PREFIX = (
-    "参考引用规则：所有参考内容严格按命令行参数出现顺序绑定；图片1=第1个 --image，"
-    "图片2=第2个 --image，视频1=第1个 --video，音频1=第1个 --audio。"
-    "提示词必须使用这些裸标签，不得使用 @图片1、@Image 1，也不得按文件名、自然语言顺序或视觉猜测重新排序。\n"
-)
+TEST_VIDEO_MODEL = "seedance2.0"
+TEST_VIDEO_RESOLUTION = "720p"
+SUPPORTED_VIDEO_MODELS = {"seedance2.0", "seedance2.0mini", "seedance2.0fast_vip", "seedance2.0_vip", DEFAULT_VIDEO_MODEL}
 
 
 def audio_duration(path: Path) -> float:
@@ -39,7 +37,9 @@ def audio_duration(path: Path) -> float:
 
 def select_video_command(request: MediaRequest) -> str:
     if request.video_command:
-        if request.video_command not in {"text2video", "image2video", "frames2video", "multiframe2video", "multimodal2video"}:
+        if request.video_command == "multiframe2video":
+            raise ValueError("multiframe2video is a disabled legacy command; use multimodal2video")
+        if request.video_command not in {"text2video", "image2video", "frames2video", "multimodal2video"}:
             raise ValueError(f"Unsupported video command: {request.video_command}")
         return request.video_command
     if request.audios and not request.images and not request.videos and request.video_model not in (None, DEFAULT_VIDEO_MODEL):
@@ -55,17 +55,29 @@ def select_video_command(request: MediaRequest) -> str:
 
 def _prompt_preferences(prompt: str) -> tuple[str | None, str | None, str | None]:
     ratio = next((value for value in ("21:9", "16:9", "9:16", "4:3", "3:4", "1:1") if value in prompt), None)
-    duration_match = re.search(r"(?i)(\d{1,2})\s*(?:秒|s(?:ec(?:onds?)?)?)", prompt)
+    # Prefer an explicitly labelled video duration.  Never interpret terminal
+    # telemetry such as "Wall time: 0.6 seconds" as a generation duration.
+    labelled = re.search(r"(?i)(?:视频时长|video\s*duration)\s*[:：]?\s*(\d{1,2})\s*(?:秒|s(?:ec(?:onds?)?)?)\b", prompt)
+    duration_match = labelled or re.search(r"(?i)(?<![.\d])([4-9]|[12]\d|30)\s*(?:秒|s(?:ec(?:onds?)?)?)\b", prompt)
     duration = duration_match.group(1) if duration_match and 4 <= int(duration_match.group(1)) <= 30 else None
     resolution = next((value for value in ("4k", "1080p", "720p", "480p") if value.lower() in prompt.lower()), None)
     return ratio, duration, resolution
 
 
 def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
+    if command == "multiframe2video":
+        raise ValueError("multiframe2video is a disabled legacy command; use multimodal2video")
     ratio, duration, resolution = _prompt_preferences(request.prompt)
     ratio = request.video_ratio or ratio
     duration = request.video_duration or duration
     resolution = request.video_resolution or resolution
+    selected_model = request.video_model or DEFAULT_VIDEO_MODEL
+    poll = "180"
+    if request.video_execution_mode in {"test_submit_only", "production_submit_only"}:
+        poll = "0"
+    if request.video_execution_mode == "test_submit_only":
+        selected_model = TEST_VIDEO_MODEL
+        resolution = TEST_VIDEO_RESOLUTION
     args: list[str] = []
     if command == "text2video":
         args += ["--prompt", request.prompt]
@@ -73,15 +85,6 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
         args += ["--image", str(request.images[0]), "--prompt", request.prompt]
     elif command == "frames2video":
         args += ["--first", str(request.images[0]), "--last", str(request.images[1]), "--prompt", request.prompt]
-    elif command == "multiframe2video":
-        args += ["--images", ",".join(str(path) for path in request.images)]
-        if len(request.images) == 2:
-            args += ["--prompt", request.prompt]
-            if duration:
-                args += ["--duration", duration]
-        else:
-            for _ in range(len(request.images) - 1):
-                args += ["--transition-prompt", request.prompt]
     elif command == "multimodal2video":
         for path in request.images:
             args += ["--image", str(path)]
@@ -89,17 +92,13 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
             args += ["--video", str(path)]
         for path in request.audios:
             args += ["--audio", str(path)]
-        # Dreamina binds multimodal references by repeated --image occurrence.
-        # Make that contract explicit in the prompt so the model does not infer
-        # a different semantic order from filenames or natural-language labels.
-        args += ["--prompt", MULTIMODAL_IMAGE_ORDER_PREFIX + request.prompt]
-    if command != "multiframe2video":
-        args += ["--model_version", request.video_model or DEFAULT_VIDEO_MODEL, "--video_resolution", resolution or DEFAULT_VIDEO_RESOLUTION]
-        if duration:
-            args += ["--duration", duration]
-        if ratio and command in ("text2video", "multimodal2video"):
-            args += ["--ratio", ratio]
-    args += ["--poll", "180"]
+        args += ["--prompt", request.prompt]
+    args += ["--model_version", selected_model, "--video_resolution", resolution or DEFAULT_VIDEO_RESOLUTION]
+    if duration:
+        args += ["--duration", duration]
+    if ratio and command in ("text2video", "multimodal2video"):
+        args += ["--ratio", ratio]
+    args += ["--poll", poll]
     return args
 
 
@@ -110,11 +109,22 @@ class VideoRouter:
     def validate(self, request: MediaRequest) -> str:
         if not request.prompt.strip():
             raise ValueError("prompt must not be empty")
+        if request.video_execution_mode not in {"production", "production_submit_only", "test_submit_only"}:
+            raise ValueError(f"Unsupported video_execution_mode: {request.video_execution_mode}")
+        selected_model = TEST_VIDEO_MODEL if request.video_execution_mode == "test_submit_only" else request.video_model or DEFAULT_VIDEO_MODEL
+        if selected_model not in SUPPORTED_VIDEO_MODELS:
+            raise ValueError(f"Unsupported video model: {selected_model}")
+        if request.video_execution_mode != "test_submit_only" and selected_model != DEFAULT_VIDEO_MODEL and request.video_model_selection_source != "user_explicit":
+            raise ValueError(
+                "Seedance 2.0 models require video_model_selection_source=user_explicit; "
+                "never infer or automatically fall back from Seedance 2.5 to 2.0"
+            )
+        _, inferred_duration, _ = _prompt_preferences(request.prompt)
+        selected_duration = request.video_duration or inferred_duration
+        if request.video_execution_mode == "test_submit_only" and selected_duration and not 4 <= int(selected_duration) <= 15:
+            raise ValueError("The seedance2.0 test channel supports 4-15 second output")
         command = select_video_command(request)
-        if command == "multiframe2video":
-            limits = ((request.images, 20, "images"),)
-        elif command == "multimodal2video":
-            selected_model = request.video_model or DEFAULT_VIDEO_MODEL
+        if command == "multimodal2video":
             if selected_model != DEFAULT_VIDEO_MODEL and request.audios and not request.images and not request.videos:
                 raise ValueError(f"Audio-only multimodal input requires {DEFAULT_VIDEO_MODEL}")
             image_limit = 30 if selected_model == "seedance2.5" else 9
@@ -130,7 +140,7 @@ class VideoRouter:
             missing = [str(path) for path in values if not path.is_file()]
             if missing:
                 raise FileNotFoundError("Missing local media: " + "; ".join(missing))
-        audio_max_duration = 30 if (request.video_model or DEFAULT_VIDEO_MODEL) == DEFAULT_VIDEO_MODEL else 15
+        audio_max_duration = 30 if selected_model == DEFAULT_VIDEO_MODEL else 15
         for path in request.audios:
             duration = self.duration_probe(path)
             if not 2 <= duration <= audio_max_duration:
@@ -171,10 +181,36 @@ class VideoRouter:
             else:
                 attempt = result.to_dict()
                 if result.status == "success":
-                    final = MediaResult(context.task_id, "success", result.output_path, result.provider_id, result.model_id, [attempt])
+                    final = MediaResult(context.task_id, "success", result.output_path, result.provider_id, result.model_id, [attempt], submit_id=result.submit_id)
+                elif result.status == "submitted":
+                    final = MediaResult(
+                        context.task_id,
+                        "submitted",
+                        provider_id=result.provider_id,
+                        model_id=result.model_id,
+                        attempts=[attempt],
+                        submit_id=result.submit_id,
+                        next_action=("check_dreamina_web" if request.video_execution_mode == "test_submit_only" else "query_later"),
+                        user_message=(
+                            "测试任务已发送，请到即梦网站后台查看结果。"
+                            if request.video_execution_mode == "test_submit_only"
+                            else "视频任务已发送。"
+                        ),
+                    )
                 else:
                     failure = result.failure_class or FailureClass.INDETERMINATE_SUBMISSION
                     final = MediaResult(context.task_id, result.status, attempts=[attempt], failure_class=failure.value, safe_reason=result.safe_reason)
-        self.store.set_state(context, final.status, failure_class=final.failure_class)
+        if final.status == "submitted":
+            attempt = final.attempts[-1] if final.attempts else {}
+            self.store.set_state(
+                context,
+                final.status,
+                submit_id=final.submit_id,
+                model_id=final.model_id,
+                provider_status=attempt.get("provider_status"),
+                polling_performed=False,
+            )
+        else:
+            self.store.set_state(context, final.status, failure_class=final.failure_class)
         self.store.write_result(context, final.to_dict())
         return final

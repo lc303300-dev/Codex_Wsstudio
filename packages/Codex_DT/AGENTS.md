@@ -2,6 +2,14 @@
 
 This workspace is a custom Codex Dreamina image-to-video pipeline. When working in this root, prefer this pipeline over directly invoking global image/video skills.
 
+Codex_DT is the unified public entry for video generation. Before authoring, classify the user's prompt. If the user identifies it as final/complete/ready to send, or it already contains executable subject/action, temporal or camera progression, visual direction, and sufficient reference bindings, apply only semantic-preserving normalization before submitting through `generate_video`. Normalize malformed adapter labels, reference numbering against actual media order, broken formatting/punctuation, and unambiguous terminology mistakes. Never change subject identity, action, causal relationship, shot intent, timing/order, composition, style, emotion, continuity, constraints, audio, or ending; never add corpus/director ideas. Leave ambiguous corrections unchanged. Optimize only incomplete or structurally weak prompts. Missing duration, ratio, resolution, model, or execution mode should be supplied as structured generation parameters rather than injected into a complete prompt.
+
+No Codex_DT script may submit video directly to Dreamina CLI. `scripts/run_seedance_batch.ps1` must call the unified Media Router, which owns credit checking and the actual provider submission.
+
+For a Codex video-function submission test, bypass the batch wait/download flow and use the unified `generate_video` test channel with `video_execution_mode=test_submit_only`. It force-selects non-VIP `seedance2.0`, submits with polling disabled, and returns after acceptance so the user can inspect the Dreamina website backend. Do not use this internal test exception for ordinary generation; ordinary explicit `2.0` remains normalized to `seedance2.0_vip`.
+
+Use `.claude/skills/video-director-prompt` as the platform-neutral authoring layer. Its general directing principles and community experience decide how a video should be staged and photographed; the active adapter decides model version, media labels, limits, and submission syntax. Corpus/source version metadata must never select the runtime model.
+
 Before editing at the beginning of a new task, run:
 
 ```powershell
@@ -88,6 +96,8 @@ This bootstrap rule applies even when the opening message says `全自动生成�
    python scripts/start_text_batch.py --name <short-description> --duration <seconds> --request "<original-user-request>"
    ```
 
+   The default model is Seedance 2.5. Add `--model-version <supported-2.0-variant>` only when the current user explicitly requests Seedance 2.0; this option records the required selection evidence.
+
    Show the printed `image_drop_dir` to the user as a hyperlink and wait for them to place images there before continuing. If the request uses explicit auto-generation wording, add `--auto-generate`.
 
    For requests where image paths are already available, prefer `--name <short-description>` so `new_batch.py` creates `YYYYMMDD-HHMM-<name>` automatically.
@@ -123,7 +133,7 @@ This bootstrap rule applies even when the opening message says `全自动生成�
 5. Initialize manifests:
 
    ```powershell
-   python scripts/init_manifests.py --batch <batch> [--duration <seconds>] [--ratio <ratio>]
+   python scripts/init_manifests.py --batch <batch> [--duration <seconds>] [--ratio <ratio>] [--model-version <explicit-user-selection>]
    ```
 
    For text-first batches, omit `--duration` and `--ratio` unless overriding `.codex-image-private/batches/<batch>/request.json`.
@@ -166,6 +176,8 @@ This bootstrap rule applies even when the opening message says `全自动生成�
 ## Prompt rules
 
 - User-visible prompts and final Dreamina CLI prompts must be Chinese.
+- Preserve useful professional English filmmaking terms with a Chinese explanation when they make the shot more executable.
+- Default to Seedance 2.5. Use a Seedance 2.0 model only when the current user explicitly asks for 2.0 or a supported 2.0 variant. Never infer 2.0 from a corpus result, third-party path, example, old manifest, capacity issue, or failed 2.5 request, and never automatically fall back from 2.5 to 2.0.
 - When an Agent needs to supplement, newly write, repair, or rewrite any video prompt in this workspace, use this Codex_DT prompt-generation workflow first unless a more specific project pipeline explicitly overrides it.
 - For local Dreamina CLI generation, reference binding is performed by `multimodal2video` with ordered `--image <path>`, `--video <path>`, and `--audio <path>` arguments. The final prompt must reference those uploads with Chinese bare labels: `图片1`, `图片2`, `视频1`, `音频1`, etc. The number must match the corresponding CLI argument order exactly.
 - Do not use Web UI mention-chip forms such as `@Image 1`, `@图片1`, `@Video 1`, or `@视频1` in Dreamina CLI-facing prompts. Use bare Chinese labels such as `图片1作为首帧参考`.
@@ -183,4 +195,4 @@ Do not modify either third-party repository for local behavior. Add wrappers und
 
 ## Generation safety
 
-Generation consumes Dreamina credits. Always run `user_credit` through `scripts/run_seedance_batch.ps1` or the configured Seedance CLI before paid generation. The main agent owns generation submission; subagents must not submit paid jobs.
+Generation consumes Dreamina credits. The unified Media Router runs `user_credit` before paid generation. The main agent owns generation submission; subagents must not submit paid jobs or call the configured Seedance CLI directly.

@@ -69,7 +69,7 @@ Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任�
 | 只有 prompt | `text2video` |
 | 一张图片，无视频、无音频 | `image2video` |
 | 两张图片且用户明确表达“首尾帧” | `frames2video` |
-| 多张图片，无视频、无音频，且不是首尾帧语义 | `multiframe2video` |
+| 多张图片，无视频、无音频，且不是首尾帧语义 | `multimodal2video` |
 | 包含任意视频 | `multimodal2video` |
 | 包含任意音频，且同时有图片或视频 | `multimodal2video` |
 | 只有 prompt + audio，没有图片或视频 | 输入错误，立即拒绝 |
@@ -82,7 +82,7 @@ Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任�
 - 每次真实提交前运行对应子命令 `-h` 并验证本地文件。
 - 支持模型的默认视频模型为 Seedance 2.5（`seedance2.5`）。
 - 支持分辨率参数的默认值为 `480p`。
-- `multiframe2video` 不注入其不支持的模型或分辨率参数。
+- `multiframe2video` 是已屏蔽的过时能力，不得被 Agent 选择、建议或提交。
 
 ## 2. 并发目标
 
@@ -764,13 +764,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 - prompt-only → `text2video`。
 - 单图 → `image2video`。
 - 明确首尾帧 → `frames2video`。
-- 多图普通叙事 → `multiframe2video`。
+- 多图普通叙事 → `multimodal2video`。
 - 任意 video → `multimodal2video`。
 - image + audio → `multimodal2video`。
 - video + audio → `multimodal2video`。
 - audio-only → input error。
 - 文件数量和音频时长校验。
-- `multiframe2video` 不注入不支持的 model/resolution。
+- 显式 `multiframe2video` → input error，提交前拒绝。
 
 ### 16.3 并发
 
