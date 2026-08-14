@@ -90,6 +90,40 @@ class PluginContractTests(unittest.TestCase):
         self.assertEqual(result["structuredContent"]["safe_reason"], "invalid_image_output")
         self.assertEqual([item["type"] for item in result["content"]], ["text"])
 
+    def test_successful_video_returns_file_resource_with_normalized_uri(self):
+        mp4 = b"\x00\x00\x00\x18ftypisom" + b"offline-video"
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "视频 output.mp4"
+            output.write_bytes(mp4)
+            generated = {"status": "success", "output_path": str(output), "provider_id": "fake", "model_id": "fake-video"}
+            with mock.patch.object(server, "execute", return_value=generated):
+                reply = server.handle({"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "generate_video", "arguments": {"prompt": "test"}}})
+
+        result = reply["result"]
+        self.assertFalse(result["isError"])
+        self.assertEqual([item["type"] for item in result["content"]], ["text", "resource_link"])
+        resource = result["content"][1]
+        self.assertEqual(resource["mimeType"], "video/mp4")
+        self.assertEqual(resource["size"], len(mp4))
+        self.assertEqual(resource["uri"], output.resolve().as_uri())
+        self.assertNotIn("\\", resource["uri"])
+        self.assertIn("%20", resource["uri"])
+        self.assertEqual(result["structuredContent"]["output_uri"], resource["uri"])
+
+    def test_invalid_successful_video_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "broken.mp4"
+            output.write_bytes(b"not-a-video")
+            generated = {"status": "success", "output_path": str(output)}
+            with mock.patch.object(server, "execute", return_value=generated):
+                reply = server.handle({"jsonrpc": "2.0", "id": 11, "method": "tools/call", "params": {"name": "generate_video", "arguments": {"prompt": "test"}}})
+
+        result = reply["result"]
+        self.assertTrue(result["isError"])
+        self.assertEqual(result["structuredContent"]["status"], "failed")
+        self.assertEqual(result["structuredContent"]["safe_reason"], "invalid_video_output")
+        self.assertEqual([item["type"] for item in result["content"]], ["text"])
+
 
 if __name__ == "__main__":
     unittest.main()

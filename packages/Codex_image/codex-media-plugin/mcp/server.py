@@ -94,6 +94,41 @@ def _successful_image_content(result: dict) -> tuple[list[dict], dict]:
     ], enriched
 
 
+def _video_mime_type(output_path: Path, prefix: bytes) -> str | None:
+    if prefix[4:8] == b"ftyp":
+        return "video/mp4"
+    if prefix.startswith(b"RIFF") and prefix[8:12] == b"AVI ":
+        return "video/x-msvideo"
+    if prefix.startswith(b"\x1aE\xdf\xa3"):
+        return "video/webm" if output_path.suffix.lower() == ".webm" else "video/x-matroska"
+    return None
+
+
+def _successful_video_content(result: dict) -> tuple[list[dict], dict]:
+    output_path = Path(result["output_path"]).resolve()
+    size = output_path.stat().st_size
+    with output_path.open("rb") as stream:
+        prefix = stream.read(16)
+    mime_type = _video_mime_type(output_path, prefix)
+    if size <= 0 or mime_type is None:
+        raise ValueError("Generated video output is unavailable or invalid")
+
+    enriched = dict(result)
+    enriched["output_path"] = str(output_path)
+    enriched["output_uri"] = output_path.as_uri()
+    return [
+        {"type": "text", "text": json.dumps(enriched, ensure_ascii=False)},
+        {
+            "type": "resource_link",
+            "name": output_path.name,
+            "title": "Open generated video",
+            "uri": enriched["output_uri"],
+            "mimeType": mime_type,
+            "size": size,
+        },
+    ], enriched
+
+
 def response(identifier, result=None, error=None) -> dict:
     payload = {"jsonrpc": "2.0", "id": identifier}
     if error is not None:
@@ -143,10 +178,13 @@ def handle(message: dict) -> dict | None:
         try:
             if name == "generate_image" and result.get("status") == "success" and result.get("output_path"):
                 content, result = _successful_image_content(result)
+            elif name == "generate_video" and result.get("status") == "success" and result.get("output_path"):
+                content, result = _successful_video_content(result)
             else:
                 content = [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}]
         except (OSError, ValueError, KeyError):
-            result = {**result, "status": "failed", "safe_reason": "invalid_image_output"}
+            safe_reason = "invalid_image_output" if name == "generate_image" else "invalid_video_output"
+            result = {**result, "status": "failed", "safe_reason": safe_reason}
             content = [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}]
         return response(identifier, {"content": content, "structuredContent": result, "isError": result.get("status") not in {"success", "submitted"}})
     return response(identifier, error={"code": -32601, "message": "Method not found"}) if identifier is not None else None

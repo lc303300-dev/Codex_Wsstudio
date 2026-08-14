@@ -7,6 +7,8 @@ description: Execute an already-finalized video prompt through the unified Seeda
 
 Call `generate_video` with only the user's non-empty `prompt` and ordered local `images`, `videos`, and `audios` paths. Video generation always uses Seedance/Dreamina; never switch providers. Do not expose provider, model, credential, concurrency, timeout, output, or log settings.
 
+When a completed video is downloaded successfully, use the original-file resource returned by the tool. Do not reconstruct video links from the raw `output_path`; on Windows, a backslash path is not a portable media URI. A submit-only result has no local resource and should continue to use its task ID and user message.
+
 Treat the received prompt as finalized after Codex_DT's semantic-preserving normalization. Do not perform another rewrite, translation, reorder, summary, constraint append, or audio append here. Codex_DT owns the complete-vs-incomplete decision and the single permitted normalization/authoring pass.
 
 All supported video commands default to Seedance 2.5. Requests with references use all-around reference / `multimodal2video` mode at `480p`; prompt-only requests use `text2video` and still default to Seedance 2.5. Seedance 2.5 supports 4-30 second output, `480p` or `720p`, up to 30 images, 10 videos, 10 audio files, and 50 total reference inputs.
