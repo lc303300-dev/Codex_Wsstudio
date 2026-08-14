@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import base64
 import importlib.util
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -51,6 +53,42 @@ class PluginContractTests(unittest.TestCase):
         result = reply["result"]
         self.assertFalse(result["isError"])
         self.assertEqual(result["structuredContent"], submitted)
+
+    def test_successful_image_returns_renderable_content_and_file_uri(self):
+        png = b"\x89PNG\r\n\x1a\n" + b"offline-image"
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "图片 output.png"
+            output.write_bytes(png)
+            generated = {"status": "success", "output_path": str(output), "provider_id": "fake", "model_id": "fake-image"}
+            with mock.patch.object(server, "execute", return_value=generated):
+                reply = server.handle({"jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test"}}})
+
+        result = reply["result"]
+        self.assertFalse(result["isError"])
+        self.assertEqual([item["type"] for item in result["content"]], ["text", "image", "resource_link"])
+        image = result["content"][1]
+        self.assertEqual(image["mimeType"], "image/png")
+        self.assertEqual(base64.b64decode(image["data"]), png)
+        self.assertFalse(image["data"].startswith("data:"))
+        resource = result["content"][2]
+        self.assertEqual(resource["uri"], output.resolve().as_uri())
+        self.assertNotIn("\\", resource["uri"])
+        self.assertIn("%20", resource["uri"])
+        self.assertEqual(result["structuredContent"]["output_uri"], resource["uri"])
+
+    def test_invalid_successful_image_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "broken.png"
+            output.write_bytes(b"not-an-image")
+            generated = {"status": "success", "output_path": str(output)}
+            with mock.patch.object(server, "execute", return_value=generated):
+                reply = server.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test"}}})
+
+        result = reply["result"]
+        self.assertTrue(result["isError"])
+        self.assertEqual(result["structuredContent"]["status"], "failed")
+        self.assertEqual(result["structuredContent"]["safe_reason"], "invalid_image_output")
+        self.assertEqual([item["type"] for item in result["content"]], ["text"])
 
 
 if __name__ == "__main__":

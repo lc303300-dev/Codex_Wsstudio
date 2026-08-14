@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -50,6 +51,49 @@ TOOLS = [
 ]
 
 
+IMAGE_MIME_TYPES = (
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"GIF87a", "image/gif"),
+    (b"GIF89a", "image/gif"),
+    (b"BM", "image/bmp"),
+    (b"\x00\x00\x01\x00", "image/x-icon"),
+)
+
+
+def _image_mime_type(value: bytes) -> str | None:
+    for signature, mime_type in IMAGE_MIME_TYPES:
+        if value.startswith(signature):
+            return mime_type
+    if value.startswith(b"RIFF") and value[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def _successful_image_content(result: dict) -> tuple[list[dict], dict]:
+    output_path = Path(result["output_path"]).resolve()
+    value = output_path.read_bytes()
+    mime_type = _image_mime_type(value)
+    if not value or mime_type is None:
+        raise ValueError("Generated image output is unavailable or invalid")
+
+    enriched = dict(result)
+    enriched["output_path"] = str(output_path)
+    enriched["output_uri"] = output_path.as_uri()
+    return [
+        {"type": "text", "text": json.dumps(enriched, ensure_ascii=False)},
+        {"type": "image", "data": base64.b64encode(value).decode("ascii"), "mimeType": mime_type},
+        {
+            "type": "resource_link",
+            "name": output_path.name,
+            "title": "Open original image",
+            "uri": enriched["output_uri"],
+            "mimeType": mime_type,
+            "size": len(value),
+        },
+    ], enriched
+
+
 def response(identifier, result=None, error=None) -> dict:
     payload = {"jsonrpc": "2.0", "id": identifier}
     if error is not None:
@@ -96,7 +140,15 @@ def handle(message: dict) -> dict | None:
             result = execute(name, arguments.get("prompt", ""), arguments.get("images", []), arguments.get("videos", []), arguments.get("audios", []), **options)
         except Exception as exc:
             result = {"status": "failed", "safe_reason": type(exc).__name__}
-        return response(identifier, {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}], "structuredContent": result, "isError": result.get("status") not in {"success", "submitted"}})
+        try:
+            if name == "generate_image" and result.get("status") == "success" and result.get("output_path"):
+                content, result = _successful_image_content(result)
+            else:
+                content = [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}]
+        except (OSError, ValueError, KeyError):
+            result = {**result, "status": "failed", "safe_reason": "invalid_image_output"}
+            content = [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}]
+        return response(identifier, {"content": content, "structuredContent": result, "isError": result.get("status") not in {"success", "submitted"}})
     return response(identifier, error={"code": -32601, "message": "Method not found"}) if identifier is not None else None
 
 

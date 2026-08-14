@@ -7,6 +7,8 @@ description: Generate images, draw from text, and edit, composite, or transform 
 
 Call `generate_image` with only the user's non-empty `prompt` and ordered local `images` paths. Do not expose or request provider, model, API URL, credential, concurrency, timeout, output, or log settings.
 
+On success, use the image and original-file resource returned by the tool. Do not reconstruct image Markdown or file links from the raw `output_path`; on Windows, a backslash path is not a portable image URI.
+
 Treat every call as an external operation that may consume provider credits. Do not run speculative generations. Preserve explicit ratio, resolution, quality, or model preferences in the prompt so the router can apply them.
 
 The router normalizes local reference-image orientation and proportionally resizes any image whose longest edge exceeds 1920 px before provider submission. It never overwrites the original image.
