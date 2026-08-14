@@ -1,6 +1,6 @@
 ---
 name: comfly-api
-description: Generate or edit still images independently through Comfly's OpenAI-compatible image API. Use for Comfly text-to-image or local-image editing with strict serial fallback across gemini-3.1-flash-image-preview, gpt-image-2-all, and gpt-image-2, without Google, APIMart, Dreamina, Antigravity, or any other provider fallback.
+description: Generate or edit still images independently through Comfly's OpenAI-compatible image API. Use for Comfly text-to-image or local-image editing with strict serial fallback across gemini-3.1-flash-image-preview, gpt-image-2-all, and gpt-image-2, without Google, APIMart, Dreamina, or any other provider fallback.
 ---
 
 # Comfly API

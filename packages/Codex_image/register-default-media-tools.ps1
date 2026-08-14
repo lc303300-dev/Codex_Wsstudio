@@ -20,7 +20,8 @@ $SkillsRoot = Join-Path $CodexHome "skills"
 $PluginsRoot = Join-Path $CodexHome "plugins"
 $MarkerName = ".codex-image-registration.json"
 $ToolNames = @("default-image-generation", "default-video-generation")
-$ProviderNames = @("gemini-api", "gemini-cli", "seedance-cli", "gpt-api", "comfly-api")
+$ProviderNames = @("gemini-api", "seedance-cli", "gpt-api", "comfly-api")
+$RemovedProviderNames = @("gemini-cli")
 
 function Test-CodexImageSourceRoot {
     param([string]$SourceRoot)
@@ -131,7 +132,7 @@ if ($ProviderSkills) {
         Install-ManagedDirectory -Source (Join-Path $ProjectRoot $name) -Destination (Join-Path $SkillsRoot $name) -Kind "provider-skill" -Name $name
     }
 } elseif (-not $KeepLegacyProviderSkills) {
-    foreach ($name in $ProviderNames) {
+    foreach ($name in @($ProviderNames + $RemovedProviderNames)) {
         $destination = Join-Path $SkillsRoot $name
         $marker = Join-Path $destination $MarkerName
         if ((Test-Path -LiteralPath $marker) -and (Test-Path -LiteralPath $destination)) {
@@ -143,7 +144,7 @@ if ($ProviderSkills) {
         $marker = Join-Path $_.FullName $MarkerName
         if (Test-Path -LiteralPath $marker) {
             $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
-            if ($record.source_root -eq $ProjectRoot -and $record.pipeline -in $ProviderNames) {
+            if ($record.source_root -eq $ProjectRoot -and $record.pipeline -in @($ProviderNames + $RemovedProviderNames)) {
                 Remove-Item -LiteralPath $_.FullName -Recurse -Force
             }
         }

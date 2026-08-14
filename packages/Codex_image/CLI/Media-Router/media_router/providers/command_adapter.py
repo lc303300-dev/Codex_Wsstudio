@@ -86,8 +86,7 @@ class PythonImageAdapter:
         if self.key_name:
             configured = bool(os.environ.get(self.key_name) or load_dotenv(PRIVATE_ROOT / ".env").get(self.key_name))
             return Readiness(configured, None if configured else f"{self.key_name} is not configured")
-        executable = PRIVATE_ROOT / "bin" / "gemini-cli" / "agy.exe"
-        return Readiness(executable.is_file(), None if executable.is_file() else "Antigravity CLI is not installed")
+        return Readiness(True)
 
     def execute(self, request: MediaRequest, context: TaskContext) -> ProviderResult:
         start, stamp = time.monotonic(), datetime.now(timezone.utc).isoformat()

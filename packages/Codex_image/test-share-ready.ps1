@@ -12,7 +12,6 @@ if (Test-Path -LiteralPath $PrivateRoot) {
 
 $legacyPrivatePaths = @(
     "CLI\.env",
-    "CLI\Gemini-CLI\agy.exe",
     "CLI\Seedance-CLI\dreamina.exe",
     "outputs",
     "logs",

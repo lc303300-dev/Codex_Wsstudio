@@ -48,7 +48,6 @@ Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任�
 4. `apimart-gpt-image-2` → 现有 `gpt-api`
 5. `google-gemini-image` → 现有 `gemini-api`
 6. `dreamina-image` → 现有 `seedance-cli` 图片能力
-7. `antigravity-image` → 现有 `gemini-cli`
 
 规则：
 
@@ -100,7 +99,6 @@ Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任�
 | `apimart-gpt-image-2` | 6 |
 | `google-gemini-image` | 6 |
 | `dreamina-image` | 6 |
-| `antigravity-image` | 6 |
 | `dreamina-video` | 6 |
 
 `dreamina-image` 与 `dreamina-video` 使用同一个本地账号和 CLI。实现时使用共享容量键 `seedance-cli`，两类任务合计最多 6 个并发，不允许图片 6 个加视频 6 个形成 12 个 Dreamina 并发。
@@ -162,7 +160,6 @@ flowchart TD
     C3 -. "可回退失败" .-> A["4 apimart-gpt-image-2"]
     A -. "可回退失败" .-> G["5 google-gemini-image"]
     G -. "可回退失败" .-> D["6 dreamina-image"]
-    D -. "可回退失败" .-> AG["7 antigravity-image"]
 
     GV --> VR["Video Router"]
     VR --> DV["dreamina-video"]
@@ -362,7 +359,6 @@ Codex_image/
     "apimart-gpt-image-2": { "enabled": true, "priority": 4, "max_concurrency": 6 },
     "google-gemini-image": { "enabled": true, "priority": 5, "max_concurrency": 6 },
     "dreamina-image": { "enabled": true, "priority": 6, "max_concurrency": 6, "capacity_key": "seedance-cli" },
-    "antigravity-image": { "enabled": true, "priority": 7, "max_concurrency": 6 },
     "dreamina-video": { "enabled": true, "max_concurrency": 6, "capacity_key": "seedance-cli" }
   }
 }
@@ -597,7 +593,6 @@ return aggregate(results)
     "apimart-gpt-image-2": { "ready": true, "max_concurrency": 6 },
     "google-gemini-image": { "ready": true, "max_concurrency": 6 },
     "dreamina-image": { "ready": true, "max_concurrency": 6 },
-    "antigravity-image": { "ready": true, "max_concurrency": 6 },
     "dreamina-video": { "ready": true, "max_concurrency": 6 }
   }
 }
@@ -657,7 +652,7 @@ return aggregate(results)
 - 不记录包含本地媒体内容的 multipart body。
 - provider 错误正文必须经过白名单提取或安全归一化。
 - 可以记录：adapter、model、endpoint、状态码、request ID、task/submit ID、远程媒体 URL、文件数量、输出路径、输出字节数、耗时、失败分类。
-- Antigravity transcript 和 Dreamina 输出需要过滤潜在凭据后再保存。
+- Dreamina 输出需要过滤潜在凭据后再保存。
 - 所有日志只写 `.codex-image-private/logs/` 或具体 job 目录。
 
 ## 15. 实施阶段
@@ -695,7 +690,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 ### 阶段 2：Provider adapter 化
 
 1. 先拆 Comfly common 和三个独立 adapter。
-2. 将 APIMart、Google Gemini、Dreamina 图片、Antigravity 包装为单调用 adapter。
+2. 将 APIMart、Google Gemini、Dreamina 图片包装为单调用 adapter。
 3. 将 Dreamina 视频包装为单 provider adapter。
 4. 现有 CLI 入口保持兼容，但改为调用 adapter。
 5. 禁止 adapter 之间互相导入或回退。

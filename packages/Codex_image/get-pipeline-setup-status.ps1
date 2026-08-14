@@ -17,23 +17,9 @@ if (Test-Path -LiteralPath $envFile) {
 function Test-Key([string]$Name) { return [bool]$configured[$Name] -or -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($Name)) }
 
 $dreamina = Join-Path $PrivateRoot "bin\seedance-cli\dreamina.exe"
-$antigravity = Join-Path $PrivateRoot "bin\gemini-cli\agy.exe"
 $dreaminaReady = Test-Path -LiteralPath $dreamina
-$antigravityReady = Test-Path -LiteralPath $antigravity
 if ($CheckLogin -and $dreaminaReady) {
     try { $value = & $dreamina user_credit 2>&1; $dreaminaReady = $LASTEXITCODE -eq 0 -and (($value -join "`n") -match 'total_credit') } catch { $dreaminaReady = $false }
-}
-if ($CheckLogin -and $antigravityReady) {
-    try {
-        $previousErrorActionPreference = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        $value = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectRoot "CLI\Gemini-CLI\agy-proxy.ps1") models 2>&1
-        $antigravityReady = $LASTEXITCODE -eq 0 -and @($value | Where-Object { $_ -match "\S" }).Count -gt 0
-    } catch {
-        $antigravityReady = $false
-    } finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
 }
 
 $providerReady = [ordered]@{
@@ -43,7 +29,6 @@ $providerReady = [ordered]@{
     "apimart-gpt-image-2" = (Test-Key "APIMART_API_KEY")
     "google-gemini-image" = (Test-Key "GEMINI_API_KEY")
     "dreamina-image" = $dreaminaReady
-    "antigravity-image" = $antigravityReady
     "dreamina-video" = $dreaminaReady
 }
 $providers = [ordered]@{}

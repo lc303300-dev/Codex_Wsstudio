@@ -16,14 +16,12 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = $PSScriptRoot
 $KnownPipelines = [ordered]@{
     "gemini-api"   = "Official Google Gemini API image generation and editing"
-    "gemini-cli"   = "Google Antigravity CLI image generation and editing"
     "seedance-cli" = "Dreamina image generation and Seedance video generation"
     "gpt-api"      = "APIMart GPT Image 2 image generation and editing"
     "comfly-api"    = "Comfly OpenAI-compatible image generation and editing"
 }
 $ProviderWebsites = [ordered]@{
     "gemini-api"   = "https://aistudio.google.com/"
-    "gemini-cli"   = "https://aistudio.google.com/"
     "seedance-cli" = "https://jimeng.jianying.com/"
     "gpt-api"      = "https://apimart.ai/zh"
     "comfly-api"    = "https://ai.comfly.org/"

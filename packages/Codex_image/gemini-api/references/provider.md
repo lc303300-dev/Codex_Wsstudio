@@ -8,4 +8,4 @@ Extracted from the original project route `tools/gemini_image_fallback.py`.
 - Input: one text part followed by zero or more base64 image parts
 - Output request: image/JPEG, `1K`, configurable aspect ratio
 - Private configuration from the project root: `.codex-image-private/.env`
-- Independence: do not call Antigravity, Dreamina, Seedance, APIMart, or GPT
+- Independence: do not call Dreamina, Seedance, APIMart, or GPT

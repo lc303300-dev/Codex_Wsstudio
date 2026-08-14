@@ -21,7 +21,6 @@ Route each image task strictly serially and stop after the first validated non-e
 4. `apimart-gpt-image-2` -> APIMart `gpt-image-2`
 5. `google-gemini-image` -> official Gemini image API
 6. `dreamina-image` -> Dreamina Image 4.0 by default
-7. `antigravity-image` -> Antigravity CLI
 
 Never race, hedge, or parallelize adapters within one image task. Comfly models are separate logical adapters with independent concurrency, health, metrics, logs, and circuit state. The Comfly common layer performs exactly one fixed-model request and never loops over models.
 
@@ -120,7 +119,7 @@ Inspect only the generated preview whose longest edge is at most 1024 px. Use or
 
 Treat `.codex-image-private/` as the only project-local private/disposable runtime root. Store credentials, downloaded CLIs, jobs, outputs, logs, locks, caches, validation artifacts, provider health, metrics, and circuit state only there. Use stable jobs under `.codex-image-private/jobs/<batch-id>/<task-id>/`.
 
-Log prompts as `<redacted>`, character count, and SHA-256 only. Never log API keys, Authorization, Bearer tokens, cookies, original media bytes, Base64, multipart bodies, full provider error bodies, or unfiltered Antigravity/Dreamina transcripts. Provider logs may retain only safe identifiers, adapter/model, endpoint, status code, remote URL, media counts, output path/bytes, duration, and normalized failure class.
+Log prompts as `<redacted>`, character count, and SHA-256 only. Never log API keys, Authorization, Bearer tokens, cookies, original media bytes, Base64, multipart bodies, full provider error bodies, or unfiltered Dreamina transcripts. Provider logs may retain only safe identifiers, adapter/model, endpoint, status code, remote URL, media counts, output path/bytes, duration, and normalized failure class.
 
 Successful output must be non-empty and match an accepted media signature. Stage output in the destination directory and atomically replace only after validation; preserve existing outputs on failure. `success` never repeats, `failed` retries only on explicit user request, `needs_review` never retries automatically, and stale `running` tasks resume query only when a provider task ID exists.
 

@@ -52,8 +52,7 @@ Invoke-CheckedPowerShell -File (Join-Path $root "scripts\codex\sync-global-codex
 
 $legacyItems = @(
     (Join-Path $imageRoot "CLI\.env"),
-    (Join-Path $imageRoot "CLI\Seedance-CLI\dreamina.exe"),
-    (Join-Path $imageRoot "CLI\Gemini-CLI\agy.exe")
+    (Join-Path $imageRoot "CLI\Seedance-CLI\dreamina.exe")
 )
 if ($legacyItems | Where-Object { Test-Path -LiteralPath $_ }) {
     Invoke-CheckedPowerShell -File (Join-Path $imageRoot "migrate-private-runtime.ps1")

@@ -35,7 +35,7 @@ class PluginContractTests(unittest.TestCase):
         self.assertFalse(tools["generate_video"]["additionalProperties"])
 
     def test_provider_skills_are_not_implicit(self):
-        for name in ("gemini-api", "gemini-cli", "seedance-cli", "gpt-api", "comfly-api"):
+        for name in ("gemini-api", "seedance-cli", "gpt-api", "comfly-api"):
             value = (ROOT / name / "agents" / "openai.yaml").read_text(encoding="utf-8")
             self.assertIn("allow_implicit_invocation: false", value)
 

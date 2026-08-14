@@ -1,6 +1,6 @@
 ---
 name: gpt-api
-description: Generate or edit still images independently with APIMart GPT Image 2. Use for APIMart gpt-image-2 text-to-image or multi-reference image generation without Google Gemini API, Antigravity CLI, Dreamina, Seedance, or provider fallback.
+description: Generate or edit still images independently with APIMart GPT Image 2. Use for APIMart gpt-image-2 text-to-image or multi-reference image generation without Google Gemini API, Dreamina, Seedance, or provider fallback.
 ---
 
 # GPT APIMart API

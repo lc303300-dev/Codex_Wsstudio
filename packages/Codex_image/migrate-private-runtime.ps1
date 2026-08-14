@@ -33,7 +33,6 @@ function Move-LegacyItem {
 New-Item -ItemType Directory -Path $PrivateRoot -Force | Out-Null
 
 Move-LegacyItem (Join-Path $ProjectRoot "CLI\.env") (Join-Path $PrivateRoot ".env")
-Move-LegacyItem (Join-Path $ProjectRoot "CLI\Gemini-CLI\agy.exe") (Join-Path $PrivateRoot "bin\gemini-cli\agy.exe")
 Move-LegacyItem (Join-Path $ProjectRoot "CLI\Seedance-CLI\dreamina.exe") (Join-Path $PrivateRoot "bin\seedance-cli\dreamina.exe")
 Move-LegacyItem (Join-Path $ProjectRoot "outputs") (Join-Path $PrivateRoot "outputs")
 Move-LegacyItem (Join-Path $ProjectRoot "logs") (Join-Path $PrivateRoot "logs")

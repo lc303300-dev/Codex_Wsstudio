@@ -1,6 +1,6 @@
 ---
 name: gemini-api
-description: Generate or edit still images independently through the official Google Gemini API using gemini-3.1-flash-image. Use for Google-direct Gemini image generation and multi-reference image editing without Antigravity CLI, Dreamina, Seedance, APIMart, or provider fallback.
+description: Generate or edit still images independently through the official Google Gemini API using gemini-3.1-flash-image. Use for Google-direct Gemini image generation and multi-reference image editing without Dreamina, Seedance, APIMart, or provider fallback.
 ---
 
 # Gemini Official API

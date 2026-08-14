@@ -1,6 +1,0 @@
-interface:
-  display_name: "Gemini Antigravity CLI"
-  short_description: "Generate images through the Antigravity CLI"
-  default_prompt: "Use $gemini-cli to generate an image through Antigravity CLI."
-policy:
-  allow_implicit_invocation: false
