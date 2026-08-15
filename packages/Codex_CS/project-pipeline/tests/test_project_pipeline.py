@@ -65,6 +65,12 @@ class ProjectPipelineTests(unittest.TestCase):
         for slot in result["material_directories"]:
             self.assertTrue(Path(slot["source_dir"]).is_dir())
             self.assertTrue(Path(slot["final_dir"]).is_dir())
+            self.assertEqual(slot["source_dir_link_target"], Path(slot["source_dir"]).resolve().as_posix())
+            self.assertEqual(slot["final_dir_link_target"], Path(slot["final_dir"]).resolve().as_posix())
+            self.assertNotIn("\\", slot["source_dir_link_target"])
+            self.assertNotIn("\\", slot["final_dir_link_target"])
+        self.assertEqual(result["project_dir_link_target"], Path(result["project_dir"]).resolve().as_posix())
+        self.assertEqual(result["project_file_link_target"], Path(result["project_file"]).resolve().as_posix())
         for duration in (3, 31):
             with self.assertRaisesRegex(pipeline.PipelineError, "between 4 and 30"):
                 pipeline.create_project(self.projects, self.skills, f"bad-{duration}", "test-skill", "测试 Skill", "9:16", duration, True)

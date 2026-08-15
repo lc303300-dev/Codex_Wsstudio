@@ -338,7 +338,7 @@ function Get-MarkdownFileLink {
         [string]$Path
     )
 
-    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $fullPath = [System.IO.Path]::GetFullPath($Path).Replace('\', '/')
     return "[$Label](<$fullPath>)"
 }
 

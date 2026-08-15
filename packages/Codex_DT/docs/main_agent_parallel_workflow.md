@@ -29,7 +29,7 @@ For a normal text-first request, create the batch and image drop folder first:
 python scripts/start_text_batch.py --name <short-description> --duration 5 --request "<original-user-request>"
 ```
 
-Show the printed `image_drop_dir` as a clickable local path and ask the user to place images there. Stop until the user confirms the files have been added. Then continue:
+Show the printed `image_drop_dir_link_target` as a clickable local path and ask the user to place images there. Use it verbatim as the Markdown target; do not insert the raw Windows `image_drop_dir` or a `file://` URI. Stop until the user confirms the files have been added. Then continue:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare_previews.ps1 -Batch <batch>

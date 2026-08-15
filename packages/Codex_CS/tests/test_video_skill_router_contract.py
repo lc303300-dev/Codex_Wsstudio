@@ -55,6 +55,10 @@ class VideoSkillRouterContractTests(unittest.TestCase):
         for value in ["`count_rule`", "`planned_count`", "计划数量", "不得用全库统一"]:
             self.assertIn(value, self.text)
 
+    def test_uses_pipeline_link_targets_instead_of_windows_paths(self):
+        for value in ["`source_dir_link_target`", "正斜杠", "不得把反斜杠路径写入 Markdown 链接", "不得改写为 `file://` URI"]:
+            self.assertIn(value, self.text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -74,6 +74,7 @@ class PluginContractTests(unittest.TestCase):
         self.assertEqual(resource["uri"], output.resolve().as_uri())
         self.assertNotIn("\\", resource["uri"])
         self.assertIn("%20", resource["uri"])
+        self.assertIn("%E5%9B%BE%E7%89%87", resource["uri"])
         self.assertEqual(result["structuredContent"]["output_uri"], resource["uri"])
 
     def test_invalid_successful_image_fails_closed(self):
@@ -108,6 +109,7 @@ class PluginContractTests(unittest.TestCase):
         self.assertEqual(resource["uri"], output.resolve().as_uri())
         self.assertNotIn("\\", resource["uri"])
         self.assertIn("%20", resource["uri"])
+        self.assertIn("%E8%A7%86%E9%A2%91", resource["uri"])
         self.assertEqual(result["structuredContent"]["output_uri"], resource["uri"])
 
     def test_invalid_successful_video_fails_closed(self):

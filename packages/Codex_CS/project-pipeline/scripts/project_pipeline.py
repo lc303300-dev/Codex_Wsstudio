@@ -79,6 +79,11 @@ def save_project(root: Path, project: dict) -> None:
     write_json(root / PROJECT_FILE, project)
 
 
+def markdown_link_target(path: Path | str) -> str:
+    """Return an absolute local target that Markdown renderers can recognize."""
+    return Path(path).resolve().as_posix()
+
+
 def require_state(project: dict, allowed: set[str]) -> None:
     if project["state"] not in allowed:
         raise PipelineError(f"state {project['state']} does not allow this action; expected one of {sorted(allowed)}")
@@ -428,12 +433,16 @@ def public_result(root: Path, project: dict) -> dict:
         "project_id": project["project_id"],
         "state": project["state"],
         "project_dir": str(root.resolve()),
+        "project_dir_link_target": markdown_link_target(root),
         "project_file": str((root / PROJECT_FILE).resolve()),
+        "project_file_link_target": markdown_link_target(root / PROJECT_FILE),
         "material_directories": [
             {
                 "slot_id": slot["id"],
                 "source_dir": slot["source_dir"],
+                "source_dir_link_target": markdown_link_target(slot["source_dir"]),
                 "final_dir": slot["final_dir"],
+                "final_dir_link_target": markdown_link_target(slot["final_dir"]),
                 "planned_count": slot["planned_count"],
                 "count_enforcement": slot["count_enforcement"],
                 "count_rationale": slot["count_rule"]["rationale"],

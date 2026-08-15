@@ -55,7 +55,7 @@ python scripts/start_text_batch.py --name window --duration 5 --request "帮我�
 
 This defaults to Seedance 2.5. Only when the user explicitly requests Seedance 2.0, add a supported selection such as `--model-version seedance2.0_vip`; the request and manifests retain the explicit-selection evidence.
 
-Show the printed `image_drop_dir` to the user as a clickable local path and ask them to put source images into that folder. After the user confirms the files are there, continue with:
+Show the printed `image_drop_dir_link_target` to the user as a clickable local path and ask them to put source images into that folder. Use that value verbatim as the Markdown target: it is absolute and uses forward slashes on Windows. Do not rebuild the link from `image_drop_dir` or use a `file://` URI. After the user confirms the files are there, continue with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare_previews.ps1 -Batch <batch>

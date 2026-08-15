@@ -20,6 +20,11 @@ BATCH_RE = re.compile(r"^batch=(?P<batch>\S+)$", re.MULTILINE)
 SUPPORTED_RATIOS = ("21:9", "16:9", "4:3", "1:1", "3:4", "9:16")
 
 
+def markdown_link_target(path: Path) -> str:
+    """Return an absolute local target safe for Markdown on Windows."""
+    return path.resolve().as_posix()
+
+
 def run_capture(command: list[str]) -> str:
     result = subprocess.run(command, cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
     if result.stdout:
@@ -88,6 +93,7 @@ def main() -> int:
     print()
     print(f"text_batch={batch}")
     print(f"image_drop_dir={input_dir}")
+    print(f"image_drop_dir_link_target={markdown_link_target(input_dir)}")
     print(f"request_file={request_file}")
     print("next_after_images:")
     print(f"  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare_previews.ps1 -Batch {batch}")

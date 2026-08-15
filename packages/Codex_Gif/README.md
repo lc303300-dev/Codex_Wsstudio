@@ -193,4 +193,4 @@ Each run writes a CSV report to:
 
 The report includes input path, output path, status, reason, duration, final width, color count, dither mode, palette mode, rectangle diff mode, denoise level, lossy level, and final size.
 
-At the end of each run, the script also prints a clickable Markdown link for opening the output folder directly.
+At the end of each run, the script also prints a clickable Markdown link for opening the output folder directly. On Windows, the link target is an absolute path with forward slashes so Markdown renderers do not treat backslashes as escapes.
