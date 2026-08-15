@@ -51,6 +51,7 @@ python scripts/inspect_skill_source.py <uploaded-skill.md>
 
 - 确定性的素材类型、数量、顺序、角色和必选性写入 `contract.json`。
 - 每次执行都需要遵守的简短流程写入 `SKILL.md`。
+- 用户会怎样描述这类创作意图、常用别名、主体、风格、叙事模式和排除意图写入 `routing.json`；不得用用户已有素材反向定义意图。
 - 专业创意方法写入 `references/creative-guidance.md`。
 - 社区经验原意写入 `references/community-experience.md`，并标记证据等级与适用条件。
 - 失败表现、原因和规避方法写入 `references/failure-cases.md`。
@@ -81,6 +82,8 @@ python scripts/scaffold_business_skill.py --skill-id <skill-id> --display-name "
 ```
 
 完善生成的所有文件，并删除其中的 `CURATOR-REQUIRED` 标记。`SKILL.md` 保持简洁；详细经验通过直接链接的一层 `references/` 文件渐进加载。
+
+同时完善 `routing.json`。路由信息只用于在上百个正式 Skill 中快速定位用户想使用的业务能力；Skill 选定后，向用户索取什么素材仍完全由 `contract.json` 决定。
 
 ### 6. 创意补全检查
 
@@ -133,6 +136,8 @@ python scripts/publish_skill.py <staging-skill-directory> --library-root <busine
 ```
 
 发布脚本重新验证、生成来源和包哈希、写入 `intake-receipt.json`，再原子发布。已存在的 `skill_id` 默认拒绝覆盖；更新现有 Skill 必须使用单独的版本升级流程。
+
+正式库发布成功后，发布脚本增量更新本地 SQLite/FTS5 意图注册表。索引只收录凭证有效且包哈希未变化的 Skill。
 
 正式运行时使用以下发现器读取 Skill 库：
 

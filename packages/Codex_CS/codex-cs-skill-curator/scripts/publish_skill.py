@@ -4,11 +4,15 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 from skill_package import VALIDATOR_VERSION, file_sha256, load_contract, package_sha256, validate_package
+
+SCRIPT_ROOT = Path(__file__).resolve().parent
 
 
 def write_json_atomic(path: Path, payload: dict) -> None:
@@ -78,6 +82,34 @@ def main() -> int:
             return 1
         staging.replace(destination)
 
+    codex_cs_root = SCRIPT_ROOT.parents[1]
+    registry_script = codex_cs_root / "skill-registry" / "scripts" / "build_registry.py"
+    production_library = (codex_cs_root / "business-skills").resolve()
+    if registry_script.is_file() and library == production_library:
+        completed = subprocess.run(
+            [sys.executable, str(registry_script), "--library", str(library)],
+            text=True,
+            capture_output=True,
+            encoding="utf-8",
+            check=False,
+        )
+        if completed.returncode != 0:
+            shutil.rmtree(destination)
+            subprocess.run(
+                [sys.executable, str(registry_script), "--library", str(library)],
+                text=True,
+                capture_output=True,
+                encoding="utf-8",
+                check=False,
+            )
+            print(json.dumps({
+                "status": "registry_update_failed",
+                "skill_id": contract["skill_id"],
+                "registry_stdout": completed.stdout,
+                "registry_stderr": completed.stderr,
+            }, ensure_ascii=False, indent=2))
+            return 1
+
     print(json.dumps({
         "status": "published",
         "skill_id": contract["skill_id"],
@@ -89,4 +121,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

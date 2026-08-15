@@ -9,6 +9,8 @@ staging/
 staging-migration/
 rejected/
 projects/
+skill-registry/*.db
+skill-registry/*.db-*
 
 # Media runtime data belongs to the unified media package, never this repository.
 .codex-image-private/

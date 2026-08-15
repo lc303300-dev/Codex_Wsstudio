@@ -12,6 +12,7 @@
 <skill-id>/
 ├─ SKILL.md
 ├─ contract.json
+├─ routing.json
 ├─ intake-receipt.json
 ├─ agents/
 │  └─ openai.yaml
@@ -23,6 +24,8 @@
 ```
 
 暂存包在用户批准前不得包含 `intake-receipt.json`。正式注册器只发现带有效凭证的包。
+
+`routing.json` 只描述用户创作意图的检索入口，包括别名、用途、主体、风格、叙事模式和反向排除词。它不根据用户当前已有素材选择 Skill，也不替代 `contract.json`。选定 Skill 后，素材指导仍以 `contract.json` 为唯一权威。
 
 ## 3. 命名
 
@@ -119,4 +122,3 @@ description: 说明该 Skill 做什么，以及哪些用户请求应触发它。
 - 未处理的模板占位符。
 
 历史模型或平台经验可以保留在参考文档，但必须标记为来源背景，不得决定当前执行。
-

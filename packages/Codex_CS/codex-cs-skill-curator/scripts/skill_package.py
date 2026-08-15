@@ -39,6 +39,7 @@ FORBIDDEN_EXECUTION = re.compile(
     r"(?i)(?:seedance-cli|dreamina\.exe|agy\.exe|media_router\.service|"
     r"--model_version|--poll\b|query_result|user_credit)"
 )
+ROUTING_LIST_FIELDS = {"aliases", "user_intents", "subjects", "styles", "narrative_patterns", "negative_intents"}
 
 
 @dataclass(frozen=True)
@@ -242,6 +243,26 @@ def validate_package(root: Path, *, require_receipt: bool = False) -> list[Issue
     if knowledge != REQUIRED_KNOWLEDGE:
         _add(issues, "INVALID_KNOWLEDGE_PATHS", f"knowledge must equal {REQUIRED_KNOWLEDGE}", "contract.json")
 
+    routing_path = root / "routing.json"
+    if routing_path.is_file():
+        try:
+            routing = json.loads(routing_path.read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            _add(issues, "INVALID_ROUTING_JSON", str(exc), "routing.json")
+            routing = {}
+        allowed_routing = {"schema_version", "skill_id", "priority", *ROUTING_LIST_FIELDS}
+        if set(routing) - allowed_routing:
+            _add(issues, "INVALID_ROUTING_FIELDS", f"routing.json contains unsupported fields: {sorted(set(routing) - allowed_routing)}", "routing.json")
+        if routing.get("schema_version") != 1 or routing.get("skill_id") != skill_id:
+            _add(issues, "INVALID_ROUTING_IDENTITY", "routing schema_version must be 1 and skill_id must match the package", "routing.json")
+        priority = routing.get("priority", 50)
+        if not isinstance(priority, int) or isinstance(priority, bool) or not 0 <= priority <= 100:
+            _add(issues, "INVALID_ROUTING_PRIORITY", "routing priority must be an integer from 0 to 100", "routing.json")
+        for field in ROUTING_LIST_FIELDS:
+            values = routing.get(field, [])
+            if not isinstance(values, list) or any(not isinstance(value, str) or not value.strip() for value in values):
+                _add(issues, "INVALID_ROUTING_TERMS", f"routing {field} must be an array of non-empty strings", "routing.json")
+
     ui = parse_openai_yaml(read_text(root / "agents/openai.yaml"))
     if ui.get("display_name") != contract.get("display_name"):
         _add(issues, "UI_DISPLAY_NAME_MISMATCH", "agents/openai.yaml display_name must match contract display_name", "agents/openai.yaml")
@@ -295,4 +316,3 @@ def validate_package(root: Path, *, require_receipt: bool = False) -> list[Issue
                 _add(issues, "STALE_RECEIPT", "Package content changed after publication receipt generation", "intake-receipt.json")
 
     return issues
-

@@ -52,3 +52,7 @@ This repository uses the monorepo layout defined in `docs/PROJECT_STRUCTURE.md`:
 - packaged projects currently live in `packages/Codex_image/`, `packages/Codex_DT/`, `packages/Codex_Gif/`, `packages/Codex_Github/`, and `packages/Codex_CS/`.
 
 Do not add new implementation scripts, project directories, generated output, or standalone design documents to the repository root. Before completing any change, run `scripts/maintenance/test-project-structure.ps1`. Structural changes must update the structure document, README, validation allowlist, path references, and both repository/global guidance when applicable.
+
+## Video Business Skill Routing
+
+When a user wants to use a governed business Skill to create a video, use the globally registered `video-skill-router` first. Select the Skill from the user's creative intent, then read the selected Skill contract and guide the user to provide required materials. Do not choose the Skill primarily from materials already supplied. Codex_DT remains the downstream prompt-authoring and video-generation orchestrator after the contract is satisfied.

@@ -9,6 +9,12 @@ discoverable only after it has a valid standard package and an `intake-receipt.j
 whose package hash matches the current files. Directly dropping a Markdown file into
 `business-skills/` is not a supported publication path.
 
+When a user wants to use a business Skill to create a video, run the local
+`video-skill-router` workflow first. Select the Skill from the user's creative intent
+(purpose, subject, style, narrative, and shot pattern), not primarily from materials
+they already possess. After selection, read that Skill's `contract.json` and guide the
+user to provide every required reference slot before Codex_DT authoring begins.
+
 Preserve source experience without promoting every source statement to a hard rule:
 
 - deterministic input and binding facts belong in `contract.json`;
@@ -28,4 +34,3 @@ Before publishing or changing a business Skill, run:
 ```powershell
 python .\codex-cs-skill-curator\scripts\validate_skill_package.py <skill-directory>
 ```
-

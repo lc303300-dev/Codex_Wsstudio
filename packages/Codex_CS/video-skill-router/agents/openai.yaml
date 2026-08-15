@@ -1,0 +1,4 @@
+interface:
+  display_name: "视频业务 Skill 路由"
+  short_description: "按视频创作意图定位业务 Skill，并按契约指导用户准备素材。"
+  default_prompt: "使用 $video-skill-router 根据我的视频创作目标选择合适 Skill，并告诉我需要准备哪些素材。"

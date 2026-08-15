@@ -43,4 +43,8 @@ The workspace currently includes the following packaged projects:
 - `packages/Codex_Github/`
 - `packages/Codex_CS/`
 
+Codex_CS keeps governed published packages in `business-skills/`, rebuildable intent
+index code in `skill-registry/`, contract-driven collection logic in
+`material-collection/`, and the global routing entry in `video-skill-router/`.
+
 Do not create compatibility copies of moved implementation files at the root. If a root command must remain stable, keep a small forwarding entry script instead.
