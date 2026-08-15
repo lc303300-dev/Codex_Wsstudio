@@ -6,7 +6,7 @@ Register or refresh the global Tool Scout skill after moving or updating this ch
 powershell -NoProfile -ExecutionPolicy Bypass -File .\packages\Codex_Github\register-global-skill.ps1
 ```
 
-Registration replaces any previously managed copy and rewrites its source metadata to the current checkout path.
+Registration replaces any previously managed copy and rewrites its source metadata to the current checkout path. The installed Skill is self-contained and always runs the bundled `scripts/tool_scout.py` relative to its own `SKILL.md`; the source metadata is used only to audit and refresh the installation.
 
 This project-integrated pipeline packages the Tool Scout Agent Skill. It searches GitHub, npm, MCP directories, Agent Skill registries, extension marketplaces, and web sources for existing tools before implementation.
 

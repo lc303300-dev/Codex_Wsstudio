@@ -24,6 +24,8 @@ Require-Path (Join-Path $RepositoryRoot "packages") "packages directory" "Contai
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif") "GIF package" "Container"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif\register-global-skill.ps1") "GIF registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Gif\.claude\skills\video-to-gif\SKILL.md") "GIF skill"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Github\register-global-skill.ps1") "Tool Scout registration script"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Github\.claude\skills\tool-scout\SKILL.md") "Tool Scout skill"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_image\register-default-media-tools.ps1") "Codex_image media tool registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\register-global-skill.ps1") "Codex_DT registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\codex-dt-video-prompt\SKILL.md") "Codex_DT skill"
@@ -35,7 +37,20 @@ Require-Path (Join-Path $CodexHome "AGENTS.md") "global Codex guidance"
 Require-Path (Join-Path $CodexHome "config.toml") "global Codex config"
 Require-Path (Join-Path $CodexHome "skills\default-image-generation\SKILL.md") "global default image generation skill"
 Require-Path (Join-Path $CodexHome "skills\default-video-generation\SKILL.md") "global default video generation skill"
+Require-Path (Join-Path $CodexHome "skills\codex-github\SKILL.md") "global Tool Scout skill"
+Require-Path (Join-Path $CodexHome "skills\codex-github\scripts\tool_scout.py") "global Tool Scout runtime"
 Require-Path (Join-Path $CodexHome "plugins\codex-media-plugin\.codex-plugin\plugin.json") "global codex-media plugin"
+
+$toolScoutSkill = Join-Path $CodexHome "skills\codex-github\SKILL.md"
+if (Test-Path -LiteralPath $toolScoutSkill -PathType Leaf) {
+    $toolScoutText = Get-Content -LiteralPath $toolScoutSkill -Raw -Encoding UTF8
+    if (-not $toolScoutText.Contains('Resolve `scripts/tool_scout.py` relative to this `SKILL.md`')) {
+        $errors.Add("Global Tool Scout skill does not use its self-contained runtime entry point: $toolScoutSkill")
+    }
+    if ($toolScoutText -like '*This global skill is backed by the Codex_Github checkout at*') {
+        $errors.Add("Global Tool Scout skill still exposes the source checkout as its runtime path: $toolScoutSkill")
+    }
+}
 
 $source = Join-Path $RepositoryRoot "config\codex\AGENTS.md"
 $target = Join-Path $CodexHome "AGENTS.md"

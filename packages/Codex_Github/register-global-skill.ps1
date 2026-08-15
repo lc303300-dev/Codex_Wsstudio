@@ -28,7 +28,7 @@ try {
     Get-ChildItem -LiteralPath $source -Force | Copy-Item -Destination $temporary -Recurse -Force
     $text = [System.IO.File]::ReadAllText((Join-Path $temporary "SKILL.md"))
     $text = [regex]::Replace($text, '(?m)^name:\s*tool-scout\s*$', 'name: codex-github')
-    $note = "`r`n## Local Installation`r`n`r`nThis global skill is backed by the Codex_Github checkout at ``$($projectRoot.Replace('\','/'))``. Run the bundled ``scripts/tool_scout.py`` with Python 3.10+ when the task matches the discovery triggers.`r`n"
+    $note = "`r`n## Local Installation`r`n`r`nThis installed skill is self-contained. Resolve ``scripts/tool_scout.py`` relative to this ``SKILL.md`` and run that bundled copy with Python 3.10+. Do not use the registration metadata's source checkout as the runtime path.`r`n"
     $text = [regex]::Replace(
         $text,
         '(?ms)^## Local Installation\s*\r?\n.*?(?=^## |\z)',
@@ -44,7 +44,6 @@ try {
 $installedSkill = Join-Path $destination "SKILL.md"
 $installedScript = Join-Path $destination "scripts\tool_scout.py"
 $registration = Get-Content -LiteralPath $marker -Encoding UTF8 -Raw | ConvertFrom-Json
-$expectedSource = $projectRoot.Replace('\','/')
 $installedText = [System.IO.File]::ReadAllText($installedSkill)
 if (-not (Test-Path -LiteralPath $installedScript -PathType Leaf)) {
     throw "Tool Scout registration is incomplete: $installedScript"
@@ -52,8 +51,8 @@ if (-not (Test-Path -LiteralPath $installedScript -PathType Leaf)) {
 if ([System.IO.Path]::GetFullPath([string]$registration.source_root) -ne $projectRoot) {
     throw "Tool Scout registration source mismatch: $($registration.source_root)"
 }
-if ($installedText -notmatch [regex]::Escape("checkout at ``$expectedSource``")) {
-    throw "Tool Scout SKILL.md does not reference the current checkout: $expectedSource"
+if ($installedText -notmatch [regex]::Escape('Resolve `scripts/tool_scout.py` relative to this `SKILL.md`')) {
+    throw "Tool Scout SKILL.md does not declare its self-contained runtime entry point."
 }
 
 $instructionPath = Join-Path $CodexHome "codex-github-global-custom-instructions.md"
@@ -62,7 +61,6 @@ $instructions = @"
 
 Use the globally registered `codex-github` skill (Codex_Github / Tool Scout) for tool-discovery requests: finding existing software, GitHub repositories, npm packages, MCP servers, Agent Skills, plugins, extensions, APIs, integrations, or alternatives before building from scratch. It also applies when a task involves integration, workflow automation, browser/agent control, or choosing between Skill/MCP/CLI/extension types. Run the bundled script only after reading the skill and follow the active project's AGENTS.md.
 
-Source checkout: $($projectRoot.Replace('\','/'))
 "@
 [IO.File]::WriteAllText($instructionPath, $instructions.Trim() + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
 Write-Host "Registered global tool-scout skill: $destination" -ForegroundColor Green
