@@ -26,6 +26,12 @@ $allowedRootFiles = @(
     "new-machine-deploy.ps1"
 )
 $allowedRootDirectories = @(".git", ".github", ".vscode", "config", "docs", "packages", "scripts")
+$requiredPackagePaths = @(
+    "packages\Codex_Batch_Image",
+    "packages\Codex_Batch_Image\register-global-skill.ps1",
+    "packages\Codex_Batch_Image\run-batch-image-generation.ps1",
+    "packages\Codex_Batch_Image\batch-image-generation\SKILL.md"
+)
 
 $errors = [System.Collections.Generic.List[string]]::new()
 foreach ($directory in $requiredDirectories) {
@@ -36,6 +42,11 @@ foreach ($directory in $requiredDirectories) {
 foreach ($file in $requiredFiles) {
     if (-not (Test-Path -LiteralPath (Join-Path $RepositoryRoot $file) -PathType Leaf)) {
         $errors.Add("Missing required root file: $file")
+    }
+}
+foreach ($relativePath in $requiredPackagePaths) {
+    if (-not (Test-Path -LiteralPath (Join-Path $RepositoryRoot $relativePath))) {
+        $errors.Add("Missing required package path: $relativePath")
     }
 }
 foreach ($item in Get-ChildItem -LiteralPath $RepositoryRoot -Force) {

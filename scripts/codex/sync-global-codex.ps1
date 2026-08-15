@@ -138,5 +138,11 @@ if (Test-Path -LiteralPath $csRegistration -PathType Leaf) {
     }
 }
 
+$batchImageRegistration = Join-Path $RepositoryRoot "packages\Codex_Batch_Image\register-global-skill.ps1"
+if (Test-Path -LiteralPath $batchImageRegistration -PathType Leaf) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $batchImageRegistration -CodexHome $CodexHome
+    if ($LASTEXITCODE -ne 0) { throw "Codex_Batch_Image global skill registration failed with exit code ${LASTEXITCODE}." }
+}
+
 Write-Host ""
 Write-Host "Global Codex synchronization complete. Restart Codex or start a new task to reload changes." -ForegroundColor Green

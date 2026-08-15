@@ -32,11 +32,16 @@ Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\codex-
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\video-director-prompt\SKILL.md") "Codex_DT video director skill"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_CS\register-global-skill.ps1") "Codex_CS registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_CS\codex-cs-skill-curator\SKILL.md") "Codex_CS curator skill"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Batch_Image\register-global-skill.ps1") "batch image registration script"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Batch_Image\run-batch-image-generation.ps1") "batch image entry point"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Batch_Image\batch-image-generation\SKILL.md") "batch image skill"
 Require-Path (Join-Path $RepositoryRoot "scripts") "scripts directory" "Container"
 Require-Path (Join-Path $CodexHome "AGENTS.md") "global Codex guidance"
 Require-Path (Join-Path $CodexHome "config.toml") "global Codex config"
 Require-Path (Join-Path $CodexHome "skills\default-image-generation\SKILL.md") "global default image generation skill"
 Require-Path (Join-Path $CodexHome "skills\default-video-generation\SKILL.md") "global default video generation skill"
+Require-Path (Join-Path $CodexHome "skills\batch-image-generation\SKILL.md") "global batch image generation skill"
+Require-Path (Join-Path $CodexHome "skills\batch-image-generation\.codex-batch-image-registration.json") "global batch image registration marker"
 Require-Path (Join-Path $CodexHome "skills\codex-github\SKILL.md") "global Tool Scout skill"
 Require-Path (Join-Path $CodexHome "skills\codex-github\scripts\tool_scout.py") "global Tool Scout runtime"
 Require-Path (Join-Path $CodexHome "plugins\codex-media-plugin\.codex-plugin\plugin.json") "global codex-media plugin"
@@ -159,6 +164,17 @@ foreach ($marker in $mediaMarkers) {
     } catch {
         $errors.Add("Invalid media registration marker: $marker")
     }
+}
+
+$batchMarker = Join-Path $CodexHome "skills\batch-image-generation\.codex-batch-image-registration.json"
+if (Test-Path -LiteralPath $batchMarker -PathType Leaf) {
+    try {
+        $record = Get-Content -LiteralPath $batchMarker -Raw -Encoding UTF8 | ConvertFrom-Json
+        $expectedBatchRoot = Join-Path $RepositoryRoot "packages\Codex_Batch_Image"
+        if ([IO.Path]::GetFullPath([string]$record.source_root) -ne $expectedBatchRoot) {
+            $errors.Add("Batch image registration marker points to stale source root: $batchMarker -> $($record.source_root)")
+        }
+    } catch { $errors.Add("Invalid batch image registration marker: $batchMarker") }
 }
 
 $expectedPreview = Join-Path $CodexHome "tools\Convert-CodexImagePreview.ps1"

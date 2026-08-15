@@ -57,7 +57,7 @@ For an explicit Codex video-function test, use the existing `generate_video` too
 
 Every adapter defaults to `max_concurrency: 6`. `dreamina-image` and `dreamina-video` share the `seedance-cli` capacity key, so their combined concurrency never exceeds 6. Use project-private cross-process slot leases under `.codex-image-private/locks/providers/<capacity-key>/`.
 
-For one media task, the root Agent calls the default tool directly and creates no child Agent. For two or more independent tasks:
+Explicit `batch-image-generation` workflows use the deterministic Codex_Batch_Image scheduler, not child Agents. Its 10 task slots do not raise adapter capacity; provider leases and limits remain authoritative. For other work, one media task uses the default tool directly and two or more independent tasks follow this child-Agent protocol:
 
 1. Build a pending queue and stable private task manifests.
 2. Keep at most `min(6, runtime_available_child_slots)` child Agents active.

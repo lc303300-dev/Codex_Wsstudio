@@ -176,7 +176,7 @@ foreach ($setting in $managedSettings) {
 }
 
 if (-not $SkipProjectTrust) {
-    foreach ($projectPath in @($repositoryRoot, (Join-Path $repositoryRoot "packages\Codex_DT"), (Join-Path $repositoryRoot "packages\Codex_image"), (Join-Path $repositoryRoot "packages\Codex_Github"), (Join-Path $repositoryRoot "packages\Codex_CS"))) {
+    foreach ($projectPath in @($repositoryRoot, (Join-Path $repositoryRoot "packages\Codex_DT"), (Join-Path $repositoryRoot "packages\Codex_image"), (Join-Path $repositoryRoot "packages\Codex_Github"), (Join-Path $repositoryRoot "packages\Codex_CS"), (Join-Path $repositoryRoot "packages\Codex_Batch_Image"))) {
         if (Test-Path -LiteralPath $projectPath -PathType Container) {
             $resolvedProject = (Resolve-Path -LiteralPath $projectPath).Path.ToLowerInvariant()
             Set-TomlAssignment -Lines $targetLines -Table ("projects." + (ConvertTo-TomlLiteralString $resolvedProject)) -Key "trust_level" -Value '"trusted"'

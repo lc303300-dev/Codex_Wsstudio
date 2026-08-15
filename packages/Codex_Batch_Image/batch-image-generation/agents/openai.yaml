@@ -1,0 +1,4 @@
+interface:
+  display_name: "批量图片生成"
+  short_description: "以限时并发方式生成分组候选图片并制作编号人工审查板"
+  default_prompt: "Use $batch-image-generation to run a timed concurrent batch of grouped image candidates and create human-review contact sheets."

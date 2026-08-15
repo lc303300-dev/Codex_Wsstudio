@@ -42,10 +42,15 @@ The workspace currently includes the following packaged projects:
 - `packages/Codex_Gif/`
 - `packages/Codex_Github/`
 - `packages/Codex_CS/`
+- `packages/Codex_Batch_Image/`
 
 Codex_CS keeps governed published packages in `business-skills/`, rebuildable intent
 index code in `skill-registry/`, contract-driven collection logic in
 `material-collection/`, the governed runtime state bridge in `project-pipeline/`,
 and the global routing entry in `video-skill-router/`.
+
+Codex_Batch_Image owns manifest scheduling, SQLite state, hard-deadline abandonment,
+successful-result collection, and numbered human-review sheets. Paid single-image
+execution remains in Codex_image's unified Media Router.
 
 Do not create compatibility copies of moved implementation files at the root. If a root command must remain stable, keep a small forwarding entry script instead.
