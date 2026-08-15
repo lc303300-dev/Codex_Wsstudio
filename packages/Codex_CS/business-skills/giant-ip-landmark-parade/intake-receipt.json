@@ -4,12 +4,12 @@
   "status": "published",
   "validator_version": "1.0.0",
   "approved_by": "user",
-  "validated_at": "2026-08-15T08:13:55.464909+00:00",
+  "validated_at": "2026-08-15T10:28:59.620266+00:00",
   "sources": [
     {
       "name": "巨型IP地标巡游多场景硬切视频提示词生成 Skill.md",
       "sha256": "92c2062f845ed00117cf0b815e8296c390adf40e22b7a7eeaed7a8ed359ee4c8"
     }
   ],
-  "package_sha256": "8ef78f7119fafda3f7e2e4f8465287ad425df629bba34cd0abaf3a319d71b037"
+  "package_sha256": "96ba45b571fcdbc363e1ae183eb795cf122be03c212d4f75d65e033d6e2e273f"
 }

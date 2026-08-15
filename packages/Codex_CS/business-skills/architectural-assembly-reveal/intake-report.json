@@ -13,16 +13,17 @@
   ],
   "duplicate_check": {
     "classification": "new",
-    "matches": []
+    "matches": [],
+    "optional_sources_missing": []
   },
   "extraction_summary": {
     "contract_items": 1,
     "creative_guidance_items": 1,
     "community_experience_items": 1,
     "failure_cases": 1,
-    "positive_examples": 0,
-    "negative_examples": 0,
-    "boundary_examples": 0
+    "positive_examples": 1,
+    "negative_examples": 1,
+    "boundary_examples": 1
   },
   "reference_summary": [
     {
@@ -44,12 +45,12 @@
     }
   ],
   "creative_supplement": {
-    "status": "creative_supplement_pending",
-    "generated_by": "prepare_dt_supplement.py",
+    "status": "user_approved",
+    "generated_by": "Codex_DT",
     "request_path": "dt-request.json",
-    "draft_path": null,
-    "requires_user_review": true,
-    "reason": "example_categories_incomplete"
+    "draft_path": "review/dt-creative-supplement.draft.json",
+    "requires_user_review": false,
+    "reason": "User approved the validated DT creative supplement and it was merged into references."
   },
   "contract_conflicts": [],
   "blocking_questions": [],

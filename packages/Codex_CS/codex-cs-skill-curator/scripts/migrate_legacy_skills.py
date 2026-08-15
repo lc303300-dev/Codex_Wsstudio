@@ -303,52 +303,103 @@ description: {spec.description}
     write_text(destination / "SKILL.md", body)
 
 
+HEADING_PATTERN = re.compile(r"(?m)^(?P<prefix>#{1,6}\s+|\d+[.、]\s*|[一二三四五六七八九十]+[、.]\s*)(?P<title>[^\r\n]+)$")
+FAILURE_TITLE = re.compile(r"失败|常见问题|错误|修正|修复|规避|检查清单|质量检查")
+EXAMPLE_TITLE = re.compile(r"示例|范例|案例|正例|反例|边界")
+COMMUNITY_TITLE = re.compile(r"社区|实测|经验|反馈|测试发现")
+NON_CREATIVE_TITLE = re.compile(r"^(?:name|description|输入要求|输入契约|询问信息|确认机制|工作流|执行流程|输出格式|工具调用)", re.IGNORECASE)
+
+
+def split_heading_sections(text: str) -> list[tuple[str, str]]:
+    """Split legacy Markdown without treating examples or failures as contract evidence."""
+    matches = list(HEADING_PATTERN.finditer(text))
+    if not matches:
+        return [("正文", text.strip())] if text.strip() else []
+    sections: list[tuple[str, str]] = []
+    preamble = text[:matches[0].start()].strip()
+    if preamble:
+        sections.append(("前言", preamble))
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections.append((match.group("title").strip(), text[match.start():end].strip()))
+    return sections
+
+
+def select_sections(text: str, predicate) -> list[str]:
+    return [body for title, body in split_heading_sections(text) if predicate(title) and body]
+
+
 def extract_failure_section(text: str) -> str:
-    match = re.search(r"(?is)(?:常见失败案例与修正方法|失败案例.*)", text)
-    return match.group(0).strip() if match else "原始资料未提供独立失败案例。"
+    sections = select_sections(text, lambda title: bool(FAILURE_TITLE.search(title)))
+    return "\n\n".join(sections).strip() if sections else "原始资料未提供独立失败案例。"
 
 
 def extract_examples(text: str) -> str:
-    matches = list(re.finditer(r"(?im)^(?:#+\s*)?(?:示例|合格镜头写法示例|示例输入|示例输出).*", text))
-    if not matches:
-        return "原始资料未提供示例。"
-    start = matches[0].start()
-    failure = re.search(r"(?im)^.*常见失败案例与修正方法.*$", text[start:])
-    end = start + failure.start() if failure else len(text)
-    return text[start:end].strip()
+    sections = select_sections(text, lambda title: bool(EXAMPLE_TITLE.search(title)) and not FAILURE_TITLE.search(title))
+    return "\n\n".join(sections).strip() if sections else "原始资料未提供示例。"
+
+
+def extract_community_experience(text: str) -> str:
+    sections = select_sections(text, lambda title: bool(COMMUNITY_TITLE.search(title)) and not FAILURE_TITLE.search(title))
+    if not sections:
+        return "原始资料未提供可独立归类的社区经验。"
+    return "\n\n".join(sections).strip()
+
+
+def extract_creative_guidance(text: str) -> str:
+    sections = select_sections(
+        text,
+        lambda title: not (
+            FAILURE_TITLE.search(title)
+            or EXAMPLE_TITLE.search(title)
+            or COMMUNITY_TITLE.search(title)
+            or NON_CREATIVE_TITLE.search(title)
+        ),
+    )
+    if not sections:
+        return "原始资料未提供可独立归类的专业创作方法。"
+    return "\n\n".join(sections).strip()
 
 
 def build_references(destination: Path, spec: MigrationSpec, source_blocks: list[dict]) -> None:
-    merged = "\n\n".join(
-        f"## 来源：{block['name']}\n\n{block['text']}" for block in source_blocks
+    creative = "\n\n".join(
+        f"## 来源：{block['name']}\n\n{extract_creative_guidance(block['text'])}" for block in source_blocks
     ).strip()
-    first_text = source_blocks[0]["text"]
+    community = "\n\n".join(
+        f"## 来源：{block['name']}\n\n{extract_community_experience(block['text'])}" for block in source_blocks
+    ).strip()
+    failures = "\n\n".join(
+        f"## 来源：{block['name']}\n\n{extract_failure_section(block['text'])}" for block in source_blocks
+    ).strip()
+    examples = "\n\n".join(
+        f"## 来源：{block['name']}\n\n{extract_examples(block['text'])}" for block in source_blocks
+    ).strip()
     provenance = (
         "> 来源：旧 Codex_CS 迁移；状态：needs_review；用途：保留经验，不定义素材契约。"
         "历史平台、模型或 CLI 表述只作为来源背景，不决定当前执行。\n\n"
     )
     write_text(
         destination / "references" / "creative-guidance.md",
-        "# 专业创作经验\n\n" + provenance + merged + "\n",
+        "# 专业创作经验\n\n" + provenance + creative + "\n",
     )
     write_text(
         destination / "references" / "community-experience.md",
         "# 社区经验与来源背景\n\n"
         + provenance
-        + "原始资料中的实测经验、常见问题、修正方法和历史提示词经验已在下方按来源保留；使用时必须按当前任务条件判断适用性。\n\n"
-        + merged
+        + "只保留能够明确识别为社区、实测或反馈性质的经验；使用时必须按当前任务条件判断适用性。\n\n"
+        + community
         + "\n",
     )
     write_text(
         destination / "references" / "failure-cases.md",
-        "# 失败案例与规避\n\n" + provenance + extract_failure_section(first_text) + "\n",
+        "# 失败案例与规避\n\n" + provenance + failures + "\n",
     )
     write_text(
         destination / "references" / "examples.md",
         "# 示例\n\n"
         + provenance
         + "示例仅帮助理解提示词组织方式，不定义素材契约，不覆盖用户当前指令。\n\n"
-        + extract_examples(first_text)
+        + examples
         + "\n",
     )
 
@@ -390,6 +441,7 @@ def migrate(spec: MigrationSpec, source_root: Path, output_root: Path) -> dict:
     source_paths = [source_root / source for source in spec.sources]
     sources = [source_record(path) for path in source_paths if path.is_file()]
     missing = [str(path) for path in source_paths if not path.is_file()]
+    optional_missing = [str(path) for path in source_paths[1:] if not path.is_file()]
     if spec.skip_reason:
         return {
             "skill_id": spec.skill_id,
@@ -399,12 +451,14 @@ def migrate(spec: MigrationSpec, source_root: Path, output_root: Path) -> dict:
             "sources": [public_source(item, source_root) for item in sources],
             "missing_sources": missing,
         }
-    if missing:
+    # The first source is the canonical original. Later entries are optional
+    # duplicate/legacy package evidence and must not block a clean re-intake.
+    if not source_paths or not source_paths[0].is_file():
         return {
             "skill_id": spec.skill_id,
             "display_name": spec.display_name,
             "status": "failed",
-            "missing_sources": missing,
+            "missing_sources": [str(source_paths[0])] if source_paths else [],
         }
     destination = output_root / spec.skill_id
     render_template(destination, spec)
@@ -413,24 +467,26 @@ def migrate(spec: MigrationSpec, source_root: Path, output_root: Path) -> dict:
     build_references(destination, spec, sources)
     issues, dt_request = validate_and_report(destination)
     report_path = destination / "intake-report.json"
+    supplement_pending = dt_request["status"] not in {"not_required", "user_approved"}
     report = {
         "schema_version": 1,
-        "status": "needs_review" if issues else "ready_for_approval",
+        "status": "needs_review" if issues or supplement_pending else "ready_for_approval",
         "skill_id": spec.skill_id,
         "display_name": spec.display_name,
         "sources": [public_source(item, source_root) for item in sources],
         "duplicate_check": {
             "classification": "merged_duplicate" if len(sources) > 1 else "new",
             "matches": [public_source(item, source_root)["source_label"] for item in sources[1:]],
+            "optional_sources_missing": optional_missing,
         },
         "extraction_summary": {
             "contract_items": len(spec.references),
             "creative_guidance_items": 1,
             "community_experience_items": sum(item["inspection"]["content_summary"]["community_experience_hints"] for item in sources),
             "failure_cases": sum(item["inspection"]["content_summary"]["failure_case_hints"] for item in sources),
-            "positive_examples": 1 if dt_request["status"] == "not_required" else 0,
-            "negative_examples": 1 if dt_request["status"] == "not_required" else 0,
-            "boundary_examples": 1 if dt_request["status"] == "not_required" else 0,
+            "positive_examples": 1 if re.search(r"正例|positive", (destination / "references" / "examples.md").read_text(encoding="utf-8"), re.IGNORECASE) else 0,
+            "negative_examples": 1 if re.search(r"反例|negative", (destination / "references" / "examples.md").read_text(encoding="utf-8"), re.IGNORECASE) else 0,
+            "boundary_examples": 1 if re.search(r"边界|boundary", (destination / "references" / "examples.md").read_text(encoding="utf-8"), re.IGNORECASE) else 0,
         },
         "reference_summary": spec.references,
         "isolated_legacy_content": [
@@ -460,7 +516,7 @@ def migrate(spec: MigrationSpec, source_root: Path, output_root: Path) -> dict:
     return {
         "skill_id": spec.skill_id,
         "display_name": spec.display_name,
-        "status": "migrated" if not issues else "needs_fix",
+        "status": "migrated" if not issues and not supplement_pending else "needs_review",
         "package": str(destination),
         "validation_issues": issues,
         "creative_supplement_status": dt_request["status"],

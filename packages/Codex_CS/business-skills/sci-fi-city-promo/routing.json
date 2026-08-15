@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "skill_id": "sci-fi-city-promo",
+  "aliases": ["科幻风格城市宣传片"],
+  "user_intents": ["将城市名称、时长、比例和城市地标参考素材转化为未来城市、地方文化与数字光流结合的宣传片视频提示词。"],
+  "subjects": [],
+  "styles": [],
+  "narrative_patterns": [],
+  "negative_intents": [],
+  "priority": 50
+}

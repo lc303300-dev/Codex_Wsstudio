@@ -16,8 +16,17 @@ sys.path.insert(0, str(SCRIPTS))
 
 from discover_published_skills import discover  # noqa: E402
 from inspect_skill_source import inspect  # noqa: E402
-from migrate_legacy_skills import migrate, SPECS, strip_wrappers  # noqa: E402
+from migrate_legacy_skills import (  # noqa: E402
+    SPECS,
+    extract_community_experience,
+    extract_creative_guidance,
+    extract_examples,
+    extract_failure_section,
+    migrate,
+    strip_wrappers,
+)
 from prepare_dt_supplement import build_request  # noqa: E402
+from receive_dt_supplement import DraftValidationError, receive  # noqa: E402
 from skill_package import package_sha256, validate_package  # noqa: E402
 
 
@@ -183,6 +192,9 @@ class SkillCuratorTests(unittest.TestCase):
             self.assertEqual("supplement_skill_creative_examples", payload["operation"])
             self.assertEqual("sample-video-skill", payload["source_skill_id"])
             self.assertIn("examples_missing", payload["detected_reasons"])
+            self.assertIn("positive_examples_missing", payload["detected_reasons"])
+            self.assertIn("negative_examples_missing", payload["detected_reasons"])
+            self.assertIn("boundary_examples_missing", payload["detected_reasons"])
             constraints = payload["constraints"]
             self.assertTrue(constraints["preserve_meaning"])
             self.assertTrue(constraints["do_not_infer_contract"])
@@ -205,6 +217,169 @@ class SkillCuratorTests(unittest.TestCase):
             self.assertEqual("not_required", payload["status"])
             self.assertEqual([], payload["detected_reasons"])
 
+    def prepare_dt_intake(self, package: Path) -> None:
+        request = build_request(package, force=True)
+        (package / "dt-request.json").write_text(
+            json.dumps(request, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        contract = json.loads((package / "contract.json").read_text(encoding="utf-8"))
+        report = {
+            "schema_version": 1,
+            "status": "ready_for_approval",
+            "skill_id": package.name,
+            "display_name": contract["display_name"],
+            "creative_supplement": {
+                "status": "creative_supplement_pending",
+                "generated_by": "prepare_dt_supplement.py",
+                "request_path": "dt-request.json",
+                "draft_path": None,
+                "requires_user_review": True,
+                "reason": "examples missing",
+            },
+            "user_approval": {"required": True, "approved": False},
+        }
+        (package / "intake-report.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+
+    def valid_dt_draft(self, skill_id: str) -> dict:
+        return {
+            "schema_version": 1,
+            "status": "draft",
+            "operation": "supplement_skill_creative_examples",
+            "source_skill_id": skill_id,
+            "generated_by": "Codex_DT",
+            "provenance": {
+                "benchmark_skill_ids": ["excellent-cinematic-reference"],
+                "benchmark_usage": "creative_quality_only",
+                "contract_inference": False,
+                "topic_rule_copying": False,
+            },
+            "quality_rubric": {
+                "dimensions": ["素材绑定", "镜头可执行性", "连续性"],
+                "assessment": "案例已按优秀 Skill 的表达完整度检查，但未复制其题材规则。",
+            },
+            "outputs": {
+                "positive_examples": [{
+                    "input_conditions": "用户已确认一张主体身份图和一张有序场景图。",
+                    "prompt": "镜头从场景全貌缓慢推进，主体结构与文字保持稳定，最后在确认构图处缓停。",
+                    "why_it_works": "素材绑定、镜头动作、主体约束和结束条件均明确。",
+                }],
+                "negative_examples": [{
+                    "input_conditions": "用户已提供主体与场景参考，但没有指定额外动作。",
+                    "prompt": "镜头自然变化，主体自由运动并形成震撼画面。",
+                    "reason": "动作和空间关系不可执行，并擅自增加主体运动。",
+                    "correction": "分别写清摄影机运动与主体约束，并给出可观察的结束条件。",
+                }],
+                "boundary_examples": [{
+                    "input_conditions": "用户给出完整且已可执行的提示词，只要求规范格式。",
+                    "boundary": "不得借助优秀 Skill 范例新增题材、动作或素材要求。",
+                    "handling": "仅修正引用标签、标点和明确的术语错误，保留原始创意。",
+                    "why": "完整提示词只需要语义保持型规范化，不需要创意重写。",
+                }],
+                "optional_creative_guidance": ["分别描述摄影机运动和主体运动。"],
+            },
+        }
+
+    def test_receive_dt_supplement_stages_draft_without_modifying_references(self):
+        with tempfile.TemporaryDirectory() as raw:
+            package = self.scaffold(Path(raw) / "staging")
+            finalize_template(package)
+            self.prepare_dt_intake(package)
+            examples_before = (package / "references" / "examples.md").read_text(encoding="utf-8")
+            draft_path = Path(raw) / "dt-draft.json"
+            draft_path.write_text(
+                json.dumps(self.valid_dt_draft(package.name), ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+
+            result = receive(package, draft_path)
+
+            self.assertEqual("draft_received", result["status"])
+            self.assertFalse(result["references_modified"])
+            self.assertFalse(result["published"])
+            self.assertTrue((package / "review" / "dt-creative-supplement.draft.json").is_file())
+            self.assertEqual(examples_before, (package / "references" / "examples.md").read_text(encoding="utf-8"))
+            report = json.loads((package / "intake-report.json").read_text(encoding="utf-8"))
+            self.assertEqual("draft_received", report["creative_supplement"]["status"])
+            self.assertEqual("review/dt-creative-supplement.draft.json", report["creative_supplement"]["draft_path"])
+            self.assertFalse(report["user_approval"]["approved"])
+
+    def test_receive_dt_supplement_rejects_contract_and_execution_pollution(self):
+        polluted_values = [
+            {"provider": "example"},
+            "请使用 Seedance 并提交 generate_video。",
+            "必须提供三张图片素材。",
+        ]
+        for polluted in polluted_values:
+            with self.subTest(polluted=polluted), tempfile.TemporaryDirectory() as raw:
+                package = self.scaffold(Path(raw) / "staging")
+                finalize_template(package)
+                self.prepare_dt_intake(package)
+                draft = self.valid_dt_draft(package.name)
+                if isinstance(polluted, dict):
+                    draft["outputs"].update(polluted)
+                else:
+                    draft["outputs"]["positive_examples"] = [polluted]
+                draft_path = Path(raw) / "dt-draft.json"
+                draft_path.write_text(json.dumps(draft, ensure_ascii=False), encoding="utf-8")
+
+                with self.assertRaises(DraftValidationError):
+                    receive(package, draft_path)
+                self.assertFalse((package / "review" / "dt-creative-supplement.draft.json").exists())
+                report = json.loads((package / "intake-report.json").read_text(encoding="utf-8"))
+                self.assertEqual("creative_supplement_pending", report["creative_supplement"]["status"])
+
+    def test_receive_dt_supplement_rejects_missing_example_category(self):
+        with tempfile.TemporaryDirectory() as raw:
+            package = self.scaffold(Path(raw) / "staging")
+            finalize_template(package)
+            self.prepare_dt_intake(package)
+            draft = self.valid_dt_draft(package.name)
+            del draft["outputs"]["boundary_examples"]
+            draft_path = Path(raw) / "dt-draft.json"
+            draft_path.write_text(json.dumps(draft, ensure_ascii=False), encoding="utf-8")
+
+            with self.assertRaises(DraftValidationError):
+                receive(package, draft_path)
+
+    def test_receive_dt_supplement_rejects_benchmark_contract_inference(self):
+        with tempfile.TemporaryDirectory() as raw:
+            package = self.scaffold(Path(raw) / "staging")
+            finalize_template(package)
+            self.prepare_dt_intake(package)
+            draft = self.valid_dt_draft(package.name)
+            draft["provenance"]["contract_inference"] = True
+            draft_path = Path(raw) / "dt-draft.json"
+            draft_path.write_text(json.dumps(draft, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaises(DraftValidationError):
+                receive(package, draft_path)
+
+    def test_receive_dt_supplement_rejects_single_sentence_placeholders(self):
+        with tempfile.TemporaryDirectory() as raw:
+            package = self.scaffold(Path(raw) / "staging")
+            finalize_template(package)
+            self.prepare_dt_intake(package)
+            draft = self.valid_dt_draft(package.name)
+            draft["outputs"]["positive_examples"] = ["镜头很好。"]
+            draft_path = Path(raw) / "dt-draft.json"
+            draft_path.write_text(json.dumps(draft, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaises(DraftValidationError):
+                receive(package, draft_path)
+
+    def test_dt_supplement_requires_each_example_category(self):
+        with tempfile.TemporaryDirectory() as raw:
+            package = self.scaffold(Path(raw))
+            finalize_template(package)
+            (package / "references" / "examples.md").write_text(
+                "# 示例\n\n## 正例\n\n主体与素材绑定清楚。\n",
+                encoding="utf-8",
+            )
+            payload = build_request(package)
+            self.assertEqual("creative_supplement_pending", payload["status"])
+            self.assertNotIn("positive_examples_missing", payload["detected_reasons"])
+            self.assertIn("negative_examples_missing", payload["detected_reasons"])
+            self.assertIn("boundary_examples_missing", payload["detected_reasons"])
+
     def test_legacy_migration_creates_valid_package_without_absolute_report_paths(self):
         spec = next(item for item in SPECS if item.skill_id == "architectural-assembly-reveal")
         with tempfile.TemporaryDirectory() as raw:
@@ -222,12 +397,52 @@ class SkillCuratorTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = migrate(spec, source_root, root / "out")
-            self.assertEqual("migrated", result["status"])
+            self.assertEqual("needs_review", result["status"])
             package = Path(result["package"])
             self.assertEqual([], validate_package(package))
             report_text = (package / "intake-report.json").read_text(encoding="utf-8")
             self.assertNotIn(str(source_root), report_text)
             self.assertIn("source_label", report_text)
+            report = json.loads(report_text)
+            self.assertEqual("needs_review", report["status"])
+            self.assertEqual("creative_supplement_pending", report["creative_supplement"]["status"])
+
+    def test_legacy_knowledge_is_split_instead_of_copying_the_whole_source(self):
+        source = (
+            "## 输入要求\n必须提供图片1。\n\n"
+            "## 核心创作规则\n镜头缓慢推进，保持材质稳定。\n\n"
+            "## 社区实测经验\n多次反馈慢速运动更稳定。\n\n"
+            "## 正例\n图片1绑定主体并写清动作。\n\n"
+            "## 常见失败案例与修正方法\n表现：主体漂移。修复：锁定身份。\n"
+        )
+        creative = extract_creative_guidance(source)
+        community = extract_community_experience(source)
+        examples = extract_examples(source)
+        failures = extract_failure_section(source)
+        self.assertIn("镜头缓慢推进", creative)
+        self.assertNotIn("必须提供图片1", creative)
+        self.assertNotIn("多次反馈", creative)
+        self.assertIn("多次反馈", community)
+        self.assertNotIn("镜头缓慢推进", community)
+        self.assertIn("图片1绑定主体", examples)
+        self.assertIn("主体漂移", failures)
+
+    def test_legacy_migration_allows_missing_optional_duplicate_source(self):
+        spec = next(item for item in SPECS if item.skill_id == "giant-3d-logo-landmark-video")
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            source_root = root / "legacy"
+            source_root.mkdir()
+            (source_root / spec.sources[0]).write_text(
+                "---\nname: 巨型 Logo Skill\ndescription: 使用Logo和地标图生成巡游提示词。\n---\n"
+                "## 核心创作规则\n分别描述摄影机与Logo动作，保持身份稳定。\n",
+                encoding="utf-8",
+            )
+            result = migrate(spec, source_root, root / "out")
+            self.assertEqual("needs_review", result["status"])
+            report = json.loads((Path(result["package"]) / "intake-report.json").read_text(encoding="utf-8"))
+            self.assertEqual(1, len(report["sources"]))
+            self.assertEqual(1, len(report["duplicate_check"]["optional_sources_missing"]))
 
     def test_legacy_wrapper_cleanup_removes_direct_generation_symbol(self):
         cleaned = strip_wrappers(

@@ -16,6 +16,7 @@ description: 将用户在对话中上传或指定的单个视频 Skill Markdown�
 - `references/review-checklist.md`：发布前必须展示给用户的审核项目。
 - `references/legacy-library-findings.md`：本模板从现有 Codex_CS Skill 库提炼出的结构问题与设计依据。
 - `references/dt-creative-supplement.md`：缺少提示词范例或创意草稿时，如何请求 Codex_DT 进行受限补充。
+- `references/example-quality-benchmark.md`：用正式库优秀范例提炼的完整正例、反例、边界案例和可执行性审核尺度；只借鉴结构，不迁移题材规则或推断契约。
 
 使用 `assets/business-skill-template/` 作为唯一业务 Skill 模板。不要从某个已有业务 Skill 复制结构，因为旧 Skill 可能含有历史格式或错误契约。
 
@@ -97,6 +98,20 @@ Codex_DT 只可补充提示词范例、正例、反例、边界案例和可选�
 
 如果当前环境没有真实 Codex_DT 文本补充接口，入库流程继续推进，但报告中的 `creative_supplement.status` 必须保持 `creative_supplement_pending` 或 `failed`，并记录原因。
 
+收到 Codex_DT 草稿后，先使用接收器验证并放入待审核区：
+
+```powershell
+python scripts/receive_dt_supplement.py <staging-skill-directory> <dt-draft.json>
+```
+
+接收器只把状态更新为 `draft_received`，不得修改正式 references。用户明确批准草稿后才运行：
+
+```powershell
+python scripts/approve_dt_supplement.py <staging-skill-directory> --approved-by user
+```
+
+批准脚本把已验证草稿整理进 references，并把补全状态设为 `user_approved`；它仍不发布 Skill。
+
 ### 7. 确定性验证
 
 运行：
@@ -138,6 +153,14 @@ python scripts/publish_skill.py <staging-skill-directory> --library-root <busine
 发布脚本重新验证、生成来源和包哈希、写入 `intake-receipt.json`，再原子发布。已存在的 `skill_id` 默认拒绝覆盖；更新现有 Skill 必须使用单独的版本升级流程。
 
 正式库发布成功后，发布脚本增量更新本地 SQLite/FTS5 意图注册表。索引只收录凭证有效且包哈希未变化的 Skill。
+
+更新已存在的正式 Skill 时，不得删除目录或绕过凭证直接覆盖。审核报告和创意补全均满足发布条件后运行：
+
+```powershell
+python scripts/upgrade_published_skill.py <staging-skill-directory> --library-root <business-skills> --source <original.md> --approved-by user
+```
+
+升级脚本验证旧凭证、来源哈希和新审核报告，使用可恢复的原子替换更新正式包；注册表更新失败时恢复旧版本。
 
 正式运行时使用以下发现器读取 Skill 库：
 

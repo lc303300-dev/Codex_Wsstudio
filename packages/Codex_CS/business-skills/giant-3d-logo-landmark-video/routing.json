@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "skill_id": "giant-3d-logo-landmark-video",
+  "aliases": ["巨型3D Logo 地标巡游视频"],
+  "user_intents": ["将3D Logo设定图与一张或多张城市地标参考素材编排为多场景硬切、身份稳定且引用绑定明确的视频提示词。"],
+  "subjects": [],
+  "styles": [],
+  "narrative_patterns": [],
+  "negative_intents": [],
+  "priority": 50
+}

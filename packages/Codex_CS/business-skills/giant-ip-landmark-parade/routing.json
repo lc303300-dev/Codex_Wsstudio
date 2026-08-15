@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "skill_id": "giant-ip-landmark-parade",
+  "aliases": ["巨型IP地标巡游硬切视频"],
+  "user_intents": ["将IP角色设定图与多张城市地标实景合成参考编排为巨型卡通IP巡游、道具互动和多场景硬切视频提示词。"],
+  "subjects": [],
+  "styles": [],
+  "narrative_patterns": [],
+  "negative_intents": [],
+  "priority": 50
+}

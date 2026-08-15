@@ -9,28 +9,21 @@
       "source_label": "巨型3D立体Logo地标巡游多场景硬切视频提示词生成 Skill.md",
       "encoding": "utf-8-sig",
       "sha256": "05c8c288dc18c2a1eac1e67d1a59ec01bbbca2f89c16539b97990fc038c37146"
-    },
-    {
-      "name": "SKILL.md",
-      "source_label": "giant-3d-logo-landmark-video/SKILL.md",
-      "encoding": "utf-8-sig",
-      "sha256": "05c8c288dc18c2a1eac1e67d1a59ec01bbbca2f89c16539b97990fc038c37146"
     }
   ],
   "duplicate_check": {
-    "classification": "merged_duplicate",
-    "matches": [
-      "giant-3d-logo-landmark-video/SKILL.md"
-    ]
+    "classification": "new",
+    "matches": [],
+    "optional_sources_missing": []
   },
   "extraction_summary": {
     "contract_items": 2,
     "creative_guidance_items": 1,
-    "community_experience_items": 2,
-    "failure_cases": 2,
-    "positive_examples": 0,
-    "negative_examples": 0,
-    "boundary_examples": 0
+    "community_experience_items": 1,
+    "failure_cases": 1,
+    "positive_examples": 2,
+    "negative_examples": 2,
+    "boundary_examples": 2
   },
   "reference_summary": [
     {
@@ -58,12 +51,12 @@
   ],
   "isolated_legacy_content": [],
   "creative_supplement": {
-    "status": "creative_supplement_pending",
-    "generated_by": "prepare_dt_supplement.py",
+    "status": "user_approved",
+    "generated_by": "Codex_DT",
     "request_path": "dt-request.json",
-    "draft_path": null,
-    "requires_user_review": true,
-    "reason": "examples_missing,example_categories_incomplete"
+    "draft_path": "review/dt-creative-supplement.draft.json",
+    "requires_user_review": false,
+    "reason": "User approved the validated DT creative supplement and it was merged into references."
   },
   "contract_conflicts": [],
   "blocking_questions": [],

@@ -17,6 +17,41 @@ CREATIVE_HINT_PATTERN = re.compile(
     r"镜头|运镜|camera|dolly|pan|tilt|动作|变化|转场|光|色|材质|声音|音效|节奏|连续性",
     re.IGNORECASE,
 )
+EXAMPLE_QUALITY_BENCHMARK = {
+    "reference": "references/example-quality-benchmark.md",
+    "benchmark_skills": [
+        "giant-ip-landmark-parade",
+        "sci-fi-city-promo",
+        "architectural-assembly-reveal",
+    ],
+    "transfer_policy": "structure_and_quality_only_do_not_transfer_subject_rules_or_contract",
+    "positive_example_requirements": [
+        "input_conditions",
+        "reference_bindings",
+        "global_visual_direction",
+        "temporal_progression",
+        "camera_and_subject_actions",
+        "physical_results_when_applicable",
+        "ending_condition",
+        "task_specific_constraints",
+        "directly_executable_language",
+    ],
+    "negative_example_requirements": ["bad_example", "violated_rule", "observable_failure", "repair_strategy"],
+    "boundary_example_requirements": ["condition", "rules_still_applicable", "rules_to_stop_or_downgrade", "handling"],
+}
+
+
+def has_example_category(text: str, heading_pattern: str) -> bool:
+    match = re.search(
+        rf"(?ims)^\s*#+\s*(?:{heading_pattern})\s*$\s*(?P<body>.*?)(?=^\s*#+\s|\Z)",
+        text,
+    )
+    if not match:
+        return False
+    body = match.group("body").strip()
+    if not body or any(re.search(pattern, body) for pattern in MISSING_EXAMPLE_PATTERNS):
+        return False
+    return True
 
 
 def compact_text(text: str, limit: int = 6000) -> str:
@@ -33,8 +68,14 @@ def should_request_supplement(root: Path) -> tuple[bool, list[str]]:
 
     if any(re.search(pattern, examples) for pattern in MISSING_EXAMPLE_PATTERNS):
         reasons.append("examples_missing")
-    if not re.search(r"正例|positive|反例|negative|边界|boundary", examples, re.IGNORECASE):
-        reasons.append("example_categories_incomplete")
+    required_categories = {
+        "positive_examples_missing": r"正例|positive(?:\s+examples?)?",
+        "negative_examples_missing": r"反例|negative(?:\s+examples?)?",
+        "boundary_examples_missing": r"边界(?:案例)?|boundary(?:\s+examples?)?",
+    }
+    for reason, pattern in required_categories.items():
+        if not has_example_category(examples, pattern):
+            reasons.append(reason)
     if not CREATIVE_HINT_PATTERN.search(creative):
         reasons.append("creative_guidance_too_thin")
 
@@ -81,6 +122,7 @@ def build_request(root: Path, *, force: bool = False) -> dict:
             "language": "zh-CN",
             "preserve_professional_english": True,
             "requires_user_review": True,
+            "example_quality_benchmark": EXAMPLE_QUALITY_BENCHMARK,
         },
         "requested_outputs": [
             "positive_examples",

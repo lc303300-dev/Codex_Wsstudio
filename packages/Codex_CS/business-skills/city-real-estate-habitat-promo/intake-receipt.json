@@ -4,12 +4,12 @@
   "status": "published",
   "validator_version": "1.0.0",
   "approved_by": "user",
-  "validated_at": "2026-08-15T08:13:57.239393+00:00",
+  "validated_at": "2026-08-15T10:28:58.442377+00:00",
   "sources": [
     {
       "name": "城市与地产人居宣传片提示词生成Skill.md",
       "sha256": "55604b3ab6172474c8571cd7a1c97af26be1f4ff8a0ef06e53d44b9ffaa81413"
     }
   ],
-  "package_sha256": "5e43033a52216cdb8aebdf1e375d1f7ce180712558875f14300ed3d73e7c2221"
+  "package_sha256": "e51232ec5ed8699e47a349c0a80d5d449c95ff32a46aec615fb2774d026cc1e9"
 }
