@@ -64,7 +64,7 @@ def check_json_schema() -> None:
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
         fail("asset manifest does not declare JSON Schema 2020-12")
-    if data.get("title") != "Seedance 2.0 prompt asset manifest":
+    if data.get("title") != "Seedance prompt asset manifest":
         fail("asset manifest title changed unexpectedly")
 
 
@@ -123,7 +123,7 @@ def run_validator() -> None:
             "--text",
             "A simple clip. seed=123",
             "--duration",
-            "20",
+            "31",
             "--mode",
             "text",
         ],
