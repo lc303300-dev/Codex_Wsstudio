@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "skill_id": "sci-fi-city-promo",
+  "display_name": "科幻风格城市宣传片",
+  "description": "将城市名称、时长、比例和城市地标参考素材转化为未来城市、地方文化与数字光流结合的宣传片视频提示词。",
+  "references": [
+    {
+      "id": "city-visual-references",
+      "media_type": "image",
+      "role": "scene",
+      "description": "城市天际线、现代地标、文化建筑、江河湖海、道路夜景或代表性视觉符号参考",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "video": {
+    "reference_required": true,
+    "allowed_modes": [
+      "image2video",
+      "multimodal2video"
+    ]
+  },
+  "authoring": {
+    "primary_language": "zh-CN",
+    "preserve_professional_english": true,
+    "user_instruction_priority": "highest",
+    "timing_strategy": "adaptive",
+    "transition_strategy": "adaptive",
+    "requires_prompt_confirmation": true,
+    "requires_reference_binding": true
+  },
+  "knowledge": {
+    "creative_guidance": "references/creative-guidance.md",
+    "community_experience": "references/community-experience.md",
+    "failure_cases": "references/failure-cases.md",
+    "examples": "references/examples.md"
+  }
+}

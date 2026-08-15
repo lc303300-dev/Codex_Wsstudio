@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "skill_id": "dawn-mist-aerial-real-estate",
+  "display_name": "晨曦云雾航拍地产地标视频",
+  "description": "将核心建筑、多张实景或效果合成图、时长和比例转化为晨曦云雾、沉稳航拍和硬切镜头的地产地标提示词。",
+  "references": [
+    {
+      "id": "aerial-scene-frames",
+      "media_type": "image",
+      "role": "scene",
+      "description": "按时长和镜头规划提供的建筑、环境、水面、意象、立面或宏观定场参考图",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "video": {
+    "reference_required": true,
+    "allowed_modes": [
+      "image2video",
+      "frames2video",
+      "multimodal2video"
+    ]
+  },
+  "authoring": {
+    "primary_language": "zh-CN",
+    "preserve_professional_english": true,
+    "user_instruction_priority": "highest",
+    "timing_strategy": "adaptive",
+    "transition_strategy": "skill_defined",
+    "requires_prompt_confirmation": true,
+    "requires_reference_binding": true
+  },
+  "knowledge": {
+    "creative_guidance": "references/creative-guidance.md",
+    "community_experience": "references/community-experience.md",
+    "failure_cases": "references/failure-cases.md",
+    "examples": "references/examples.md"
+  }
+}

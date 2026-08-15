@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "status": "ready_for_approval",
+  "skill_id": "sci-fi-city-promo",
+  "display_name": "科幻风格城市宣传片",
+  "sources": [
+    {
+      "name": "科幻风格城市宣传片提示词生成Skill.md",
+      "source_label": "科幻风格城市宣传片提示词生成Skill.md",
+      "encoding": "utf-8-sig",
+      "sha256": "19478b422372db78db228ccba84d627edc75a4503663090be2b42f71f8ac411b"
+    }
+  ],
+  "duplicate_check": {
+    "classification": "new",
+    "matches": []
+  },
+  "extraction_summary": {
+    "contract_items": 1,
+    "creative_guidance_items": 1,
+    "community_experience_items": 0,
+    "failure_cases": 19,
+    "positive_examples": 0,
+    "negative_examples": 0,
+    "boundary_examples": 0
+  },
+  "reference_summary": [
+    {
+      "id": "city-visual-references",
+      "media_type": "image",
+      "role": "scene",
+      "description": "城市天际线、现代地标、文化建筑、江河湖海、道路夜景或代表性视觉符号参考",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "isolated_legacy_content": [
+    {
+      "code": "NONSTANDARD_METADATA",
+      "message": "Source does not use standard YAML frontmatter"
+    }
+  ],
+  "creative_supplement": {
+    "status": "creative_supplement_pending",
+    "generated_by": "prepare_dt_supplement.py",
+    "request_path": "dt-request.json",
+    "draft_path": null,
+    "requires_user_review": true,
+    "reason": "example_categories_incomplete"
+  },
+  "contract_conflicts": [],
+  "blocking_questions": [],
+  "validation_issues": [],
+  "experience_preservation": {
+    "source_claims_accounted_for": true,
+    "notes": "Cleaned legacy source experience is preserved in references for review; examples do not define the contract."
+  },
+  "user_approval": {
+    "required": true,
+    "approved": false
+  }
+}

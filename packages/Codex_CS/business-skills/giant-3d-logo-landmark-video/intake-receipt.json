@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "skill_id": "giant-3d-logo-landmark-video",
+  "status": "published",
+  "validator_version": "1.0.0",
+  "approved_by": "user",
+  "validated_at": "2026-08-15T08:13:54.890051+00:00",
+  "sources": [
+    {
+      "name": "巨型3D立体Logo地标巡游多场景硬切视频提示词生成 Skill.md",
+      "sha256": "05c8c288dc18c2a1eac1e67d1a59ec01bbbca2f89c16539b97990fc038c37146"
+    }
+  ],
+  "package_sha256": "d797053f12301de56818fc27217151ea5108f2138217d8d952660deb07052c7a"
+}

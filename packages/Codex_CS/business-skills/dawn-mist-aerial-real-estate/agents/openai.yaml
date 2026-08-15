@@ -1,0 +1,7 @@
+interface:
+  display_name: "晨曦云雾航拍地产地标视频"
+  short_description: "将核心建筑、多张实景或效果合成图、时长和比例转化为晨曦云雾、沉稳航拍和硬切镜头的地产地标提示词。"
+  default_prompt: "Use $dawn-mist-aerial-real-estate to create a professional video prompt from my supplied references and requirements."
+policy:
+  allow_implicit_invocation: true
+

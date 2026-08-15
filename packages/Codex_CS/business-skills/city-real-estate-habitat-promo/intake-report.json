@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "status": "ready_for_approval",
+  "skill_id": "city-real-estate-habitat-promo",
+  "display_name": "城市与地产人居宣传片",
+  "sources": [
+    {
+      "name": "城市与地产人居宣传片提示词生成Skill.md",
+      "source_label": "城市与地产人居宣传片提示词生成Skill.md",
+      "encoding": "utf-8-sig",
+      "sha256": "55604b3ab6172474c8571cd7a1c97af26be1f4ff8a0ef06e53d44b9ffaa81413"
+    }
+  ],
+  "duplicate_check": {
+    "classification": "new",
+    "matches": []
+  },
+  "extraction_summary": {
+    "contract_items": 2,
+    "creative_guidance_items": 1,
+    "community_experience_items": 23,
+    "failure_cases": 7,
+    "positive_examples": 0,
+    "negative_examples": 0,
+    "boundary_examples": 0
+  },
+  "reference_summary": [
+    {
+      "id": "city-context",
+      "media_type": "image",
+      "role": "scene",
+      "description": "城市级地标、江河、桥梁、天际线或宏观城市叙事参考",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    },
+    {
+      "id": "real-estate-context",
+      "media_type": "image",
+      "role": "scene",
+      "description": "楼盘鸟瞰布局、立面细节、社区空间或阳台景观参考，用于楼盘几何和人居空间绑定",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "isolated_legacy_content": [
+    {
+      "code": "EXPORT_WRAPPER",
+      "message": "Source contains exported START/END file wrapper text"
+    },
+    {
+      "code": "NONSTANDARD_METADATA",
+      "message": "Source does not use standard YAML frontmatter"
+    }
+  ],
+  "creative_supplement": {
+    "status": "creative_supplement_pending",
+    "generated_by": "prepare_dt_supplement.py",
+    "request_path": "dt-request.json",
+    "draft_path": null,
+    "requires_user_review": true,
+    "reason": "example_categories_incomplete"
+  },
+  "contract_conflicts": [],
+  "blocking_questions": [],
+  "validation_issues": [],
+  "experience_preservation": {
+    "source_claims_accounted_for": true,
+    "notes": "Cleaned legacy source experience is preserved in references for review; examples do not define the contract."
+  },
+  "user_approval": {
+    "required": true,
+    "approved": false
+  }
+}

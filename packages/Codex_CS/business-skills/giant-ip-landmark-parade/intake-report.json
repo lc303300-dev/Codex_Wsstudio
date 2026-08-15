@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "status": "ready_for_approval",
+  "skill_id": "giant-ip-landmark-parade",
+  "display_name": "巨型IP地标巡游硬切视频",
+  "sources": [
+    {
+      "name": "巨型IP地标巡游多场景硬切视频提示词生成 Skill.md",
+      "source_label": "巨型IP地标巡游多场景硬切视频提示词生成 Skill.md",
+      "encoding": "utf-8-sig",
+      "sha256": "92c2062f845ed00117cf0b815e8296c390adf40e22b7a7eeaed7a8ed359ee4c8"
+    }
+  ],
+  "duplicate_check": {
+    "classification": "new",
+    "matches": []
+  },
+  "extraction_summary": {
+    "contract_items": 2,
+    "creative_guidance_items": 1,
+    "community_experience_items": 2,
+    "failure_cases": 14,
+    "positive_examples": 0,
+    "negative_examples": 0,
+    "boundary_examples": 0
+  },
+  "reference_summary": [
+    {
+      "id": "ip-character",
+      "media_type": "image",
+      "role": "identity",
+      "description": "IP角色详细说明图或四视图，用于固定角色外观、比例、表情、材质和道具身份",
+      "required": true,
+      "min_count": 1,
+      "max_count": 1,
+      "ordered": true,
+      "observation_required": true
+    },
+    {
+      "id": "parade-scenes",
+      "media_type": "image",
+      "role": "scene",
+      "description": "按顺序提供的城市地标或实景合成参考，用于多场景巡游与硬切镜头绑定",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "isolated_legacy_content": [
+    {
+      "code": "EXPORT_WRAPPER",
+      "message": "Source contains exported START/END file wrapper text"
+    },
+    {
+      "code": "NONSTANDARD_METADATA",
+      "message": "Source does not use standard YAML frontmatter"
+    }
+  ],
+  "creative_supplement": {
+    "status": "creative_supplement_pending",
+    "generated_by": "prepare_dt_supplement.py",
+    "request_path": "dt-request.json",
+    "draft_path": null,
+    "requires_user_review": true,
+    "reason": "example_categories_incomplete"
+  },
+  "contract_conflicts": [],
+  "blocking_questions": [],
+  "validation_issues": [],
+  "experience_preservation": {
+    "source_claims_accounted_for": true,
+    "notes": "Cleaned legacy source experience is preserved in references for review; examples do not define the contract."
+  },
+  "user_approval": {
+    "required": true,
+    "approved": false
+  }
+}

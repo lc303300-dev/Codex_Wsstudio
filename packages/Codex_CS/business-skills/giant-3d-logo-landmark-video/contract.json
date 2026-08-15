@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "skill_id": "giant-3d-logo-landmark-video",
+  "display_name": "巨型3D Logo 地标巡游视频",
+  "description": "将3D Logo设定图与一张或多张城市地标参考素材编排为多场景硬切、身份稳定且引用绑定明确的视频提示词。",
+  "references": [
+    {
+      "id": "logo-design",
+      "media_type": "image",
+      "role": "identity",
+      "description": "3D Logo设定图，用于锁定徽标、文字、排列、比例、厚度、材质和透视",
+      "required": true,
+      "min_count": 1,
+      "max_count": 1,
+      "ordered": true,
+      "observation_required": true
+    },
+    {
+      "id": "landmark-scenes",
+      "media_type": "image",
+      "role": "scene",
+      "description": "按输入顺序绑定的城市地标或场景参考，可由用户指定为场景参考、严格起始帧或严格结束帧",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "video": {
+    "reference_required": true,
+    "allowed_modes": [
+      "image2video",
+      "frames2video",
+      "multimodal2video"
+    ]
+  },
+  "authoring": {
+    "primary_language": "zh-CN",
+    "preserve_professional_english": true,
+    "user_instruction_priority": "highest",
+    "timing_strategy": "adaptive",
+    "transition_strategy": "adaptive",
+    "requires_prompt_confirmation": true,
+    "requires_reference_binding": true
+  },
+  "knowledge": {
+    "creative_guidance": "references/creative-guidance.md",
+    "community_experience": "references/community-experience.md",
+    "failure_cases": "references/failure-cases.md",
+    "examples": "references/examples.md"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "skill_id": "giant-ip-landmark-parade",
+  "display_name": "巨型IP地标巡游硬切视频",
+  "description": "将IP角色设定图与多张城市地标实景合成参考编排为巨型卡通IP巡游、道具互动和多场景硬切视频提示词。",
+  "references": [
+    {
+      "id": "ip-character",
+      "media_type": "image",
+      "role": "identity",
+      "description": "IP角色详细说明图或四视图，用于固定角色外观、比例、表情、材质和道具身份",
+      "required": true,
+      "min_count": 1,
+      "max_count": 1,
+      "ordered": true,
+      "observation_required": true
+    },
+    {
+      "id": "parade-scenes",
+      "media_type": "image",
+      "role": "scene",
+      "description": "按顺序提供的城市地标或实景合成参考，用于多场景巡游与硬切镜头绑定",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "video": {
+    "reference_required": true,
+    "allowed_modes": [
+      "image2video",
+      "frames2video",
+      "multimodal2video"
+    ]
+  },
+  "authoring": {
+    "primary_language": "zh-CN",
+    "preserve_professional_english": true,
+    "user_instruction_priority": "highest",
+    "timing_strategy": "adaptive",
+    "transition_strategy": "adaptive",
+    "requires_prompt_confirmation": true,
+    "requires_reference_binding": true
+  },
+  "knowledge": {
+    "creative_guidance": "references/creative-guidance.md",
+    "community_experience": "references/community-experience.md",
+    "failure_cases": "references/failure-cases.md",
+    "examples": "references/examples.md"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "skill_id": "sci-fi-city-promo",
+  "status": "published",
+  "validator_version": "1.0.0",
+  "approved_by": "user",
+  "validated_at": "2026-08-15T08:13:56.649118+00:00",
+  "sources": [
+    {
+      "name": "科幻风格城市宣传片提示词生成Skill.md",
+      "sha256": "19478b422372db78db228ccba84d627edc75a4503663090be2b42f71f8ac411b"
+    }
+  ],
+  "package_sha256": "96fbc79f2ecb778545f2ed13fbffdf5f5c93518d54ba2c347e6068c9775c1d75"
+}

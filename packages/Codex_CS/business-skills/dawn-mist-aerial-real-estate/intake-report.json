@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "status": "ready_for_approval",
+  "skill_id": "dawn-mist-aerial-real-estate",
+  "display_name": "晨曦云雾航拍地产地标视频",
+  "sources": [
+    {
+      "name": "晨曦云雾航拍风_地产商业地标视频提示词生成Skill.md",
+      "source_label": "晨曦云雾航拍风_地产商业地标视频提示词生成Skill.md",
+      "encoding": "utf-8-sig",
+      "sha256": "59f604f5087f780bebdd6908e01a5e0f19a07a2d8f43bc444c77f9011d43dc3f"
+    }
+  ],
+  "duplicate_check": {
+    "classification": "new",
+    "matches": []
+  },
+  "extraction_summary": {
+    "contract_items": 1,
+    "creative_guidance_items": 1,
+    "community_experience_items": 1,
+    "failure_cases": 18,
+    "positive_examples": 0,
+    "negative_examples": 0,
+    "boundary_examples": 0
+  },
+  "reference_summary": [
+    {
+      "id": "aerial-scene-frames",
+      "media_type": "image",
+      "role": "scene",
+      "description": "按时长和镜头规划提供的建筑、环境、水面、意象、立面或宏观定场参考图",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "isolated_legacy_content": [
+    {
+      "code": "EXPORT_WRAPPER",
+      "message": "Source contains exported START/END file wrapper text"
+    },
+    {
+      "code": "NONSTANDARD_METADATA",
+      "message": "Source does not use standard YAML frontmatter"
+    }
+  ],
+  "creative_supplement": {
+    "status": "creative_supplement_pending",
+    "generated_by": "prepare_dt_supplement.py",
+    "request_path": "dt-request.json",
+    "draft_path": null,
+    "requires_user_review": true,
+    "reason": "example_categories_incomplete"
+  },
+  "contract_conflicts": [],
+  "blocking_questions": [],
+  "validation_issues": [],
+  "experience_preservation": {
+    "source_claims_accounted_for": true,
+    "notes": "Cleaned legacy source experience is preserved in references for review; examples do not define the contract."
+  },
+  "user_approval": {
+    "required": true,
+    "approved": false
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "status": "ready_for_approval",
+  "skill_id": "architectural-assembly-reveal",
+  "display_name": "建筑特写至全貌动态组装视频",
+  "sources": [
+    {
+      "name": "建筑特写至全貌拆解组装动画视频提示词生成 Skill.md",
+      "source_label": "建筑特写至全貌拆解组装动画视频提示词生成 Skill.md",
+      "encoding": "utf-8-sig",
+      "sha256": "04a33d9ce95081a6923bf5ec3f3c15fbebf223e31ad04f8342b2562635948bbd"
+    }
+  ],
+  "duplicate_check": {
+    "classification": "new",
+    "matches": []
+  },
+  "extraction_summary": {
+    "contract_items": 1,
+    "creative_guidance_items": 1,
+    "community_experience_items": 1,
+    "failure_cases": 1,
+    "positive_examples": 0,
+    "negative_examples": 0,
+    "boundary_examples": 0
+  },
+  "reference_summary": [
+    {
+      "id": "assembly-frames",
+      "media_type": "image",
+      "role": "end_frame",
+      "description": "按镜头顺序提供的建筑参考图，每张图作为对应镜头最后一刻必须抵达的绝对尾帧",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "isolated_legacy_content": [
+    {
+      "code": "NONSTANDARD_METADATA",
+      "message": "Source does not use standard YAML frontmatter"
+    }
+  ],
+  "creative_supplement": {
+    "status": "creative_supplement_pending",
+    "generated_by": "prepare_dt_supplement.py",
+    "request_path": "dt-request.json",
+    "draft_path": null,
+    "requires_user_review": true,
+    "reason": "example_categories_incomplete"
+  },
+  "contract_conflicts": [],
+  "blocking_questions": [],
+  "validation_issues": [],
+  "experience_preservation": {
+    "source_claims_accounted_for": true,
+    "notes": "Cleaned legacy source experience is preserved in references for review; examples do not define the contract."
+  },
+  "user_approval": {
+    "required": true,
+    "approved": false
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "skill_id": "dawn-mist-aerial-real-estate",
+  "status": "published",
+  "validator_version": "1.0.0",
+  "approved_by": "user",
+  "validated_at": "2026-08-15T08:13:57.852436+00:00",
+  "sources": [
+    {
+      "name": "晨曦云雾航拍风_地产商业地标视频提示词生成Skill.md",
+      "sha256": "59f604f5087f780bebdd6908e01a5e0f19a07a2d8f43bc444c77f9011d43dc3f"
+    }
+  ],
+  "package_sha256": "0caba9d7d67297b016c780904222366a331250a3e2be18ad425eb73b3b5ad933"
+}

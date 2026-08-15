@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "status": "ready_for_approval",
+  "skill_id": "giant-3d-logo-landmark-video",
+  "display_name": "巨型3D Logo 地标巡游视频",
+  "sources": [
+    {
+      "name": "巨型3D立体Logo地标巡游多场景硬切视频提示词生成 Skill.md",
+      "source_label": "巨型3D立体Logo地标巡游多场景硬切视频提示词生成 Skill.md",
+      "encoding": "utf-8-sig",
+      "sha256": "05c8c288dc18c2a1eac1e67d1a59ec01bbbca2f89c16539b97990fc038c37146"
+    },
+    {
+      "name": "SKILL.md",
+      "source_label": "giant-3d-logo-landmark-video/SKILL.md",
+      "encoding": "utf-8-sig",
+      "sha256": "05c8c288dc18c2a1eac1e67d1a59ec01bbbca2f89c16539b97990fc038c37146"
+    }
+  ],
+  "duplicate_check": {
+    "classification": "merged_duplicate",
+    "matches": [
+      "giant-3d-logo-landmark-video/SKILL.md"
+    ]
+  },
+  "extraction_summary": {
+    "contract_items": 2,
+    "creative_guidance_items": 1,
+    "community_experience_items": 2,
+    "failure_cases": 2,
+    "positive_examples": 0,
+    "negative_examples": 0,
+    "boundary_examples": 0
+  },
+  "reference_summary": [
+    {
+      "id": "logo-design",
+      "media_type": "image",
+      "role": "identity",
+      "description": "3D Logo设定图，用于锁定徽标、文字、排列、比例、厚度、材质和透视",
+      "required": true,
+      "min_count": 1,
+      "max_count": 1,
+      "ordered": true,
+      "observation_required": true
+    },
+    {
+      "id": "landmark-scenes",
+      "media_type": "image",
+      "role": "scene",
+      "description": "按输入顺序绑定的城市地标或场景参考，可由用户指定为场景参考、严格起始帧或严格结束帧",
+      "required": true,
+      "min_count": 1,
+      "max_count": null,
+      "ordered": true,
+      "observation_required": true
+    }
+  ],
+  "isolated_legacy_content": [],
+  "creative_supplement": {
+    "status": "creative_supplement_pending",
+    "generated_by": "prepare_dt_supplement.py",
+    "request_path": "dt-request.json",
+    "draft_path": null,
+    "requires_user_review": true,
+    "reason": "examples_missing,example_categories_incomplete"
+  },
+  "contract_conflicts": [],
+  "blocking_questions": [],
+  "validation_issues": [],
+  "experience_preservation": {
+    "source_claims_accounted_for": true,
+    "notes": "Cleaned legacy source experience is preserved in references for review; examples do not define the contract."
+  },
+  "user_approval": {
+    "required": true,
+    "approved": false
+  }
+}
