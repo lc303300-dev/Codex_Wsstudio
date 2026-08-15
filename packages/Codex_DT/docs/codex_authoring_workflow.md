@@ -36,3 +36,9 @@ Recommended prompt shape:
 
 画面约束：...
 ```
+
+## Revising a complete Codex_CS Skill prompt
+
+When a Codex_CS Skill has already produced the complete first draft, do not run the normal incomplete-prompt authoring path. If the user confirms it, submit it unchanged through the owning CS project flow. If the user requests any change, follow [prompt_revision_workflow.md](prompt_revision_workflow.md): build a constrained request with `scripts/classify_revision.py`, preserve the CS contract and material order, and return the revised prompt for user confirmation.
+
+Explicit local changes skip the corpus. Ambiguous creative feedback and structural rewrites may search at most three corpus matches. DT never submits media from this revision step.

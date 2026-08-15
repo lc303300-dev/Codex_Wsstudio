@@ -59,13 +59,13 @@ This global skill is backed by the Codex_CS checkout at `{0}`. {1}
 }
 
 Install-CodexCsSkill -SkillName "codex-cs-skill-curator" -InstallationNote "Use it for governed video business Skill intake, migration, validation, and publication review only. It does not generate videos or call paid media execution."
-Install-CodexCsSkill -SkillName "video-skill-router" -InstallationNote "Use it to select a published business Skill from the user's video creation intent, then guide material preparation from that Skill's contract before Codex_DT authoring."
+Install-CodexCsSkill -SkillName "video-skill-router" -InstallationNote "Use it as the Codex_CS project orchestrator: confirm Skill, ratio, and duration; create contract-slot folders; branch between user-supplied and generated images; let the business Skill author the first prompt; and route only requested revisions to Codex_DT."
 
 $instructionPath = Join-Path $CodexHome "codex-cs-global-custom-instructions.md"
 $instructions = @"
 # Codex CS Skill Curator
 
-Use the globally registered `codex-cs-skill-curator` skill for adding, migrating, reviewing, validating, or publishing governed video business Skills. When a user wants to use a business Skill to make a video, use `video-skill-router` to select the Skill from the user's creative intent, then read its contract and guide the user to provide required materials. Do not choose a Skill primarily from materials the user happens to have. Codex_CS never submits videos, selects providers, selects actual model versions, polls, downloads, or spends credits. Paid video execution remains downstream in the Wsstudio media router path.
+Use the globally registered `codex-cs-skill-curator` skill for adding, migrating, reviewing, validating, or publishing governed video business Skills. When a user wants to use a business Skill to make a video, use `video-skill-router` to select the Skill from creative intent and explicitly confirm the Skill name, ratio, and duration before creating a project. Create contract-slot material folders, ask whether images should be generated, and persist the ordered final media set. The business Skill creates prompt V1. Any user-requested revision automatically routes to Codex_DT; clear local edits skip corpus search, while ambiguous creative or structural changes may search at most three examples. Every prompt version must be confirmed before paid video execution. Do not choose a Skill primarily from materials the user happens to have. Codex_CS never selects providers or actual model versions. Paid image and video execution remains downstream in the Wsstudio media router path.
 
 Source checkout: $($projectRoot.Replace('\','/'))
 "@

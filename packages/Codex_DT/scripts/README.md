@@ -10,6 +10,7 @@ These scripts are intentionally thin wrappers around existing tools:
 - `new_batch.py` creates isolated batch folders and copies stable source images. By default it also waits briefly for image paths to become readable and size-stable before copying.
 - `init_manifests.py` creates draft manifests from generated preview records. With `--batch`, it automatically reads private batch request metadata, including explicit model-selection evidence. Old or manually edited 2.0 manifests without this evidence are rejected before paid submission.
 - `search_forge.py` reads `seedance-forge` CSV and returns complete corpus matches.
+- `classify_revision.py` deterministically classifies feedback on a complete CS Skill prompt and emits a constrained DT revision request. It never searches the corpus, rewrites prompts, or submits media.
 - `update_forge_matches.py` writes `seedance-forge` matches back into manifests.
 - `make_subagent_tasks.py` creates one bounded task prompt per image for Codex subagents. Add `--write-jobs` only when optional dispatch/result bookkeeping is needed.
 - `image_job_status.py` prints optional per-image subagent dispatch/result state for one batch.

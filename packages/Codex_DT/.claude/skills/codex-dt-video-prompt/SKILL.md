@@ -33,6 +33,17 @@ For a complete prompt, perform a narrow **semantic-preserving normalization** pa
 - Use this skill first whenever the agent needs to supplement, newly write, repair, optimize, or rewrite a video prompt before generation, unless stronger project-specific video pipeline guidance applies.
 - If the prompt passes the complete-prompt gate or the user asks to bypass creative optimization, apply only semantic-preserving normalization and hand it to `default-video-generation`.
 
+## Governed Codex_CS revisions
+
+When a governed Codex_CS business Skill has already authored prompt V1, do not replace it with the normal DT authoring path. If the user requests any change, build the constrained revision request with `scripts/classify_revision.py` from the Codex_DT checkout, carrying the current prompt, user feedback, locked CS rules, ordered material bindings, ratio, and duration.
+
+- `explicit_local`: revise only the explicit target and do not read the corpus.
+- `ambiguous_creative` or `structural_rewrite`: inspect at most three highly relevant corpus examples and extract only portable directing structure.
+- Preserve everything the user did not ask to change. Do not change contract rules or material order. Change ratio or duration only when the user explicitly changes those project settings.
+- Return the revised prompt to the owning CS project for confirmation. Do not submit media from the revision step and do not create a separate audit loop.
+
+Read `docs/prompt_revision_workflow.md` when executing this governed revision path.
+
 ## Workflow
 
 1. Run the non-destructive prompt gate. Stop the authoring workflow and submit unchanged when the prompt is complete.

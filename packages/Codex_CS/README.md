@@ -8,7 +8,10 @@ existing and future video Skills.
 `video-skill-router` provides the runtime half of the system: a generated local
 SQLite/FTS5 registry selects a published Skill from the user's creative intent, then
 `material-collection` turns the selected Skill's `contract.json` into a progressive
-Chinese material checklist. The generated database stays under `.codex-cs-private/`.
+Chinese material checklist. `project-pipeline` then persists the confirmed Skill,
+ratio, duration, contract slots, final media, CS prompt V1, DT revisions, user
+confirmation, and the unified `generate_video` submission payload. Runtime data stays
+under `.codex-cs-private/`.
 
 Published business Skills will live in `business-skills/`. Uploaded originals,
 staging output, review reports, projects, and other runtime data stay outside Git

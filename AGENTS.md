@@ -55,4 +55,4 @@ Do not add new implementation scripts, project directories, generated output, or
 
 ## Video Business Skill Routing
 
-When a user wants to use a governed business Skill to create a video, use the globally registered `video-skill-router` first. Select the Skill from the user's creative intent, then read the selected Skill contract and guide the user to provide required materials. Do not choose the Skill primarily from materials already supplied. Codex_DT remains the downstream prompt-authoring and video-generation orchestrator after the contract is satisfied.
+When a user wants to use a governed business Skill to create a video, use the globally registered `video-skill-router` first. Confirm the Skill name, ratio, and duration before creating the contract-slot project. The selected CS Skill authors prompt V1. Any user-requested revision automatically goes to Codex_DT: explicit/local edits skip the corpus, while ambiguous, creative, or structural edits may inspect at most three relevant examples. Every prompt version requires user confirmation before unified video generation. Do not choose the Skill primarily from materials already supplied.
