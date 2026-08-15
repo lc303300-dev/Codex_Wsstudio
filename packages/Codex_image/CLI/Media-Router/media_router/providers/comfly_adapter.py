@@ -13,11 +13,12 @@ from . import comfly_common
 class ComflyAdapter:
     capability = "image"
 
-    def __init__(self, provider_id: str, model_id: str, max_concurrency: int = 6):
+    def __init__(self, provider_id: str, model_id: str, max_concurrency: int = 6, size_profile: str | None = None):
         self.provider_id = provider_id
         self.model_id = model_id
         self.capacity_key = provider_id
         self.max_concurrency = max_concurrency
+        self.size_profile = size_profile
         self.runtime = ProviderRuntime(PRIVATE_ROOT / "logs" / "providers", provider_id)
 
     def check_readiness(self) -> Readiness:
@@ -36,6 +37,7 @@ class ComflyAdapter:
                 request.images,
                 output,
                 size=request.image_ratio,
+                size_profile=self.size_profile,
                 deadline=context.provider_deadline,
                 timeout_failure=FailureClass.PROVIDER_TIMEOUT if context.provider_deadline is not None else None,
             )

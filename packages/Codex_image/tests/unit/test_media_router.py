@@ -41,6 +41,7 @@ from media_router.service import validate_prompt_completeness
 from media_router.providers import comfly_common
 from media_router.providers.command_adapter import DreaminaAdapter, PythonImageAdapter, _run
 from media_router.providers.comfly_adapter import ComflyAdapter
+from media_router.providers.registry import build_registry
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"offline-image"
 
@@ -310,7 +311,7 @@ class ImageRatioAdapterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             context = self.context(root)
-            adapter = ComflyAdapter("comfly-gemini-lite", "gemini-3.1-flash-image-preview")
+            adapter = ComflyAdapter("comfly-gemini-lite", "gemini-3.1-flash-image-preview", size_profile="gemini-1k")
 
             def execute_once(model, prompt, images, output, **options):
                 atomic_write_bytes(output, PNG)
@@ -320,6 +321,20 @@ class ImageRatioAdapterTests(unittest.TestCase):
             with mock.patch("media_router.providers.comfly_adapter.comfly_common.execute_once", side_effect=execute_once):
                 result = adapter.execute(MediaRequest("prompt", image_ratio="9:16"), context)
         self.assertEqual(result.status, "success")
+
+    def test_registry_uses_configured_comfly_model_and_profile(self):
+        config = load_config(private_path=Path("missing-private-config.json"))
+        registry = build_registry(config)
+        adapter = registry["comfly-gemini-lite"]
+        self.assertEqual(adapter.model_id, "gemini-3.1-flash-image-preview")
+        self.assertEqual(adapter.size_profile, "gemini-1k")
+
+    def test_private_config_can_override_comfly_model(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            private = Path(temporary) / "media-router.json"
+            private.write_text(json.dumps({"providers": {"comfly-gemini-lite": {"model": "replacement-model"}}}), encoding="utf-8")
+            config = load_config(private_path=private)
+            self.assertEqual(build_registry(config)["comfly-gemini-lite"].model_id, "replacement-model")
 
     def test_python_image_adapters_receive_structured_ratio(self):
         cases = (
@@ -774,11 +789,11 @@ class SafetyTests(unittest.TestCase):
         self.assertIn("image/", comfly_common.DOWNLOAD_HEADERS["Accept"])
 
     def test_comfly_gemini_lite_normalizes_to_1k_sizes_and_rejects_2k(self):
-        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1K"), "1024x1024")
-        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "3:4"), "896x1200")
-        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1024x1024"), "1024x1024")
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1K", "gemini-1k"), "1024x1024")
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "3:4", "gemini-1k"), "896x1200")
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1024x1024", "gemini-1k"), "1024x1024")
         with self.assertRaises(MediaRouterError):
-            comfly_common.normalize_size("gemini-3.1-flash-image-preview", "2K")
+            comfly_common.normalize_size("gemini-3.1-flash-image-preview", "2K", "gemini-1k")
 
     def test_comfly_timeout_detection_does_not_reclassify_other_network_errors(self):
         self.assertTrue(comfly_common._is_timeout_error(TimeoutError()))

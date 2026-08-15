@@ -23,7 +23,7 @@ DOWNLOAD_HEADERS = {
     "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     "Referer": "https://ai.comfly.org/",
 }
-GEMINI_LITE_MODEL = "gemini-3.1-flash-image-preview"
+GEMINI_1K_PROFILE = "gemini-1k"
 GEMINI_LITE_1K_SIZES = {
     "1:1": "1024x1024",
     "2:3": "848x1264",
@@ -69,9 +69,9 @@ def opener() -> urllib.request.OpenerDirector:
     return urllib.request.build_opener(urllib.request.ProxyHandler(proxies))
 
 
-def normalize_size(model: str, size: str | None) -> str:
+def normalize_size(model: str, size: str | None, size_profile: str | None = None) -> str:
     value = (size or "").strip()
-    if model != GEMINI_LITE_MODEL:
+    if size_profile != GEMINI_1K_PROFILE:
         return value or "1024x1024"
     if not value or value.upper() == "1K":
         return GEMINI_LITE_DEFAULT_SIZE
@@ -81,18 +81,18 @@ def normalize_size(model: str, size: str | None) -> str:
     if value in allowed_sizes:
         return value
     raise MediaRouterError(
-        f"{GEMINI_LITE_MODEL} supports only 1K output sizes: " + ", ".join(f"{ratio}={size}" for ratio, size in GEMINI_LITE_1K_SIZES.items()),
+        f"{model} supports only 1K output sizes: " + ", ".join(f"{ratio}={size}" for ratio, size in GEMINI_LITE_1K_SIZES.items()),
         FailureClass.INPUT_ERROR,
     )
 
 
-def json_body(model: str, prompt: str, size: str) -> bytes:
-    size = normalize_size(model, size)
+def json_body(model: str, prompt: str, size: str, size_profile: str | None = None) -> bytes:
+    size = normalize_size(model, size, size_profile)
     return json.dumps({"model": model, "prompt": prompt, "n": 1, "size": size, "response_format": "url"}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
-def multipart_body(model: str, prompt: str, size: str, images: tuple[Path, ...], boundary: str | None = None) -> tuple[bytes, str]:
-    size = normalize_size(model, size)
+def multipart_body(model: str, prompt: str, size: str, images: tuple[Path, ...], boundary: str | None = None, size_profile: str | None = None) -> tuple[bytes, str]:
+    size = normalize_size(model, size, size_profile)
     boundary = boundary or f"----CodexMedia{uuid.uuid4().hex}"
     chunks: list[bytes] = []
     for name, value in (("model", model), ("prompt", prompt), ("n", "1"), ("size", size), ("response_format", "url")):
@@ -122,7 +122,7 @@ def request_id(headers, payload: dict) -> str | None:
     return None
 
 
-def execute_once(model: str, prompt: str, images: tuple[Path, ...], output: Path, size: str = "1024x1024", timeout: float = 180, deadline: float | None = None, timeout_failure: FailureClass | None = None) -> dict:
+def execute_once(model: str, prompt: str, images: tuple[Path, ...], output: Path, size: str = "1024x1024", timeout: float = 180, deadline: float | None = None, timeout_failure: FailureClass | None = None, size_profile: str | None = None) -> dict:
     def remaining() -> float:
         value = min(timeout, deadline - monotonic()) if deadline is not None else timeout
         if value <= 0:
@@ -136,12 +136,12 @@ def execute_once(model: str, prompt: str, images: tuple[Path, ...], output: Path
     if images:
         endpoint = EDITS_URL
         try:
-            body, content_type = multipart_body(model, prompt, size, images)
+            body, content_type = multipart_body(model, prompt, size, images, size_profile=size_profile)
         except OSError as exc:
             raise MediaRouterError("A local reference image could not be read", FailureClass.INPUT_ERROR) from exc
     else:
         endpoint = GENERATIONS_URL
-        body, content_type = json_body(model, prompt, size), "application/json; charset=utf-8"
+        body, content_type = json_body(model, prompt, size, size_profile), "application/json; charset=utf-8"
     request = urllib.request.Request(endpoint, data=body, headers={"Authorization": f"Bearer {key}", "Content-Type": content_type, "Accept": "application/json"}, method="POST")
     try:
         with client.open(request, timeout=remaining()) as response:

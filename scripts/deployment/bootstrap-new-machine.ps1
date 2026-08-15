@@ -43,7 +43,7 @@ Invoke-CheckedPowerShell -File (Join-Path $root "scripts\deployment\install-envi
 if (-not $SkipUpdateCheck) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "start-task.ps1") -RepositoryRoot $root
     $updateExit = $LASTEXITCODE
-    if ($updateExit -notin @(0, 2)) {
+    if ($updateExit -ne 0) {
         throw "The checkout is not safe to deploy until its Git update state is resolved."
     }
 }

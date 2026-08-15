@@ -44,4 +44,11 @@ def load_config(default_path: Path = DEFAULT_CONFIG, private_path: Path = PRIVAT
             raise ValueError(f"providers.{provider_id}.max_concurrency must be an integer from 1 to 6")
         provider["max_concurrency"] = limit
         provider.setdefault("capacity_key", provider_id)
+        if provider_id.startswith("comfly-"):
+            model = provider.get("model")
+            if not isinstance(model, str) or not model.strip():
+                raise ValueError(f"providers.{provider_id}.model must be a non-empty string")
+            size_profile = provider.get("size_profile")
+            if size_profile is not None and size_profile not in {"gemini-1k"}:
+                raise ValueError(f"providers.{provider_id}.size_profile is unsupported: {size_profile}")
     return config

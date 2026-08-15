@@ -17,7 +17,7 @@ Every image generation or edit requires an explicit user-selected ratio before a
 
 Route each image task strictly serially and stop after the first validated non-empty local image:
 
-1. `comfly-gemini-lite` -> `gemini-3.1-flash-image-preview`
+1. `comfly-gemini-lite` -> the model declared in `config/media-router.defaults.json` (currently `gemini-3.1-flash-image-preview`)
 2. `comfly-gpt-image-2-all` -> `gpt-image-2-all`
 3. `comfly-gpt-image-2` -> `gpt-image-2`
 4. `apimart-gpt-image-2` -> APIMart `gpt-image-2`

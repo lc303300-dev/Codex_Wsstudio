@@ -37,6 +37,7 @@ foreach ($name in $providerReady.Keys) {
     $providers[$name] = [ordered]@{
         enabled = $enabled
         ready = ($enabled -and [bool]$providerReady[$name])
+        model = [string]$config.providers.$name.model
         max_concurrency = [int]$config.providers.$name.max_concurrency
         capacity_key = [string]$config.providers.$name.capacity_key
     }

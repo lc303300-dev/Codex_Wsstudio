@@ -83,6 +83,48 @@ foreach ($marker in $imageRatioRuleMarkers) {
 }
 
 $expectedImageRoot = Join-Path $RepositoryRoot "packages\Codex_image"
+$mediaConfigPath = Join-Path $expectedImageRoot "config\media-router.defaults.json"
+if (Test-Path -LiteralPath $mediaConfigPath -PathType Leaf) {
+    try {
+        $mediaConfig = Get-Content -LiteralPath $mediaConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $geminiModel = [string]$mediaConfig.providers."comfly-gemini-lite".model
+        if ($geminiModel -ne "gemini-3.1-flash-image-preview") {
+            $errors.Add("Comfly Gemini route is not current: $geminiModel")
+        }
+    } catch {
+        $errors.Add("Invalid media router configuration: $mediaConfigPath")
+    }
+} else {
+    $errors.Add("Missing media router configuration: $mediaConfigPath")
+}
+$routerRoot = Join-Path $expectedImageRoot "CLI\Media-Router"
+if ((Test-Path -LiteralPath $routerRoot -PathType Container) -and (Get-Command python -ErrorAction SilentlyContinue)) {
+    $probe = @'
+import json
+from media_router.config import load_config
+from media_router.providers.registry import build_registry
+config = load_config()
+adapter = build_registry(config)["comfly-gemini-lite"]
+print(json.dumps({"model": adapter.model_id, "size_profile": adapter.size_profile}))
+'@
+    $previousPythonPath = $env:PYTHONPATH
+    try {
+        $env:PYTHONPATH = $routerRoot
+        $runtimeJson = $probe | python -B -
+        if ($LASTEXITCODE -ne 0) { throw "runtime probe failed" }
+        $runtime = $runtimeJson | ConvertFrom-Json
+        if ([string]$runtime.model -ne "gemini-3.1-flash-image-preview") {
+            $errors.Add("Runtime Comfly Gemini route is not current: $($runtime.model)")
+        }
+        if ([string]$runtime.size_profile -ne "gemini-1k") {
+            $errors.Add("Runtime Comfly Gemini size profile is not current: $($runtime.size_profile)")
+        }
+    } catch {
+        $errors.Add("Unable to verify the effective runtime Comfly Gemini route.")
+    } finally {
+        $env:PYTHONPATH = $previousPythonPath
+    }
+}
 $mediaMarkers = @(
     Join-Path $CodexHome "skills\default-image-generation\.codex-image-registration.json"
     Join-Path $CodexHome "skills\default-video-generation\.codex-image-registration.json"

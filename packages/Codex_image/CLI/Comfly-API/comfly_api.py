@@ -10,14 +10,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "CLI" / "Media-Router"))
 
 from media_router.providers import comfly_common  # noqa: E402
+from media_router.config import load_config  # noqa: E402
 from media_router.safe_logging import write_json  # noqa: E402
 
 
-MODELS = (
-    "gemini-3.1-flash-image-preview",
-    "gpt-image-2-all",
-    "gpt-image-2",
-)
+PROVIDER_CONFIG = load_config()["providers"]
+MODEL_PROFILES = {
+    value["model"]: value.get("size_profile")
+    for name, value in PROVIDER_CONFIG.items()
+    if name.startswith("comfly-")
+}
+MODELS = tuple(MODEL_PROFILES)
 
 
 def prompt_summary(prompt: str) -> dict:
@@ -58,7 +61,7 @@ def main() -> None:
         "endpoint": comfly_common.EDITS_URL if images else comfly_common.GENERATIONS_URL,
         "prompt": prompt_summary(prompt),
         "image_count": len(images),
-        "size": comfly_common.normalize_size(args.model, args.size),
+        "size": comfly_common.normalize_size(args.model, args.size, MODEL_PROFILES[args.model]),
         "dry_run": args.dry_run,
         "api_key_configured": bool(comfly_common.api_key()),
     }
@@ -67,7 +70,7 @@ def main() -> None:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return
     try:
-        details = comfly_common.execute_once(args.model, prompt, images, output, args.size, args.timeout)
+        details = comfly_common.execute_once(args.model, prompt, images, output, args.size, args.timeout, size_profile=MODEL_PROFILES[args.model])
     except Exception as exc:
         report.update(status="failed", failure_type=type(exc).__name__)
         write_json(log_path, report)
