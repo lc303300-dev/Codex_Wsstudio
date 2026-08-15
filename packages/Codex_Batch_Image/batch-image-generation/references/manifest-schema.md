@@ -9,7 +9,8 @@ Use UTF-8 JSON. Resolve relative paths from the manifest directory.
   "output_dir": "./batch-output",
   "concurrency": 10,
   "start_delay_seconds": 1,
-  "deadline_seconds": 480,
+  "seconds_per_image": 60,
+  "deadline_multiplier": 1.5,
   "prompt_version": "v1",
   "groups": [{
     "id": "SJ01",
@@ -21,6 +22,8 @@ Use UTF-8 JSON. Resolve relative paths from the manifest directory.
 }
 ```
 
-Require `image_ratio` and a non-empty `groups` array. Each group requires a unique `id`, a non-empty `prompt`, and `candidates >= 1`. `batch_id` defaults to a generated ID. `original_image` is optional; otherwise use the first reference image as slot 0. Defaults are 10 workers, 1 second start spacing, 480 seconds deadline, and prompt version `v1`.
+Require `image_ratio` and a non-empty `groups` array. Each group requires a unique `id`, a non-empty `prompt`, and `candidates >= 1`. `batch_id` defaults to a generated ID. `original_image` is optional; otherwise use the first reference image as slot 0. Defaults are 10 workers, 1 second start spacing, 60 seconds per concurrent wave, a 1.5 deadline multiplier, and prompt version `v1`.
+
+Calculate `expected_seconds` as `ceil(total planned candidates / concurrency) * seconds_per_image`. Calculate the default whole-batch `deadline_seconds` as `expected_seconds * deadline_multiplier`, measured from runner start. For example, 40 candidates at concurrency 10 have a 240-second estimate and a 360-second maximum wait. Set `deadline_seconds` only when an explicit whole-batch override is needed.
 
 Accept at most 10 workers. Validate the ratio before creating or submitting jobs. Do not resubmit existing jobs with the same stable job key.

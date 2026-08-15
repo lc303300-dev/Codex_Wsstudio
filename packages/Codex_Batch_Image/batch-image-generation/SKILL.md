@@ -12,7 +12,7 @@ Run deterministic batch scheduling without using child Agents for paid image sub
 1. Require the user to explicitly choose one supported ratio before submission: `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, or `9:16`.
 2. Confirm the batch is intentional because each candidate may consume credits. Skip this confirmation for `-DryRun`; confirm before the first real run.
 3. Build a JSON manifest from [references/manifest-schema.md](references/manifest-schema.md). Preserve reference-image order.
-4. Run `scripts/run_batch.py` through the package entry point. Default to 10 in-flight tasks, at least 1 second between real submission starts, and an 8-minute generation-stage deadline.
+4. Run `scripts/run_batch.py` through the package entry point. Default to 10 in-flight tasks and at least 1 second between real submission starts. Estimate one minute per concurrent wave, then set the maximum generation-stage wait to 1.5 times that estimate.
 5. At the deadline, stop dispatching, terminate local waits, and mark all unfinished tasks `abandoned`. Never query, reconcile, retry, or silently resubmit abandoned tasks.
 6. Collect only successful images already landed before the deadline.
 7. Create one contact sheet per group. Put the group’s original/reference image first, followed by numbered candidate slots. Preserve blank slots for missing results.
@@ -31,6 +31,7 @@ Preview the plan without paid submissions by adding `-DryRun`.
 ## Operating Rules
 
 - Treat the stage deadline as wall-clock time beginning when the runner starts.
+- Calculate the estimate as `ceil(planned candidate count / concurrency) * 60 seconds`, then calculate the default whole-batch deadline as `estimate * 1.5`. For example, 40 candidates at concurrency 10 have a 4-minute estimate and a 6-minute deadline. An explicit positive `deadline_seconds` in the manifest overrides the calculated deadline.
 - Set `original_image` explicitly whenever a group has multiple references so a material/style reference cannot become review slot 0 by accident.
 - Keep job identity stable as `batch_id:group_id:candidate_index:prompt_version`. SQLite uniqueness prevents duplicate submission.
 - A single failure must not block unrelated jobs.

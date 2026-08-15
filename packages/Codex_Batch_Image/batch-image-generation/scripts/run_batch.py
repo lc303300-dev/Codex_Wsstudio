@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import math
 import os
 import shutil
 import signal
@@ -19,6 +20,8 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 RATIOS = {"21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"}
+DEFAULT_SECONDS_PER_IMAGE = 60.0
+DEFAULT_DEADLINE_MULTIPLIER = 1.5
 
 
 def now_utc() -> str:
@@ -119,8 +122,22 @@ def validate(data: dict[str, Any]) -> None:
             raise ValueError(f"group {group_id} requires prompt and candidates >= 1")
     if not 1 <= int(data.get("concurrency", 10)) <= 10:
         raise ValueError("concurrency must be between 1 and 10")
-    if float(data.get("start_delay_seconds", 1)) < 0 or float(data.get("deadline_seconds", 480)) <= 0:
-        raise ValueError("start delay must be >= 0 and deadline must be > 0")
+    if float(data.get("start_delay_seconds", 1)) < 0:
+        raise ValueError("start delay must be >= 0")
+    if "seconds_per_image" in data and float(data["seconds_per_image"]) <= 0:
+        raise ValueError("seconds_per_image must be > 0")
+    if "deadline_multiplier" in data and float(data["deadline_multiplier"]) < 1:
+        raise ValueError("deadline_multiplier must be >= 1")
+    if "deadline_seconds" in data and float(data["deadline_seconds"]) <= 0:
+        raise ValueError("deadline_seconds must be > 0")
+
+
+def resolve_timing(data: dict[str, Any], job_count: int) -> tuple[float, float]:
+    concurrency = int(data.get("concurrency", 10))
+    expected_seconds = math.ceil(job_count / concurrency) * float(data.get("seconds_per_image", DEFAULT_SECONDS_PER_IMAGE))
+    if "deadline_seconds" in data:
+        return expected_seconds, float(data["deadline_seconds"])
+    return expected_seconds, expected_seconds * float(data.get("deadline_multiplier", DEFAULT_DEADLINE_MULTIPLIER))
 
 
 def router_result(stdout: bytes) -> dict[str, Any]:
@@ -241,13 +258,14 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
         references = [path_from(value, base) for value in group.get("reference_images", [])]
         for index in range(1, int(group["candidates"]) + 1):
             jobs.append({"key": f"{data['batch_id']}:{group['id']}:{index}:{version}", "group": str(group["id"]), "index": index, "prompt": str(group["prompt"]), "references": [p for p in references if p]})
+    expected_seconds, deadline_seconds = resolve_timing(data, len(jobs))
     if dry_run:
-        return {"status": "dry_run", "batch_id": data["batch_id"], "jobs": len(jobs), "groups": len(data["groups"]), "concurrency": int(data.get("concurrency", 10)), "start_delay_seconds": float(data.get("start_delay_seconds", 1)), "deadline_seconds": float(data.get("deadline_seconds", 480)), "output_dir": str(root)}
+        return {"status": "dry_run", "batch_id": data["batch_id"], "jobs": len(jobs), "groups": len(data["groups"]), "concurrency": int(data.get("concurrency", 10)), "start_delay_seconds": float(data.get("start_delay_seconds", 1)), "seconds_per_image": float(data.get("seconds_per_image", DEFAULT_SECONDS_PER_IMAGE)), "deadline_multiplier": float(data.get("deadline_multiplier", DEFAULT_DEADLINE_MULTIPLIER)), "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "output_dir": str(root)}
     root.mkdir(parents=True, exist_ok=True)
     store = Store(root / "batch-state.sqlite3")
     for job in jobs:
         store.add(job["key"], job["group"], job["index"], job["prompt"])
-    deadline = time.monotonic() + float(data.get("deadline_seconds", 480))
+    deadline = time.monotonic() + deadline_seconds
     gate, semaphore = StartGate(float(data.get("start_delay_seconds", 1))), asyncio.Semaphore(int(data.get("concurrency", 10)))
 
     async def limited(job: dict[str, Any]) -> None:
@@ -269,7 +287,7 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
             successes.setdefault(row["group_id"], {})[row["candidate_index"]] = Path(row["collected_output"])
     sheets = [str(contact_sheet(group, data["image_ratio"], base, root, successes.get(str(group["id"]), {}))) for group in data["groups"]]
     counts = {state: sum(row["status"] == state for row in rows) for state in ("success", "failed", "abandoned")}
-    summary = {"status": "complete", "batch_id": data["batch_id"], "counts": counts, "review_sheets": sheets, "output_dir": str(root.resolve())}
+    summary = {"status": "complete", "batch_id": data["batch_id"], "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "counts": counts, "review_sheets": sheets, "output_dir": str(root.resolve())}
     (root / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     store.db.close()
     return summary

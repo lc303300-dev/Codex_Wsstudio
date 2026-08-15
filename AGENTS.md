@@ -63,7 +63,7 @@ Do not add new implementation scripts, project directories, generated output, or
 
 ## Batch Image Generation Routing
 
-For grouped image candidates, multiple redraws, requests such as `每组生成5张` or `10路并发生图`, and numbered selection boards, use the globally registered `batch-image-generation` skill. Require an explicit supported ratio and paid-batch confirmation. Submit only through `generate_image` and the unified Media Router. Its deterministic scheduler replaces child-Agent generation for this workflow: use at most 10 in-flight tasks, start real submissions at least one second apart, stop at the eight-minute batch deadline, permanently abandon unfinished tasks without query or retry, collect only landed successes, and create fixed-slot contact sheets for human review without automatic visual or size QA.
+For grouped image candidates, multiple redraws, requests such as `每组生成5张` or `10路并发生图`, and numbered selection boards, use the globally registered `batch-image-generation` skill. Require an explicit supported ratio and paid-batch confirmation. Submit only through `generate_image` and the unified Media Router. Its deterministic scheduler replaces child-Agent generation for this workflow: use at most 10 in-flight tasks, start real submissions at least one second apart, estimate one minute per concurrent wave and use 1.5 times that estimate as the default whole-batch deadline, permanently abandon unfinished tasks without query or retry, collect only landed successes, and create fixed-slot contact sheets for human review without automatic visual or size QA.
 
 ## Video Business Skill Routing
 

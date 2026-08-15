@@ -16,11 +16,57 @@ FAKE = Path(__file__).parent / "fixtures" / "fake_router.py"
 
 
 class BatchTests(unittest.TestCase):
-    def invoke(self, manifest, folder):
+    def invoke(self, manifest, folder, dry_run=False):
         manifest_path = folder / "manifest.json"
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
         env = dict(os.environ, FAKE_ROUTER_LOG=str(folder / "calls.jsonl"), PYTHONDONTWRITEBYTECODE="1")
-        return subprocess.run([sys.executable, "-B", str(RUNNER), "--manifest", str(manifest_path), "--router", str(FAKE)], text=True, capture_output=True, env=env, timeout=15)
+        command = [sys.executable, "-B", str(RUNNER), "--manifest", str(manifest_path), "--router", str(FAKE)]
+        if dry_run:
+            command.append("--dry-run")
+        return subprocess.run(command, text=True, capture_output=True, env=env, timeout=15)
+
+    def test_default_deadline_is_estimate_plus_half(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"batch_id": "timing", "image_ratio": "1:1", "concurrency": 10,
+                        "groups": [{"id": "A", "prompt": "one", "candidates": 40}]}
+            result = self.invoke(manifest, folder, dry_run=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            plan = json.loads(result.stdout)
+            self.assertEqual(plan["seconds_per_image"], 60)
+            self.assertEqual(plan["deadline_multiplier"], 1.5)
+            self.assertEqual(plan["expected_seconds"], 240)
+            self.assertEqual(plan["deadline_seconds"], 360)
+
+    def test_explicit_deadline_overrides_per_image_default(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"batch_id": "override", "image_ratio": "1:1", "deadline_seconds": 75,
+                        "groups": [{"id": "A", "prompt": "one", "candidates": 4}]}
+            result = self.invoke(manifest, folder, dry_run=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["expected_seconds"], 60)
+            self.assertEqual(json.loads(result.stdout)["deadline_seconds"], 75)
+
+    def test_nonpositive_seconds_per_image_is_rejected_before_spawn(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"batch_id": "invalid-timing", "image_ratio": "1:1", "seconds_per_image": 0,
+                        "groups": [{"id": "A", "prompt": "one", "candidates": 1}]}
+            result = self.invoke(manifest, folder)
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse((folder / "calls.jsonl").exists())
+
+    def test_partial_wave_rounds_up(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"batch_id": "partial-wave", "image_ratio": "1:1", "concurrency": 10,
+                        "groups": [{"id": "A", "prompt": "one", "candidates": 11}]}
+            result = self.invoke(manifest, folder, dry_run=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            plan = json.loads(result.stdout)
+            self.assertEqual(plan["expected_seconds"], 120)
+            self.assertEqual(plan["deadline_seconds"], 180)
 
     def test_ratio_rejected_before_spawn(self):
         with tempfile.TemporaryDirectory() as value:
