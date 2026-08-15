@@ -53,6 +53,21 @@ if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not ((Get-Content -Lit
     $errors.Add("Sub-agent delegation rule is absent from the installed global guidance.")
 }
 
+$localMarkdownRuleMarkers = @(
+    "Windows local Markdown links and embedded local media as a hard output contract",
+    "Use an absolute path with forward slashes",
+    "never a file:// URI",
+    "if any local target contains a backslash, do not send the response"
+)
+foreach ($marker in $localMarkdownRuleMarkers) {
+    if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not ((Get-Content -LiteralPath $source -Raw -Encoding UTF8) -like "*$marker*")) {
+        $errors.Add("Local Markdown resource rule is absent from the repository global guidance source: $marker")
+    }
+    if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not ((Get-Content -LiteralPath $target -Raw -Encoding UTF8) -like "*$marker*")) {
+        $errors.Add("Local Markdown resource rule is absent from the installed global guidance: $marker")
+    }
+}
+
 $expectedImageRoot = Join-Path $RepositoryRoot "packages\Codex_image"
 $mediaMarkers = @(
     Join-Path $CodexHome "skills\default-image-generation\.codex-image-registration.json"

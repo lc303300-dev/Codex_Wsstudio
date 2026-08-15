@@ -41,6 +41,11 @@ On a new computer, run from the repository root:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\new-machine-deploy.ps1
 ```
 
+The deployment synchronizes `config/codex/AGENTS.md` into the current user's global Codex
+home. This includes the hard Windows local-resource contract: local Markdown links and images
+use absolute forward-slash paths, never raw backslash paths or `file://` URIs, and reuse
+tool-returned resource targets when available.
+
 Before writing files in this checkout, run:
 
 ```powershell

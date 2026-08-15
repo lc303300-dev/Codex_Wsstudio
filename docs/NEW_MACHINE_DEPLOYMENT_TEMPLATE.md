@@ -50,6 +50,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\new-machine-deploy.ps1
 5. 安装媒体工具和 Dreamina/Seedance 依赖
 6. 输出部署结果
 
+同步 Codex 配置时，脚本会把仓库维护的 `config/codex/AGENTS.md` 安装为当前用户的全局
+Codex 指令，其中包括 Windows 本地资源硬约束：Markdown 本地链接和图片必须使用绝对
+正斜杠路径，禁止原始反斜杠路径和 `file://` URI；工具已返回资源或专用链接目标时必须
+直接复用，不能从原始输出路径重新拼接。
+
 ## 如果你想手动执行
 
 先跑基础部署：

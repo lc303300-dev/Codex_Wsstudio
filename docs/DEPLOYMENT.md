@@ -83,6 +83,12 @@ from `config/codex/AGENTS.md`, and regenerates/updates `config.toml` from
 `config/codex/config.portable.toml` while preserving
 machine-generated paths and existing MCP/project settings.
 
+The synchronized global guidance also installs the Windows local-resource output contract:
+Markdown links and embedded local media must use absolute forward-slash paths, must not use
+`file://` URIs, and must reuse tool-returned resource/link targets instead of rebuilding them
+from raw Windows paths. Deployment verification fails if this contract is missing from either
+the repository guidance source or the installed global `AGENTS.md`.
+
 It also refreshes the unified media tools and `codex-media-plugin` from
 `packages/Codex_image/`, including managed personal marketplace and cached plugin
 copies, then refreshes the globally registered `codex-github`, `video-to-gif`,
