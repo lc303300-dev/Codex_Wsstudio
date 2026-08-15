@@ -68,10 +68,20 @@ description: 说明该 Skill 做什么，以及哪些用户请求应触发它。
 | `required` | 是否必填 |
 | `min_count` | 最少数量 |
 | `max_count` | 最大数量；未知上限为 `null` |
+| `count_rule` | 该槽如何根据视频时长计算目标数量，以及规则来源、置信度和是否硬性执行 |
 | `ordered` | 同一槽内多项素材是否有顺序语义 |
 | `observation_required` | 创作前是否必须观察媒体内容 |
 
 所有视频业务 Skill 的参考素材最小总数必须大于零。禁止 `text2video`。平台支持上限、实际模型和分辨率由 Wsstudio 统一执行层决定，不写入业务契约。
+
+每个槽必须声明 `count_rule`，不得留给运行时猜测：
+
+- `fixed`：固定数量，适合 Logo、IP 身份图、首尾帧等不随时长增加的素材。
+- `duration_formula`：按 `duration × duration_share ÷ seconds_per_item` 计算，并使用 `ceil`、`floor` 或 `round` 取整。
+- `duration_lookup`：按 Skill 明确提供的时长—数量锚点选择最近值，适合非线性镜头结构。
+- `bounded_recommendation`：计算推荐数量，但只用 `min_count` / `max_count` 作为硬边界。
+
+`enforcement` 为 `required` 时，项目锁定素材必须与计算数量完全一致；为 `recommended` 时只展示建议数量。`provenance` 必须区分 `source_explicit`、`curator_default` 或 `user_approved_inference`。来源未明确节奏时，入库流程自动补充保守默认规则并标为 `curator_default`，同时在审核报告中展示，不得伪装成来源事实。
 
 ## 6. 知识分层
 

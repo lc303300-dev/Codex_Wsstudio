@@ -76,6 +76,22 @@ class SkillCuratorTests(unittest.TestCase):
             finalize_template(package)
             self.assertEqual([], validate_package(package))
 
+    def test_missing_count_rule_is_rejected_and_helper_adds_default(self):
+        with tempfile.TemporaryDirectory() as raw:
+            package = self.scaffold(Path(raw))
+            finalize_template(package)
+            contract_path = package / "contract.json"
+            contract = json.loads(contract_path.read_text(encoding="utf-8"))
+            del contract["references"][0]["count_rule"]
+            contract_path.write_text(json.dumps(contract, ensure_ascii=False, indent=2), encoding="utf-8")
+            codes = {issue.code for issue in validate_package(package)}
+            self.assertIn("INVALID_REFERENCE_FIELDS", codes)
+            completed = subprocess.run([
+                sys.executable, str(SCRIPTS / "add_count_rules.py"), str(package)
+            ], text=True, capture_output=True, encoding="utf-8", check=False)
+            self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
+            self.assertEqual([], validate_package(package))
+
     def test_text2video_and_zero_reference_contract_are_rejected(self):
         with tempfile.TemporaryDirectory() as raw:
             package = self.scaffold(Path(raw))
@@ -160,6 +176,12 @@ class SkillCuratorTests(unittest.TestCase):
                 "required": True,
                 "min_count": 1,
                 "max_count": 1,
+                "count_rule": {
+                    "type": "fixed", "enforcement": "required", "fixed_count": 1,
+                    "seconds_per_item": None, "rounding": None, "duration_share": 1,
+                    "duration_to_count": [], "provenance": "source_explicit",
+                    "confidence": "high", "rationale": "音乐参考固定使用一项即可锁定节奏与情绪"
+                },
                 "ordered": True,
                 "observation_required": False,
             }]

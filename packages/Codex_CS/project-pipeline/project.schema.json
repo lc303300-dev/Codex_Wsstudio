@@ -35,7 +35,19 @@
     },
     "skill": {"type": "object"},
     "video_settings": {"type": "object"},
-    "material_slots": {"type": "array", "minItems": 1},
+    "material_slots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "media_type", "min_count", "max_count", "planned_count", "count_enforcement", "count_rule", "source_dir", "final_dir"],
+        "properties": {
+          "planned_count": {"type": "integer", "minimum": 0},
+          "count_enforcement": {"enum": ["required", "recommended"]},
+          "count_rule": {"type": "object"}
+        }
+      }
+    },
     "final_images": {"type": "array"},
     "prompts": {"type": "array"}
     ,"archived_prompts": {"type": "array"}

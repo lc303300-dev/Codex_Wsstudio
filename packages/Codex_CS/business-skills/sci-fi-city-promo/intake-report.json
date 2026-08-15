@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "ready_for_approval",
+  "status": "approved",
   "skill_id": "sci-fi-city-promo",
   "display_name": "科幻风格城市宣传片",
   "sources": [
@@ -32,10 +32,22 @@
       "role": "scene",
       "description": "城市天际线、现代地标、文化建筑、江河湖海、道路夜景或代表性视觉符号参考",
       "required": true,
-      "min_count": 1,
-      "max_count": null,
+      "min_count": 3,
+      "max_count": 5,
       "ordered": true,
-      "observation_required": true
+      "observation_required": true,
+      "count_rule": {
+        "type": "bounded_recommendation",
+        "enforcement": "recommended",
+        "fixed_count": null,
+        "seconds_per_item": 4,
+        "rounding": "round",
+        "duration_share": 1,
+        "duration_to_count": [],
+        "provenance": "user_approved_inference",
+        "confidence": "medium",
+        "rationale": "原始 Skill 稳定建议三至五张城市视觉参考，按约四秒一张计算推荐值并限制在该范围。"
+      }
     }
   ],
   "isolated_legacy_content": [
@@ -61,6 +73,23 @@
   },
   "user_approval": {
     "required": true,
-    "approved": false
-  }
+    "approved": true
+  },
+  "pacing_rule_summary": [
+    {
+      "slot_id": "city-visual-references",
+      "type": "bounded_recommendation",
+      "enforcement": "recommended",
+      "fixed_count": null,
+      "seconds_per_item": 4,
+      "rounding": "round",
+      "duration_share": 1,
+      "duration_to_count": [],
+      "provenance": "user_approved_inference",
+      "confidence": "medium",
+      "rationale": "原始 Skill 稳定建议三至五张城市视觉参考，按约四秒一张计算推荐值并限制在该范围。",
+      "min_count": 3,
+      "max_count": 5
+    }
+  ]
 }

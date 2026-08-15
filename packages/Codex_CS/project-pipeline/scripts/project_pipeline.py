@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import shutil
 import sys
 import uuid
@@ -98,6 +99,35 @@ def load_contract(skills_root: Path, skill_id: str, display_name: str) -> tuple[
     return contract_path, contract
 
 
+def clamp_count(value: int, minimum: int, maximum: int | None) -> int:
+    value = max(value, minimum)
+    return min(value, maximum) if maximum is not None else value
+
+
+def planned_count(reference: dict, duration: int) -> tuple[int, str]:
+    rule = reference.get("count_rule")
+    if not isinstance(rule, dict):
+        raise PipelineError(f"slot {reference.get('id')} is missing count_rule")
+    rule_type = rule.get("type")
+    minimum = int(reference.get("min_count", 0))
+    maximum = reference.get("max_count")
+    if rule_type == "fixed":
+        count = int(rule["fixed_count"])
+    elif rule_type in {"duration_formula", "bounded_recommendation"}:
+        raw = duration * float(rule.get("duration_share", 1)) / float(rule["seconds_per_item"])
+        rounding = rule["rounding"]
+        count = math.ceil(raw) if rounding == "ceil" else math.floor(raw) if rounding == "floor" else math.floor(raw + 0.5)
+    elif rule_type == "duration_lookup":
+        anchors = rule.get("duration_to_count", [])
+        if not anchors:
+            raise PipelineError(f"slot {reference.get('id')} has an empty duration lookup")
+        selected = min(anchors, key=lambda item: (abs(int(item["duration_seconds"]) - duration), int(item["duration_seconds"])))
+        count = int(selected["count"])
+    else:
+        raise PipelineError(f"slot {reference.get('id')} has unsupported count_rule type: {rule_type}")
+    return clamp_count(count, minimum, maximum), str(rule.get("enforcement"))
+
+
 def create_project(
     projects_root: Path,
     skills_root: Path,
@@ -127,6 +157,7 @@ def create_project(
         final = root / "materials" / slot_id / "final"
         source.mkdir(parents=True)
         final.mkdir(parents=True)
+        target_count, count_enforcement = planned_count(reference, duration)
         slots.append({
             "id": slot_id,
             "position": position,
@@ -136,6 +167,9 @@ def create_project(
             "required": bool(reference.get("required")),
             "min_count": int(reference.get("min_count", 0)),
             "max_count": reference.get("max_count"),
+            "planned_count": target_count,
+            "count_enforcement": count_enforcement,
+            "count_rule": reference["count_rule"],
             "ordered": bool(reference.get("ordered")),
             "source_dir": str(source.resolve()),
             "final_dir": str(final.resolve()),
@@ -224,6 +258,11 @@ def material_snapshot(project: dict) -> tuple[list[dict], str]:
             raise PipelineError(f"slot {slot['id']} requires at least {slot['min_count']} final file(s); found {count}")
         if slot["max_count"] is not None and count > slot["max_count"]:
             raise PipelineError(f"slot {slot['id']} allows at most {slot['max_count']} final file(s); found {count}")
+        if slot.get("count_enforcement") == "required" and count != slot.get("planned_count"):
+            raise PipelineError(
+                f"slot {slot['id']} requires exactly {slot['planned_count']} final file(s) for "
+                f"{project['video_settings']['duration_seconds']} seconds; found {count}"
+            )
         slot["final_files"] = [str(path.resolve()) for path in final_paths]
         for file_position, path in enumerate(final_paths):
             ordered.append({
@@ -391,7 +430,14 @@ def public_result(root: Path, project: dict) -> dict:
         "project_dir": str(root.resolve()),
         "project_file": str((root / PROJECT_FILE).resolve()),
         "material_directories": [
-            {"slot_id": slot["id"], "source_dir": slot["source_dir"], "final_dir": slot["final_dir"]}
+            {
+                "slot_id": slot["id"],
+                "source_dir": slot["source_dir"],
+                "final_dir": slot["final_dir"],
+                "planned_count": slot["planned_count"],
+                "count_enforcement": slot["count_enforcement"],
+                "count_rationale": slot["count_rule"]["rationale"],
+            }
             for slot in project["material_slots"]
         ],
         "image_stage": project.get("image_stage"),
@@ -408,6 +454,8 @@ def public_result(root: Path, project: dict) -> dict:
                 "source_files": slot.get("source_files", []),
                 "target_dir": slot["final_dir"],
                 "required_count": slot["min_count"],
+                "planned_count": slot["planned_count"],
+                "count_enforcement": slot["count_enforcement"],
                 "max_count": slot["max_count"],
             }
             for slot in project["material_slots"]

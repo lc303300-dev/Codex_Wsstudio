@@ -4,7 +4,7 @@
   "title": "Codex_CS Video Skill Intake Report",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "status", "skill_id", "display_name", "sources", "duplicate_check", "extraction_summary", "reference_summary", "isolated_legacy_content", "creative_supplement", "contract_conflicts", "blocking_questions", "validation_issues", "experience_preservation", "user_approval"],
+  "required": ["schema_version", "status", "skill_id", "display_name", "sources", "duplicate_check", "extraction_summary", "reference_summary", "pacing_rule_summary", "isolated_legacy_content", "creative_supplement", "contract_conflicts", "blocking_questions", "validation_issues", "experience_preservation", "user_approval"],
   "properties": {
     "schema_version": {"const": 1},
     "status": {"enum": ["needs_review", "ready_for_approval", "approved", "published", "rejected"]},
@@ -14,6 +14,7 @@
     "duplicate_check": {"type": "object"},
     "extraction_summary": {"type": "object"},
     "reference_summary": {"type": "array"},
+    "pacing_rule_summary": {"type": "array"},
     "isolated_legacy_content": {"type": "array"},
     "creative_supplement": {
       "type": "object",

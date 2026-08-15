@@ -13,7 +13,19 @@
       "min_count": 1,
       "max_count": 1,
       "ordered": true,
-      "observation_required": true
+      "observation_required": true,
+      "count_rule": {
+        "type": "fixed",
+        "enforcement": "required",
+        "fixed_count": 1,
+        "seconds_per_item": null,
+        "rounding": null,
+        "duration_share": 1,
+        "duration_to_count": [],
+        "provenance": "source_explicit",
+        "confidence": "high",
+        "rationale": "IP 身份设定图固定一张，用于全片角色一致性锁定。"
+      }
     },
     {
       "id": "parade-scenes",
@@ -22,9 +34,21 @@
       "description": "按顺序提供的城市地标或实景合成参考，用于多场景巡游与硬切镜头绑定",
       "required": true,
       "min_count": 1,
-      "max_count": null,
+      "max_count": 10,
       "ordered": true,
-      "observation_required": true
+      "observation_required": true,
+      "count_rule": {
+        "type": "duration_formula",
+        "enforcement": "required",
+        "fixed_count": null,
+        "seconds_per_item": 3,
+        "rounding": "floor",
+        "duration_share": 1,
+        "duration_to_count": [],
+        "provenance": "source_explicit",
+        "confidence": "high",
+        "rationale": "原始 Skill 的正式案例以约三秒一个巡游场景硬切，余量并入末景。"
+      }
     }
   ],
   "video": {

@@ -131,7 +131,15 @@ def upgrade(package: Path, library: Path, source_paths: list[Path], approved_by:
     if not destination.is_dir():
         raise UpgradeRejected(f"Published Skill does not exist and cannot be upgraded: {destination}")
     current_issues = validate_package(destination, require_receipt=True)
-    if current_issues:
+    # One-time forward migration: a credentialed v1 package may lack only the new
+    # per-slot count_rule field. All other validation failures remain blocking.
+    legacy_pacing_codes = {"INVALID_REFERENCE_FIELDS", "ZERO_MINIMUM_REFERENCES"}
+    pacing_only_legacy = (
+        bool(current_issues)
+        and any(issue.code == "INVALID_REFERENCE_FIELDS" for issue in current_issues)
+        and all(issue.code in legacy_pacing_codes for issue in current_issues)
+    )
+    if current_issues and not pacing_only_legacy:
         raise UpgradeRejected(
             "Existing published Skill has an invalid credential: "
             + json.dumps([issue.to_dict() for issue in current_issues], ensure_ascii=False)

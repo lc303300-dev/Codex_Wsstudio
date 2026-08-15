@@ -16,6 +16,8 @@ python .\project-pipeline\scripts\project_pipeline.py start-generation <project-
 
 时长范围为 4–30 秒。`start-generation` 输出可直接交给统一 `generate_video` 的 `generation.submission_payload`。`generate` 模式还会输出 `image_generation_tasks`，供统一 `generate_image` 写入各槽位的 `final/` 目录。
 
+创建项目时读取每个契约槽的 `count_rule`，根据用户时长写入 `planned_count`。`required` 规则在锁定素材时要求数量完全一致；`recommended` 规则显示建议数量，但仍以槽位 `min_count` / `max_count` 作为硬边界。
+
 `create` 输出每个素材槽的绝对 `source_dir` 和 `final_dir`。用户提供的原始图片放入
 `source_dir`；选择不生图时使用 `lock-final --use-source` 将其提升为最终素材。选择自动生图时，
 外部统一图片路由把结果写入对应 `final_dir`，再运行 `lock-final`。

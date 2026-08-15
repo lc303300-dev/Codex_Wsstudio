@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "ready_for_approval",
+  "status": "approved",
   "skill_id": "architectural-assembly-reveal",
   "display_name": "建筑特写至全貌动态组装视频",
   "sources": [
@@ -33,9 +33,21 @@
       "description": "按镜头顺序提供的建筑参考图，每张图作为对应镜头最后一刻必须抵达的绝对尾帧",
       "required": true,
       "min_count": 1,
-      "max_count": null,
+      "max_count": 6,
       "ordered": true,
-      "observation_required": true
+      "observation_required": true,
+      "count_rule": {
+        "type": "duration_formula",
+        "enforcement": "required",
+        "fixed_count": null,
+        "seconds_per_item": 5,
+        "rounding": "ceil",
+        "duration_share": 1,
+        "duration_to_count": [],
+        "provenance": "source_explicit",
+        "confidence": "high",
+        "rationale": "原始 Skill 明确每完整五秒使用一张尾帧参考，剩余不足五秒仍增加一张。"
+      }
     }
   ],
   "isolated_legacy_content": [
@@ -61,6 +73,23 @@
   },
   "user_approval": {
     "required": true,
-    "approved": false
-  }
+    "approved": true
+  },
+  "pacing_rule_summary": [
+    {
+      "slot_id": "assembly-frames",
+      "type": "duration_formula",
+      "enforcement": "required",
+      "fixed_count": null,
+      "seconds_per_item": 5,
+      "rounding": "ceil",
+      "duration_share": 1,
+      "duration_to_count": [],
+      "provenance": "source_explicit",
+      "confidence": "high",
+      "rationale": "原始 Skill 明确每完整五秒使用一张尾帧参考，剩余不足五秒仍增加一张。",
+      "min_count": 1,
+      "max_count": 6
+    }
+  ]
 }

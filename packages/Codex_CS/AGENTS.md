@@ -18,6 +18,10 @@ material directory per `contract.json` slot under `.codex-cs-private/projects/`,
 whether the user wants generated images or will supply final images, and persist the
 ordered final media set.
 
+Every published reference slot must declare its own auditable `count_rule`. At project
+creation, derive `planned_count` from the confirmed duration using that Skill-specific
+rule. Never substitute one global images-per-second formula for all business Skills.
+
 The selected business Skill owns the first video-prompt draft. Codex_DT is not a
 mandatory authoring hop. If the user requests any prompt revision, route the revision
 to Codex_DT with the current prompt, feedback, locked contract rules, material order,

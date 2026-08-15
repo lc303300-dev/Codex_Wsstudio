@@ -12,6 +12,18 @@
       "required": true,
       "min_count": 1,
       "max_count": 1,
+      "count_rule": {
+        "type": "fixed",
+        "enforcement": "required",
+        "fixed_count": 1,
+        "seconds_per_item": null,
+        "rounding": null,
+        "duration_share": 1,
+        "duration_to_count": [],
+        "provenance": "curator_default",
+        "confidence": "high",
+        "rationale": "固定身份或基准素材默认只需要一项；如来源表明数量随时长变化，入库时必须替换此规则。"
+      },
       "ordered": true,
       "observation_required": true
     }

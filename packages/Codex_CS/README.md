@@ -13,6 +13,10 @@ ratio, duration, contract slots, final media, CS prompt V1, DT revisions, user
 confirmation, and the unified `generate_video` submission payload. Runtime data stays
 under `.codex-cs-private/`.
 
+Every published material slot includes an auditable pacing rule. Intake automatically
+adds a conservative default when the source is silent, while project creation uses the
+selected Skill's own rule and confirmed duration to calculate `planned_count`.
+
 Published business Skills will live in `business-skills/`. Uploaded originals,
 staging output, review reports, projects, and other runtime data stay outside Git
 under `.codex-cs-private/` or ignored staging directories.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "ready_for_approval",
+  "status": "approved",
   "skill_id": "city-real-estate-habitat-promo",
   "display_name": "城市与地产人居宣传片",
   "sources": [
@@ -33,9 +33,21 @@
       "description": "城市级地标、江河、桥梁、天际线或宏观城市叙事参考",
       "required": true,
       "min_count": 1,
-      "max_count": null,
+      "max_count": 2,
       "ordered": true,
-      "observation_required": true
+      "observation_required": true,
+      "count_rule": {
+        "type": "bounded_recommendation",
+        "enforcement": "recommended",
+        "fixed_count": null,
+        "seconds_per_item": 5,
+        "rounding": "round",
+        "duration_share": 0.6666666666666666,
+        "duration_to_count": [],
+        "provenance": "user_approved_inference",
+        "confidence": "medium",
+        "rationale": "城市叙事约占全片三分之二，按约五秒一个城市段落推荐一至两张参考。"
+      }
     },
     {
       "id": "real-estate-context",
@@ -44,9 +56,21 @@
       "description": "楼盘鸟瞰布局、立面细节、社区空间或阳台景观参考，用于楼盘几何和人居空间绑定",
       "required": true,
       "min_count": 1,
-      "max_count": null,
+      "max_count": 3,
       "ordered": true,
-      "observation_required": true
+      "observation_required": true,
+      "count_rule": {
+        "type": "bounded_recommendation",
+        "enforcement": "recommended",
+        "fixed_count": null,
+        "seconds_per_item": 5,
+        "rounding": "round",
+        "duration_share": 1,
+        "duration_to_count": [],
+        "provenance": "user_approved_inference",
+        "confidence": "medium",
+        "rationale": "按约五秒推荐一张地产空间参考，并限制为布局、立面、阳台等最多三类。"
+      }
     }
   ],
   "isolated_legacy_content": [
@@ -76,6 +100,38 @@
   },
   "user_approval": {
     "required": true,
-    "approved": false
-  }
+    "approved": true
+  },
+  "pacing_rule_summary": [
+    {
+      "slot_id": "city-context",
+      "type": "bounded_recommendation",
+      "enforcement": "recommended",
+      "fixed_count": null,
+      "seconds_per_item": 5,
+      "rounding": "round",
+      "duration_share": 0.6666666666666666,
+      "duration_to_count": [],
+      "provenance": "user_approved_inference",
+      "confidence": "medium",
+      "rationale": "城市叙事约占全片三分之二，按约五秒一个城市段落推荐一至两张参考。",
+      "min_count": 1,
+      "max_count": 2
+    },
+    {
+      "slot_id": "real-estate-context",
+      "type": "bounded_recommendation",
+      "enforcement": "recommended",
+      "fixed_count": null,
+      "seconds_per_item": 5,
+      "rounding": "round",
+      "duration_share": 1,
+      "duration_to_count": [],
+      "provenance": "user_approved_inference",
+      "confidence": "medium",
+      "rationale": "按约五秒推荐一张地产空间参考，并限制为布局、立面、阳台等最多三类。",
+      "min_count": 1,
+      "max_count": 3
+    }
+  ]
 }

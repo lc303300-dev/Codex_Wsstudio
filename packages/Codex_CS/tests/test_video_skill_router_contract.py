@@ -51,6 +51,10 @@ class VideoSkillRouterContractTests(unittest.TestCase):
         ]:
             self.assertIn(value, self.text)
 
+    def test_plans_material_counts_from_skill_specific_pacing_rules(self):
+        for value in ["`count_rule`", "`planned_count`", "计划数量", "不得用全库统一"]:
+            self.assertIn(value, self.text)
+
 
 if __name__ == "__main__":
     unittest.main()

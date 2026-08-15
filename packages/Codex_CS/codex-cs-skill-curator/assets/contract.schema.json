@@ -16,7 +16,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "media_type", "role", "description", "required", "min_count", "max_count", "ordered", "observation_required"],
+        "required": ["id", "media_type", "role", "description", "required", "min_count", "max_count", "count_rule", "ordered", "observation_required"],
         "properties": {
           "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
           "media_type": {"enum": ["image", "video", "audio"]},
@@ -25,6 +25,34 @@
           "required": {"type": "boolean"},
           "min_count": {"type": "integer", "minimum": 0},
           "max_count": {"type": ["integer", "null"], "minimum": 1},
+          "count_rule": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "enforcement", "fixed_count", "seconds_per_item", "rounding", "duration_share", "duration_to_count", "provenance", "confidence", "rationale"],
+            "properties": {
+              "type": {"enum": ["fixed", "duration_formula", "duration_lookup", "bounded_recommendation"]},
+              "enforcement": {"enum": ["required", "recommended"]},
+              "fixed_count": {"type": ["integer", "null"], "minimum": 0},
+              "seconds_per_item": {"type": ["number", "null"], "exclusiveMinimum": 0},
+              "rounding": {"enum": ["ceil", "floor", "round", null]},
+              "duration_share": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+              "duration_to_count": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["duration_seconds", "count"],
+                  "properties": {
+                    "duration_seconds": {"type": "integer", "minimum": 4, "maximum": 30},
+                    "count": {"type": "integer", "minimum": 0}
+                  }
+                }
+              },
+              "provenance": {"enum": ["source_explicit", "curator_default", "user_approved_inference"]},
+              "confidence": {"enum": ["high", "medium", "low"]},
+              "rationale": {"type": "string", "minLength": 8}
+            }
+          },
           "ordered": {"type": "boolean"},
           "observation_required": {"type": "boolean"}
         }

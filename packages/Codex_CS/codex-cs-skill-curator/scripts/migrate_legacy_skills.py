@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from inspect_skill_source import decode_source, inspect
+from count_rules import add_missing_count_rules
 from prepare_dt_supplement import build_request
 from skill_package import file_sha256, validate_package
 
@@ -259,6 +260,7 @@ def build_contract(destination: Path, spec: MigrationSpec) -> None:
     contract_path = destination / "contract.json"
     contract = json.loads(contract_path.read_text(encoding="utf-8"))
     contract["references"] = spec.references
+    contract, _ = add_missing_count_rules(contract)
     contract["video"]["allowed_modes"] = spec.allowed_modes
     contract["authoring"]["timing_strategy"] = spec.timing_strategy
     contract["authoring"]["transition_strategy"] = spec.transition_strategy

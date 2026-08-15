@@ -67,6 +67,8 @@ python scripts/inspect_skill_source.py <uploaded-skill.md>
 - 至少声明一项 image、video 或 audio 参考素材。
 - 禁止 `text2video`。
 - 用 `min_count`、`max_count` 表达数量；未知上限使用 `null`，不要虚构数字。
+- 为每个素材槽自动补充 `count_rule`。优先保留来源明确的固定数量、每镜头秒数或时长查表；来源未明确时，按素材角色生成保守的 `curator_default` 规则并在报告中展示。不得省略节奏规则。
+- 固定身份、风格或首尾帧通常使用 `fixed`；随镜头数量增长的场景槽使用 `duration_formula` 或 `duration_lookup`；只有推荐意义时使用 `bounded_recommendation`，不得把建议伪装成硬约束。
 - 用稳定英文小写 `id` 标识素材槽，用中文说明其业务含义。
 - 明确素材是否有序、是否需要视觉观察及其绑定用途。
 - 用户明确指令的优先级必须为最高。
@@ -83,6 +85,14 @@ python scripts/scaffold_business_skill.py --skill-id <skill-id> --display-name "
 ```
 
 完善生成的所有文件，并删除其中的 `CURATOR-REQUIRED` 标记。`SKILL.md` 保持简洁；详细经验通过直接链接的一层 `references/` 文件渐进加载。
+
+当提取或人工整理出的素材槽尚未包含节奏规则时，运行：
+
+```powershell
+python scripts/add_count_rules.py <staging-skill-directory>
+```
+
+脚本按素材角色自动补充可审计的保守默认规则。随后必须结合来源把能确认的规则升级为 `source_explicit`；不能确认的默认规则保留 `curator_default` 并进入入库报告。
 
 同时完善 `routing.json`。路由信息只用于在上百个正式 Skill 中快速定位用户想使用的业务能力；Skill 选定后，向用户索取什么素材仍完全由 `contract.json` 决定。
 

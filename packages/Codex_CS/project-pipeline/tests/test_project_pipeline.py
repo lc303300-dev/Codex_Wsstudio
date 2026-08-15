@@ -27,9 +27,22 @@ class ProjectPipelineTests(unittest.TestCase):
             "display_name": "测试 Skill",
             "references": [
                 {"id": "identity", "media_type": "image", "role": "identity", "required": True, "min_count": 1, "max_count": 1, "ordered": True},
-                {"id": "scenes", "media_type": "image", "role": "scene", "required": True, "min_count": 1, "max_count": None, "ordered": True},
+                {"id": "scenes", "media_type": "image", "role": "scene", "required": True, "min_count": 1, "max_count": 10, "ordered": True},
             ],
         }, ensure_ascii=False), encoding="utf-8")
+        contract_path = skill / "contract.json"
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+        contract["references"][0]["count_rule"] = {
+            "type": "fixed", "enforcement": "required", "fixed_count": 1,
+            "seconds_per_item": None, "rounding": None, "duration_share": 1,
+            "duration_to_count": [], "provenance": "source_explicit", "confidence": "high", "rationale": "身份图固定一张"
+        }
+        contract["references"][1]["count_rule"] = {
+            "type": "duration_formula", "enforcement": "required", "fixed_count": None,
+            "seconds_per_item": 5, "rounding": "ceil", "duration_share": 1,
+            "duration_to_count": [], "provenance": "source_explicit", "confidence": "high", "rationale": "每五秒一张场景图"
+        }
+        contract_path.write_text(json.dumps(contract, ensure_ascii=False), encoding="utf-8")
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -40,7 +53,8 @@ class ProjectPipelineTests(unittest.TestCase):
     def put_sources(self) -> None:
         project = json.loads((self.projects / "demo" / "project.json").read_text(encoding="utf-8"))
         for index, slot in enumerate(project["material_slots"]):
-            Path(slot["source_dir"], f"{index + 1:02}.png").write_bytes(f"image-{index}".encode())
+            for item in range(slot["planned_count"]):
+                Path(slot["source_dir"], f"{item + 1:02}.png").write_bytes(f"image-{index}-{item}".encode())
 
     def test_create_requires_confirmation_and_creates_slot_directories(self) -> None:
         with self.assertRaises(pipeline.PipelineError):
@@ -60,7 +74,7 @@ class ProjectPipelineTests(unittest.TestCase):
         pipeline.choose_image_stage(self.projects, "demo", "user_supplied")
         self.put_sources()
         locked = pipeline.lock_final(self.projects, "demo", True)
-        self.assertEqual([item["slot_id"] for item in locked["final_images"]], ["identity", "scenes"])
+        self.assertEqual([item["slot_id"] for item in locked["final_images"]], ["identity", "scenes", "scenes", "scenes"])
         prompt = pipeline.set_cs_prompt(self.projects, "demo", "V1 提示词")
         self.assertEqual(prompt["active_prompt_version"], 1)
         pipeline.confirm_prompt(self.projects, "demo")
@@ -71,7 +85,7 @@ class ProjectPipelineTests(unittest.TestCase):
         self.assertEqual(payload["prompt"], "V1 提示词")
         self.assertEqual(payload["video_ratio"], "9:16")
         self.assertEqual(payload["video_duration"], 15)
-        self.assertEqual(len(payload["ordered_media"]["images"]), 2)
+        self.assertEqual(len(payload["ordered_media"]["images"]), 4)
         completed = pipeline.complete_project(self.projects, "demo", "external-task-1")
         self.assertEqual(completed["state"], "completed")
 
@@ -111,6 +125,17 @@ class ProjectPipelineTests(unittest.TestCase):
         Path(project["material_slots"][1]["final_dir"], "scene.png").write_bytes(b"scene")
         with self.assertRaisesRegex(pipeline.PipelineError, "at most 1"):
             pipeline.lock_final(self.projects, "demo", False)
+
+    def test_duration_plans_required_material_count(self) -> None:
+        result = pipeline.create_project(self.projects, self.skills, "short", "test-skill", "测试 Skill", "9:16", 11, True)
+        counts = {item["slot_id"]: item["planned_count"] for item in result["material_directories"]}
+        self.assertEqual({"identity": 1, "scenes": 3}, counts)
+        pipeline.choose_image_stage(self.projects, "short", "user_supplied")
+        project = json.loads((self.projects / "short" / "project.json").read_text(encoding="utf-8"))
+        Path(project["material_slots"][0]["source_dir"], "identity.png").write_bytes(b"identity")
+        Path(project["material_slots"][1]["source_dir"], "scene.png").write_bytes(b"scene")
+        with self.assertRaisesRegex(pipeline.PipelineError, "requires exactly 3"):
+            pipeline.lock_final(self.projects, "short", True)
 
     def test_generate_mode_rejects_source_as_final(self) -> None:
         self.create()

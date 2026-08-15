@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-VALIDATOR_VERSION = "1.0.0"
+VALIDATOR_VERSION = "1.1.0"
 SKILL_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 REFERENCE_IDS = {"image", "video", "audio"}
 REFERENCE_ROLES = {
@@ -172,7 +172,7 @@ def validate_package(root: Path, *, require_receipt: bool = False) -> list[Issue
     minimum_total = 0
     for index, item in enumerate(references, 1):
         path = f"contract.json:references[{index}]"
-        required_fields = {"id", "media_type", "role", "description", "required", "min_count", "max_count", "ordered", "observation_required"}
+        required_fields = {"id", "media_type", "role", "description", "required", "min_count", "max_count", "count_rule", "ordered", "observation_required"}
         if not isinstance(item, dict) or set(item) != required_fields:
             _add(issues, "INVALID_REFERENCE_FIELDS", f"Reference fields must be exactly: {sorted(required_fields)}", path)
             continue
@@ -204,6 +204,62 @@ def validate_package(root: Path, *, require_receipt: bool = False) -> list[Issue
             _add(issues, "INVALID_REFERENCE_RANGE", "min_count must not exceed max_count", path)
         if item.get("required") is True and minimum == 0:
             _add(issues, "REQUIRED_REFERENCE_WITH_ZERO_MIN", "A required reference must have min_count >= 1", path)
+        rule = item.get("count_rule")
+        rule_fields = {"type", "enforcement", "fixed_count", "seconds_per_item", "rounding", "duration_share", "duration_to_count", "provenance", "confidence", "rationale"}
+        if not isinstance(rule, dict) or set(rule) != rule_fields:
+            _add(issues, "INVALID_COUNT_RULE_FIELDS", f"count_rule fields must be exactly: {sorted(rule_fields)}", path)
+        else:
+            rule_type = rule.get("type")
+            if rule_type not in {"fixed", "duration_formula", "duration_lookup", "bounded_recommendation"}:
+                _add(issues, "INVALID_COUNT_RULE_TYPE", "Unsupported count_rule type", path)
+            if rule.get("enforcement") not in {"required", "recommended"}:
+                _add(issues, "INVALID_COUNT_ENFORCEMENT", "count_rule.enforcement must be required or recommended", path)
+            if rule_type == "bounded_recommendation" and rule.get("enforcement") != "recommended":
+                _add(issues, "INVALID_COUNT_ENFORCEMENT", "bounded_recommendation must use recommended enforcement", path)
+            if rule_type == "fixed":
+                fixed = rule.get("fixed_count")
+                if not isinstance(fixed, int) or isinstance(fixed, bool) or fixed < minimum or (maximum is not None and fixed > maximum):
+                    _add(issues, "INVALID_FIXED_COUNT", "fixed_count must be an integer inside min_count/max_count", path)
+            elif rule.get("fixed_count") is not None:
+                _add(issues, "UNEXPECTED_FIXED_COUNT", "Only fixed rules may set fixed_count", path)
+            if rule_type in {"duration_formula", "bounded_recommendation"}:
+                seconds = rule.get("seconds_per_item")
+                if not isinstance(seconds, (int, float)) or isinstance(seconds, bool) or seconds <= 0:
+                    _add(issues, "INVALID_SECONDS_PER_ITEM", "Formula rules require positive seconds_per_item", path)
+                if rule.get("rounding") not in {"ceil", "floor", "round"}:
+                    _add(issues, "INVALID_COUNT_ROUNDING", "Formula rules require ceil, floor, or round", path)
+            elif rule.get("seconds_per_item") is not None or rule.get("rounding") is not None:
+                _add(issues, "UNEXPECTED_COUNT_FORMULA", "Non-formula rules must not set seconds_per_item or rounding", path)
+            share = rule.get("duration_share")
+            if not isinstance(share, (int, float)) or isinstance(share, bool) or not 0 < share <= 1:
+                _add(issues, "INVALID_DURATION_SHARE", "duration_share must be greater than 0 and at most 1", path)
+            lookup = rule.get("duration_to_count")
+            if not isinstance(lookup, list):
+                _add(issues, "INVALID_DURATION_LOOKUP", "duration_to_count must be an array", path)
+            elif rule_type == "duration_lookup":
+                if not lookup:
+                    _add(issues, "EMPTY_DURATION_LOOKUP", "duration_lookup requires at least one anchor", path)
+                durations = []
+                for anchor in lookup:
+                    if not isinstance(anchor, dict) or set(anchor) != {"duration_seconds", "count"}:
+                        _add(issues, "INVALID_DURATION_ANCHOR", "Each duration lookup anchor requires duration_seconds and count", path)
+                        continue
+                    duration_value, count_value = anchor.get("duration_seconds"), anchor.get("count")
+                    if not isinstance(duration_value, int) or isinstance(duration_value, bool) or not 4 <= duration_value <= 30:
+                        _add(issues, "INVALID_DURATION_ANCHOR", "Anchor duration must be an integer from 4 to 30", path)
+                    if not isinstance(count_value, int) or isinstance(count_value, bool) or count_value < minimum or (maximum is not None and count_value > maximum):
+                        _add(issues, "INVALID_DURATION_ANCHOR", "Anchor count must be inside min_count/max_count", path)
+                    durations.append(duration_value)
+                if len(durations) != len(set(durations)):
+                    _add(issues, "DUPLICATE_DURATION_ANCHOR", "Duration lookup anchors must be unique", path)
+            elif lookup:
+                _add(issues, "UNEXPECTED_DURATION_LOOKUP", "Only duration_lookup rules may contain anchors", path)
+            if rule.get("provenance") not in {"source_explicit", "curator_default", "user_approved_inference"}:
+                _add(issues, "INVALID_COUNT_PROVENANCE", "Unsupported count_rule provenance", path)
+            if rule.get("confidence") not in {"high", "medium", "low"}:
+                _add(issues, "INVALID_COUNT_CONFIDENCE", "Unsupported count_rule confidence", path)
+            if len(str(rule.get("rationale") or "")) < 8:
+                _add(issues, "COUNT_RATIONALE_TOO_SHORT", "count_rule rationale must explain the pacing decision", path)
     if minimum_total < 1:
         _add(issues, "ZERO_MINIMUM_REFERENCES", "The contract must require at least one reference asset", "contract.json")
 
