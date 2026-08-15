@@ -46,6 +46,10 @@ home. This includes the hard Windows local-resource contract: local Markdown lin
 use absolute forward-slash paths, never raw backslash paths or `file://` URIs, and reuse
 tool-returned resource targets when available.
 
+The same global guidance requires an explicit ratio for every image generation or edit. Missing
+ratios are rejected before any provider submission instead of being inferred from references or
+provider defaults.
+
 Before writing files in this checkout, run:
 
 ```powershell

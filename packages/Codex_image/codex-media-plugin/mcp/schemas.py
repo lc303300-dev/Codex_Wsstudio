@@ -3,8 +3,9 @@ IMAGE_SCHEMA = {
     "properties": {
         "prompt": {"type": "string", "minLength": 1},
         "images": {"type": "array", "items": {"type": "string"}, "default": []},
+        "image_ratio": {"type": "string", "enum": ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"]},
     },
-    "required": ["prompt"],
+    "required": ["prompt", "image_ratio"],
     "additionalProperties": False,
 }
 

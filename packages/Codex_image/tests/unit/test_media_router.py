@@ -39,7 +39,8 @@ from media_router.video_router import (
 )
 from media_router.service import validate_prompt_completeness
 from media_router.providers import comfly_common
-from media_router.providers.command_adapter import DreaminaAdapter, _run
+from media_router.providers.command_adapter import DreaminaAdapter, PythonImageAdapter, _run
+from media_router.providers.comfly_adapter import ComflyAdapter
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"offline-image"
 
@@ -100,7 +101,7 @@ class ImageRouterTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         store = TaskStore(Path(temporary.name))
-        result = ImageRouter(router_config(registry), registry, store).execute(MediaRequest("secret prompt"))
+        result = ImageRouter(router_config(registry), registry, store).execute(MediaRequest("secret prompt", image_ratio="9:16"))
         return result, calls
 
     def test_strict_order_stops_after_success(self):
@@ -116,7 +117,7 @@ class ImageRouterTests(unittest.TestCase):
         }
         config = router_config(registry)
         with tempfile.TemporaryDirectory() as temporary:
-            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_provider="p2"))
+            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_provider="p2", image_ratio="4:3"))
         self.assertEqual(result.status, "success")
         self.assertEqual(calls, ["p2"])
 
@@ -133,11 +134,20 @@ class ImageRouterTests(unittest.TestCase):
                 self.assertEqual(result.status, status)
                 self.assertEqual(calls, ["p1"])
 
-    def test_input_error_never_calls_provider(self):
+    def test_missing_ratio_is_input_error_and_never_calls_provider(self):
         calls = []
         registry = {"p1": FakeProvider("p1", "m1", "success", calls)}
         with tempfile.TemporaryDirectory() as temporary:
-            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary))).execute(MediaRequest("", (Path("missing.png"),)))
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt"))
+        self.assertEqual(result.failure_class, FailureClass.INPUT_ERROR.value)
+        self.assertIn("image_ratio is required", result.safe_reason)
+        self.assertEqual(calls, [])
+
+    def test_unsupported_ratio_is_input_error_and_never_calls_provider(self):
+        calls = []
+        registry = {"p1": FakeProvider("p1", "m1", "success", calls)}
+        with tempfile.TemporaryDirectory() as temporary:
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_ratio="5:7"))
         self.assertEqual(result.failure_class, FailureClass.INPUT_ERROR.value)
         self.assertEqual(calls, [])
 
@@ -147,7 +157,7 @@ class ImageRouterTests(unittest.TestCase):
         provider.execute = lambda request, context: (_ for _ in ()).throw(RuntimeError("unknown outcome"))
         registry = {"p1": provider, "p2": FakeProvider("p2", "m2", "success", calls)}
         with tempfile.TemporaryDirectory() as temporary:
-            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt"))
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_ratio="1:1"))
         self.assertEqual(result.status, "needs_review")
         self.assertEqual(result.failure_class, FailureClass.INDETERMINATE_SUBMISSION.value)
         self.assertEqual(calls, [])
@@ -169,7 +179,7 @@ class ImageRouterTests(unittest.TestCase):
         config = router_config(registry)
         config["image_timeouts"] = {"provider_seconds": 0.04, "task_seconds": 0.3}
         with tempfile.TemporaryDirectory() as temporary:
-            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt"))
+            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_ratio="3:2"))
         self.assertEqual(result.status, "success")
         self.assertEqual(calls, ["p1", "p2"])
         self.assertEqual(result.attempts[0]["failure_class"], FailureClass.PROVIDER_TIMEOUT.value)
@@ -186,7 +196,7 @@ class ImageRouterTests(unittest.TestCase):
         config = router_config(registry)
         config["image_timeouts"] = {"provider_seconds": 0.08, "task_seconds": 0.3}
         with tempfile.TemporaryDirectory() as temporary:
-            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt"))
+            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_ratio="3:2"))
         self.assertEqual(result.status, "success")
         self.assertEqual(calls, ["p1"])
 
@@ -208,7 +218,7 @@ class ImageRouterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             store = TaskStore(Path(temporary))
             started = time.monotonic()
-            result = ImageRouter(config, registry, store).execute(MediaRequest("prompt"))
+            result = ImageRouter(config, registry, store).execute(MediaRequest("prompt", image_ratio="3:2"))
             elapsed = time.monotonic() - started
             state_files = list(Path(temporary).rglob("state.json"))
             result_files = list(Path(temporary).rglob("result.json"))
@@ -242,7 +252,7 @@ class ProviderImageInputTests(unittest.TestCase):
             write_solid_png(source, 3840, 2160)
             original = source.read_bytes()
             store = TaskStore(root / "private")
-            request = MediaRequest("prompt", (source,))
+            request = MediaRequest("prompt", (source,), image_ratio="16:9")
             context = store.create(request)
 
             prepared = prepare_provider_images(request, context, 1920)
@@ -258,7 +268,7 @@ class ProviderImageInputTests(unittest.TestCase):
             source = root / "at-limit.png"
             write_solid_png(source, 1920, 1080)
             store = TaskStore(root / "private")
-            request = MediaRequest("prompt", (source,))
+            request = MediaRequest("prompt", (source,), image_ratio="16:9")
             context = store.create(request)
 
             prepared = prepare_provider_images(request, context, 1920)
@@ -280,11 +290,66 @@ class ProviderImageInputTests(unittest.TestCase):
             write_solid_png(source, 1500, 3000)
             calls = []
             provider = InspectingProvider("p1", "m1", "success", calls)
-            result = ImageRouter(router_config({"p1": provider}), {"p1": provider}, TaskStore(root / "private")).execute(MediaRequest("prompt", (source,)))
+            result = ImageRouter(router_config({"p1": provider}), {"p1": provider}, TaskStore(root / "private")).execute(MediaRequest("prompt", (source,), image_ratio="9:16"))
 
             self.assertEqual(result.status, "success")
             self.assertEqual(png_dimensions(received[0]), (960, 1920))
             self.assertNotEqual(received[0], source.resolve())
+
+
+class ImageRatioAdapterTests(unittest.TestCase):
+    def context(self, root: Path) -> TaskContext:
+        job = root / "job"
+        (job / "outputs").mkdir(parents=True)
+        (job / "logs").mkdir()
+        prompt = job / "prompt.txt"
+        prompt.write_text("prompt", encoding="utf-8")
+        return TaskContext("batch", "task", job, job / "outputs", prompt, job / "cancel")
+
+    def test_comfly_receives_structured_ratio(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            context = self.context(root)
+            adapter = ComflyAdapter("comfly-gemini-lite", "gemini-3.1-flash-image-preview")
+
+            def execute_once(model, prompt, images, output, **options):
+                atomic_write_bytes(output, PNG)
+                self.assertEqual(options["size"], "9:16")
+                return {"request_id": "offline", "output_bytes": output.stat().st_size}
+
+            with mock.patch("media_router.providers.comfly_adapter.comfly_common.execute_once", side_effect=execute_once):
+                result = adapter.execute(MediaRequest("prompt", image_ratio="9:16"), context)
+        self.assertEqual(result.status, "success")
+
+    def test_python_image_adapters_receive_structured_ratio(self):
+        cases = (
+            ("apimart-gpt-image-2", "gpt-image-2", ROOT / "CLI" / "Gpt-API" / "gpt_api.py", "APIMART_API_KEY", "--size"),
+            ("google-gemini-image", "gemini-3.1-flash-image", ROOT / "CLI" / "Gemini-API" / "gemini_api.py", "GEMINI_API_KEY", "--aspect-ratio"),
+        )
+        for provider_id, model_id, script, key_name, flag in cases:
+            with self.subTest(provider=provider_id), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                context = self.context(root)
+                adapter = PythonImageAdapter(provider_id, model_id, script, key_name)
+
+                def run(command, timeout, log_path, **options):
+                    self.assertEqual(command[command.index(flag) + 1], "3:4")
+                    atomic_write_bytes(context.output_dir / f"{provider_id}.png", PNG)
+                    return subprocess.CompletedProcess(command, 0, "", "")
+
+                with mock.patch("media_router.providers.command_adapter._run", side_effect=run):
+                    result = adapter.execute(MediaRequest("prompt", image_ratio="3:4"), context)
+                self.assertEqual(result.status, "success")
+
+    def test_dreamina_receives_structured_ratio(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            context = self.context(root)
+            adapter = DreaminaAdapter("dreamina-image", "image", "4.0")
+            with mock.patch.object(adapter, "execute_command", return_value=ProviderResult("dreamina-image", "4.0", "failed")) as execute_command:
+                adapter.execute(MediaRequest("prompt", image_ratio="2:3"), context)
+            arguments = execute_command.call_args.args[1]
+        self.assertEqual(arguments[arguments.index("--ratio") + 1], "2:3")
 
 
 class VideoRouterTests(unittest.TestCase):

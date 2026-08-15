@@ -13,6 +13,8 @@ Both tools are external open-world operations that may consume provider credits.
 
 ## Image Routing
 
+Every image generation or edit requires an explicit user-selected ratio before any paid submission. Supported ratios are `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, and `9:16`. Never infer a ratio from reference images, image orientation, prompt context, earlier tasks, filenames, or provider defaults. The public `generate_image` contract requires structured `image_ratio`; missing or unsupported values fail as `input_error` before any provider is called.
+
 Route each image task strictly serially and stop after the first validated non-empty local image:
 
 1. `comfly-gemini-lite` -> `gemini-3.1-flash-image-preview`

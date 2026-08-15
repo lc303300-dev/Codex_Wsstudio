@@ -89,6 +89,11 @@ Markdown links and embedded local media must use absolute forward-slash paths, m
 from raw Windows paths. Deployment verification fails if this contract is missing from either
 the repository guidance source or the installed global `AGENTS.md`.
 
+It also installs the required image-ratio contract. Every image generation or edit must have
+an explicit user-selected ratio before submission; the ratio is passed through the structured
+`generate_image.image_ratio` field, and missing values are rejected before any paid provider call.
+Deployment verification fails if this rule is absent from the installed global guidance.
+
 It also refreshes the unified media tools and `codex-media-plugin` from
 `packages/Codex_image/`, including managed personal marketplace and cached plugin
 copies, then refreshes the globally registered `codex-github`, `video-to-gif`,

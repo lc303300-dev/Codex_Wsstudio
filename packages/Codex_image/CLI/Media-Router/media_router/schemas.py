@@ -22,6 +22,7 @@ class MediaRequest:
     video_resolution: str | None = None
     image_provider: str | None = None
     image_model: str | None = None
+    image_ratio: str | None = None
 
 
 @dataclass(frozen=True)

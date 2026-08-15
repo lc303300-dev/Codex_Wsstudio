@@ -38,7 +38,7 @@ from schemas import IMAGE_SCHEMA, VIDEO_SCHEMA  # noqa: E402
 TOOLS = [
     {
         "name": "generate_image",
-        "description": "Generate or edit one image through the default serial media router. This open-world operation may consume provider credits.",
+        "description": "Generate or edit one image through the default serial media router. An explicit user-selected image_ratio is required. This open-world operation may consume provider credits.",
         "inputSchema": IMAGE_SCHEMA,
         "annotations": {"openWorldHint": True, "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     },
@@ -171,7 +171,7 @@ def handle(message: dict) -> dict | None:
         if name not in {"generate_image", "generate_video"}:
             return response(identifier, error={"code": -32602, "message": "Unknown tool"})
         try:
-            options = {key: arguments[key] for key in ("video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution") if key in arguments}
+            options = {key: arguments[key] for key in ("image_ratio", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution") if key in arguments}
             result = execute(name, arguments.get("prompt", ""), arguments.get("images", []), arguments.get("videos", []), arguments.get("audios", []), **options)
         except Exception as exc:
             result = {"status": "failed", "safe_reason": type(exc).__name__}

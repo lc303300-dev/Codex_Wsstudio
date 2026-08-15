@@ -5,11 +5,13 @@ description: Generate images, draw from text, and edit, composite, or transform 
 
 # Default Image Generation
 
-Call `generate_image` with only the user's non-empty `prompt` and ordered local `images` paths. Do not expose or request provider, model, API URL, credential, concurrency, timeout, output, or log settings.
+Before any generation or edit, require the user to explicitly choose one supported image ratio: `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, or `9:16`. If the user has not explicitly supplied a ratio, stop and ask for it; never infer it from reference images, prompt content, orientation, prior turns, filenames, or provider defaults. Do not call the paid tool until the ratio is explicit.
+
+Call `generate_image` with the user's non-empty `prompt`, ordered local `images` paths, and required structured `image_ratio`. Do not expose or request provider, model, API URL, credential, concurrency, timeout, output, or log settings.
 
 On success, use the image and original-file resource returned by the tool. Do not reconstruct image Markdown or file links from the raw `output_path`; on Windows, a backslash path is not a portable image URI.
 
-Treat every call as an external operation that may consume provider credits. Do not run speculative generations. Preserve explicit ratio, resolution, quality, or model preferences in the prompt so the router can apply them.
+Treat every call as an external operation that may consume provider credits. Do not run speculative generations. Pass the explicit ratio through `image_ratio`; preserve explicit resolution, quality, or model preferences in the prompt so the router can apply them.
 
 The router normalizes local reference-image orientation and proportionally resizes any image whose longest edge exceeds 1920 px before provider submission. It never overwrites the original image.
 

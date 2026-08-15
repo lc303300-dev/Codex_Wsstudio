@@ -8,6 +8,10 @@ When a task contains two or more concrete, bounded, and substantially independen
 
 Treat Windows local Markdown links and embedded local media as a hard output contract. Never place a raw backslash path such as `D:\workspace\file.png` inside a Markdown link or image target. Use an absolute path with forward slashes such as `D:/workspace/file.png`, never a `file://` URI; when the target contains spaces, wrap the entire target in angle brackets. When a tool returns a renderable image, file resource, or dedicated Markdown link target, forward that returned resource or target directly and never reconstruct it from `output_path`, a display path, or another raw Windows path. Before sending a final response containing a local Markdown link or image, verify that every local target is absolute, uses forward slashes, and refers to the intended existing file or directory. If any local target contains a backslash, do not send the response until it is corrected.
 
+## Required Image Ratio
+
+Before every image generation or image edit, require the user to explicitly choose one supported ratio: `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, or `9:16`. If no ratio is explicit, refuse to submit generation and ask the user for it. Never infer image ratio from reference images, orientation, prompt context, earlier turns, filenames, or provider defaults. Pass the chosen value through the structured `generate_image` `image_ratio` field.
+
 When the user is clearly asking to set up, install, deploy, update deployment, or bootstrap this repository, treat the request as a one-click deployment request and run:
 
 ```powershell

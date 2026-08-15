@@ -96,9 +96,9 @@ class PythonImageAdapter:
         for image in request.images:
             command += ["--image", str(image)]
         if self.provider_id == "apimart-gpt-image-2":
-            command += ["--model", self.model_id, "--workspace", str(PRIVATE_ROOT)]
+            command += ["--model", self.model_id, "--workspace", str(PRIVATE_ROOT), "--size", request.image_ratio]
         elif self.provider_id == "google-gemini-image":
-            command += ["--model", self.model_id, "--env-file", str(PRIVATE_ROOT / ".env")]
+            command += ["--model", self.model_id, "--env-file", str(PRIVATE_ROOT / ".env"), "--aspect-ratio", request.image_ratio]
         try:
             _run(command, _remaining_timeout(context, 420), log, timeout_failure=FailureClass.PROVIDER_TIMEOUT if context.provider_deadline is not None else None)
             if not is_valid_image(output):
@@ -210,7 +210,7 @@ class DreaminaAdapter:
             command = "image2image" if request.images else "text2image"
             model = request.image_model or "4.0"
             resolution = "1k" if model == "5.0Pro" else "2k"
-            args = ["--prompt", request.prompt, "--model_version", model, "--resolution_type", resolution, "--generate_num", "1", "--poll", "180"]
+            args = ["--prompt", request.prompt, "--model_version", model, "--resolution_type", resolution, "--ratio", request.image_ratio, "--generate_num", "1", "--poll", "180"]
             if request.images:
                 args += ["--images", ",".join(str(p) for p in request.images)]
             return self.execute_command(command, args, request, context)

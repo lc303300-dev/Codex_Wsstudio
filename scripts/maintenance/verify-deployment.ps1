@@ -68,6 +68,20 @@ foreach ($marker in $localMarkdownRuleMarkers) {
     }
 }
 
+$imageRatioRuleMarkers = @(
+    "Before every image generation or image edit, require the user to explicitly choose one supported ratio",
+    "If no ratio is explicit, refuse to submit generation",
+    "structured generate_image image_ratio field"
+)
+foreach ($marker in $imageRatioRuleMarkers) {
+    if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not ((Get-Content -LiteralPath $source -Raw -Encoding UTF8) -like "*$marker*")) {
+        $errors.Add("Required image-ratio rule is absent from the repository global guidance source: $marker")
+    }
+    if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not ((Get-Content -LiteralPath $target -Raw -Encoding UTF8) -like "*$marker*")) {
+        $errors.Add("Required image-ratio rule is absent from the installed global guidance: $marker")
+    }
+}
+
 $expectedImageRoot = Join-Path $RepositoryRoot "packages\Codex_image"
 $mediaMarkers = @(
     Join-Path $CodexHome "skills\default-image-generation\.codex-image-registration.json"

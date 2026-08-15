@@ -26,6 +26,7 @@ Codex 中只公开并注册两个默认工具：
 
 - `prompt`：必需字符串。
 - `images`：可选本地图片路径数组。
+- `image_ratio`：必需的用户明确选择比例，只允许 `21:9`、`16:9`、`3:2`、`4:3`、`1:1`、`3:4`、`2:3`、`9:16`。
 
 `generate_video` 只接收：
 
@@ -36,7 +37,7 @@ Codex 中只公开并注册两个默认工具：
 
 不要把 provider、model、API URL、API Key、CLI 子命令、输出目录、日志目录、并发参数、超时参数或代理参数暴露为默认工具的公开输入。
 
-用户在提示词中明确提出比例、分辨率、时长、画质或模型偏好时，路由层可以解析并应用；没有明确要求时使用项目默认值。
+图片任务不从提示词、参考图、方向、历史上下文、文件名或 provider 默认值推断比例。用户必须明确选择图片比例，并通过结构化 `image_ratio` 传入；缺失或不支持时在付费提交前以 `input_error` 拒绝。视频比例、分辨率、时长、画质或模型偏好继续按各自工具契约处理。
 
 ### 1.2 图片后端顺序
 
@@ -216,9 +217,10 @@ MCP server 只暴露两个工具，不暴露 provider 调试工具：
       "type": "array",
       "items": { "type": "string" },
       "default": []
-    }
+    },
+    "image_ratio": { "type": "string", "enum": ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"] }
   },
-  "required": ["prompt"],
+  "required": ["prompt", "image_ratio"],
   "additionalProperties": false
 }
 ```

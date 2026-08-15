@@ -29,7 +29,7 @@ class TaskStore:
         write_json(job_dir / "request.json", {
             "task_id": task_id, "batch_id": batch_id, "prompt": prompt_metadata(request.prompt),
             "images": [str(p) for p in request.images], "videos": [str(p) for p in request.videos],
-            "audios": [str(p) for p in request.audios], "created_at": now(),
+            "audios": [str(p) for p in request.audios], "image_ratio": request.image_ratio, "created_at": now(),
         })
         self.set_state(context, "pending")
         return context

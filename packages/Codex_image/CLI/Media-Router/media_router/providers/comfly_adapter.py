@@ -35,6 +35,7 @@ class ComflyAdapter:
                 request.prompt,
                 request.images,
                 output,
+                size=request.image_ratio,
                 deadline=context.provider_deadline,
                 timeout_failure=FailureClass.PROVIDER_TIMEOUT if context.provider_deadline is not None else None,
             )

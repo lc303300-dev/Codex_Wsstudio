@@ -29,7 +29,9 @@ class PluginContractTests(unittest.TestCase):
 
     def test_exact_public_schemas(self):
         tools = {tool["name"]: tool["inputSchema"] for tool in server.TOOLS}
-        self.assertEqual(set(tools["generate_image"]["properties"]), {"prompt", "images"})
+        self.assertEqual(set(tools["generate_image"]["properties"]), {"prompt", "images", "image_ratio"})
+        self.assertEqual(set(tools["generate_image"]["required"]), {"prompt", "image_ratio"})
+        self.assertEqual(tools["generate_image"]["properties"]["image_ratio"]["enum"], ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"])
         self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution"})
         self.assertFalse(tools["generate_image"]["additionalProperties"])
         self.assertFalse(tools["generate_video"]["additionalProperties"])
@@ -61,7 +63,7 @@ class PluginContractTests(unittest.TestCase):
             output.write_bytes(png)
             generated = {"status": "success", "output_path": str(output), "provider_id": "fake", "model_id": "fake-image"}
             with mock.patch.object(server, "execute", return_value=generated):
-                reply = server.handle({"jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test"}}})
+                reply = server.handle({"jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test", "image_ratio": "9:16"}}})
 
         result = reply["result"]
         self.assertFalse(result["isError"])
@@ -83,13 +85,22 @@ class PluginContractTests(unittest.TestCase):
             output.write_bytes(b"not-an-image")
             generated = {"status": "success", "output_path": str(output)}
             with mock.patch.object(server, "execute", return_value=generated):
-                reply = server.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test"}}})
+                reply = server.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test", "image_ratio": "9:16"}}})
 
         result = reply["result"]
         self.assertTrue(result["isError"])
         self.assertEqual(result["structuredContent"]["status"], "failed")
         self.assertEqual(result["structuredContent"]["safe_reason"], "invalid_image_output")
         self.assertEqual([item["type"] for item in result["content"]], ["text"])
+
+    def test_missing_image_ratio_is_rejected_before_provider_execution(self):
+        with mock.patch.object(server, "execute", wraps=server.execute) as execute:
+            reply = server.handle({"jsonrpc": "2.0", "id": 12, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test"}}})
+        result = reply["result"]
+        self.assertTrue(result["isError"])
+        self.assertEqual(result["structuredContent"]["failure_class"], "input_error")
+        self.assertIn("image_ratio is required", result["structuredContent"]["safe_reason"])
+        execute.assert_called_once()
 
     def test_successful_video_returns_file_resource_with_normalized_uri(self):
         mp4 = b"\x00\x00\x00\x18ftypisom" + b"offline-video"
