@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import shutil
 import sys
 import uuid
@@ -344,12 +345,34 @@ def load_prompt_text(text: str | None, prompt_file: Path | None) -> str:
     return value.strip()
 
 
+def material_prompt_aliases(project: dict) -> list[str]:
+    aliases = []
+    for item in project.get("final_images", []):
+        stem = Path(str(item.get("path", ""))).stem
+        if len(stem) >= 3 and not stem.isdecimal():
+            aliases.append(stem)
+    return sorted(set(aliases), key=str.casefold)
+
+
+def validate_prompt_content(project: dict, content: str) -> None:
+    leaked = [alias for alias in material_prompt_aliases(project) if alias and alias in content]
+    if leaked:
+        raise PipelineError(
+            "prompt leaks internal material filename or alias: "
+            + ", ".join(leaked[:5])
+            + "; use only ordered labels such as 图片1, 图片2"
+        )
+    if re.search(r"(?m)^\s*\d+(?:\.\d+)?\s*[–-]\s*\d+(?:\.\d+)?\s*秒\s*｜[^｜\n]+｜\s*图片\d+\s*$", content):
+        raise PipelineError("prompt contains an invalid storyboard heading; write natural headings such as '0.0-4.0 秒，第一段，参考图片2。'")
+
+
 def set_cs_prompt(projects_root: Path, project_id: str, content: str) -> dict:
     root, project = load_project(projects_root, project_id)
     verify_project_skill(project)
     require_state(project, {"final_images_ready"})
     if project["prompts"]:
         raise PipelineError("CS may create only prompt V1; all revisions must use the DT revision command")
+    validate_prompt_content(project, content)
     transition(project, "authoring_prompt")
     prompt = {
         "version": 1,
@@ -385,6 +408,7 @@ def request_revision(projects_root: Path, project_id: str, feedback: str) -> dic
 def set_dt_revision(projects_root: Path, project_id: str, content: str) -> dict:
     root, project = load_project(projects_root, project_id)
     require_state(project, {"dt_revision"})
+    validate_prompt_content(project, content)
     previous = project["prompts"][-1]
     version = len(project["prompts"]) + 1
     prompt = {
@@ -411,6 +435,7 @@ def confirm_prompt(projects_root: Path, project_id: str) -> dict:
     active = project["prompts"][project["active_prompt_version"] - 1]
     if current_material_hash != project["material_hash"] or active["material_hash"] != current_material_hash:
         raise PipelineError("final materials changed after prompt authoring; lock materials and author a new prompt")
+    validate_prompt_content(project, active["content"])
     active["prompt_hash"] = text_sha256(active["content"])
     active["status"] = "confirmed"
     active["confirmed_at"] = utc_now()
@@ -436,6 +461,7 @@ def start_generation(projects_root: Path, project_id: str) -> dict:
         raise PipelineError("final materials changed after confirmation; video submission is blocked")
     if text_sha256(active["content"]) != confirmation.get("prompt_hash"):
         raise PipelineError("prompt changed after confirmation; video submission is blocked")
+    validate_prompt_content(project, active["content"])
     project["generation"] = {
         "status": "ready_for_external_submission",
         "prompt_version": active["version"],

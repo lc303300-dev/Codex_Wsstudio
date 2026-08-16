@@ -75,6 +75,16 @@ class ProjectPipelineTests(unittest.TestCase):
             for item in range(slot["planned_count"]):
                 Path(slot["source_dir"], f"{item + 1:02}.png").write_bytes(f"image-{index}-{item}".encode())
 
+    def put_named_sources(self) -> None:
+        project = json.loads((self.projects / "demo" / "project.json").read_text(encoding="utf-8"))
+        names = {
+            "identity": ["Logo_设定图.png"],
+            "scenes": ["Tu_001.png", "Tu_002.png", "Tu_003.png"],
+        }
+        for slot in project["material_slots"]:
+            for name in names[slot["id"]]:
+                Path(slot["source_dir"], name).write_bytes(name.encode())
+
     def test_create_requires_confirmation_and_creates_slot_directories(self) -> None:
         with self.assertRaises(pipeline.PipelineError):
             pipeline.create_project(self.projects, self.skills, "bad", "test-skill", "测试 Skill", "9:16", 15, False)
@@ -144,6 +154,25 @@ class ProjectPipelineTests(unittest.TestCase):
         self.assertEqual(len(payload["ordered_media"]["images"]), 4)
         completed = pipeline.complete_project(self.projects, "demo", "external-task-1")
         self.assertEqual(completed["state"], "completed")
+
+    def test_prompt_rejects_internal_material_filename_leaks(self) -> None:
+        self.create()
+        pipeline.choose_image_stage(self.projects, "demo", "user_supplied")
+        self.put_named_sources()
+        pipeline.lock_final(self.projects, "demo", True)
+        with self.assertRaisesRegex(pipeline.PipelineError, "internal material filename"):
+            pipeline.set_cs_prompt(self.projects, "demo", "图片2是 Tu_001：第一段场景参考。")
+
+    def test_prompt_rejects_pipe_storyboard_heading(self) -> None:
+        self.create()
+        pipeline.choose_image_stage(self.projects, "demo", "user_supplied")
+        self.put_sources()
+        pipeline.lock_final(self.projects, "demo", True)
+        bad = "0.0-4.0 秒｜第一段｜图片2\n完全依据图片2建立空间。"
+        with self.assertRaisesRegex(pipeline.PipelineError, "invalid storyboard heading"):
+            pipeline.set_cs_prompt(self.projects, "demo", bad)
+        good = pipeline.set_cs_prompt(self.projects, "demo", "0.0-4.0 秒，第一段，参考图片2。依据图片2建立空间。")
+        self.assertEqual(good["active_prompt_version"], 1)
 
     def test_revision_is_dt_owned(self) -> None:
         self.create()
