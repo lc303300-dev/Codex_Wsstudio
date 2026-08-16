@@ -22,7 +22,7 @@ The command is repeatable. It:
 - installs Dreamina CLI when it is missing and starts login when required;
 - installs the bundled 1024 px preview converter into `CODEX_HOME/tools/`;
 - registers the unified image/video tools and plugin;
-- registers the video-to-GIF, Tool Scout, Codex_DT, Codex_CS, and batch-image-generation global skills;
+- registers the video-to-GIF, Tool Scout, Codex_DT, Codex_CS, batch-image-generation, and Codex_IS global skills;
 - deploys `Codex_DT` using the sibling `Codex_image` CLI.
 - runs a post-deployment verification that checks required paths, installed global guidance, the sub-agent delegation rule, and project structure.
 
@@ -105,7 +105,7 @@ It also refreshes the unified media tools and `codex-media-plugin` from
 copies, then refreshes the globally registered `codex-github`, `video-to-gif`,
 `codex-dt-video-prompt`, and `codex-cs-skill-curator` skills from
 `packages/Codex_Github/`, `packages/Codex_Gif/`, `packages/Codex_DT/`,
-`packages/Codex_CS/`, and `packages/Codex_Batch_Image/` when those package scripts are present.
+`packages/Codex_CS/`, `packages/Codex_Batch_Image/`, and `packages/Codex_IS/` when those package scripts are present.
 
 After deployment, the same pipeline runs `scripts/maintenance/verify-deployment.ps1`.
 Run it independently to audit an existing machine:

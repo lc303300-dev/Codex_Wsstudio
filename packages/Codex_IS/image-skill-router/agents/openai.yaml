@@ -1,0 +1,5 @@
+interface:
+  display_name: "图片业务 Skill 路由"
+  short_description: "按正式契约编排图片业务 Skill、素材、提示词与执行确认"
+  default_prompt: "Use $image-skill-router to select and run a governed image business Skill."
+

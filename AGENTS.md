@@ -63,13 +63,17 @@ This repository uses the monorepo layout defined in `docs/PROJECT_STRUCTURE.md`:
 - shared configuration belongs under `config/`;
 - automation belongs under `scripts/`, grouped by purpose;
 - the root is reserved for repository metadata, dependency/test manifests, governance files, and stable entry scripts.
-- packaged projects currently live in `packages/Codex_image/`, `packages/Codex_DT/`, `packages/Codex_Gif/`, `packages/Codex_Github/`, `packages/Codex_CS/`, and `packages/Codex_Batch_Image/`.
+- packaged projects currently live in `packages/Codex_image/`, `packages/Codex_DT/`, `packages/Codex_Gif/`, `packages/Codex_Github/`, `packages/Codex_CS/`, `packages/Codex_Batch_Image/`, and `packages/Codex_IS/`.
 
 Do not add new implementation scripts, project directories, generated output, or standalone design documents to the repository root. Before completing any change, run `scripts/maintenance/test-project-structure.ps1`. Structural changes must update the structure document, README, validation allowlist, path references, and both repository/global guidance when applicable.
 
 ## Batch Image Generation Routing
 
 For grouped image candidates, multiple redraws, requests such as `每组生成5张` or `10路并发生图`, and numbered selection boards, use the globally registered `batch-image-generation` skill. Require an explicit supported ratio and paid-batch confirmation. Submit only through `generate_image` and the unified Media Router. Its deterministic scheduler replaces child-Agent generation for this workflow: use at most 10 in-flight tasks, start real submissions at least one second apart, estimate one minute per concurrent wave and use 1.5 times that estimate as the default dispatch deadline, start no new tasks after that deadline, wait up to 120 additional seconds only for already-running tasks, then mark remaining running tasks failed and continue to fixed-slot contact sheets without automatic visual or size QA.
+
+## Image Business Skill Routing
+
+When a user wants a governed image-business workflow such as a same-scene 3×3 storyboard, use the globally registered `image-skill-router` first. Select the Skill from the user's creative goal, confirm the formal Skill name, an explicit supported ratio, scene count, and per-scene candidate count, then create only the material slots declared by that Skill's `contract.json`. The selected business Skill authors prompt V1; every material or prompt change invalidates prior confirmation. One task routes to unified `generate_image`; multiple scenes or candidates require explicit paid-batch confirmation and route to `batch-image-generation`. Never add undeclared reference images at runtime, and never let Codex_IS choose providers or call provider adapters.
 
 ## Video Business Skill Routing
 

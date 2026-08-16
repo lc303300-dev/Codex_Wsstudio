@@ -31,6 +31,10 @@ $requiredPackagePaths = @(
     "packages\Codex_Batch_Image\register-global-skill.ps1",
     "packages\Codex_Batch_Image\run-batch-image-generation.ps1",
     "packages\Codex_Batch_Image\batch-image-generation\SKILL.md"
+    "packages\Codex_IS"
+    "packages\Codex_IS\register-global-skills.ps1"
+    "packages\Codex_IS\image-skill-router\SKILL.md"
+    "packages\Codex_IS\business-skills\scene-storyboard-grid\SKILL.md"
 )
 
 $errors = [System.Collections.Generic.List[string]]::new()

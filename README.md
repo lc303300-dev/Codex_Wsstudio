@@ -14,7 +14,8 @@ Codex_Wsstudio/
 │  ├─ Codex_Gif/                Video-to-GIF package and global skill registration
 │  ├─ Codex_Github/             Tool Scout discovery workflow
 │  ├─ Codex_CS/                 Governed video Skill intake, routing, materials, and project pipeline
-│  └─ Codex_Batch_Image/        Timed concurrent image batches and human-review sheets
+│  ├─ Codex_Batch_Image/        Timed concurrent image batches and human-review sheets
+│  └─ Codex_IS/                 Governed image Skill contracts, routing, prompts, and project state
 ├─ scripts/
 │  ├─ codex/                    Codex configuration synchronization
 │  ├─ deployment/               Installation and deployment implementation
