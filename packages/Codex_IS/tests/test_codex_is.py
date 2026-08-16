@@ -55,6 +55,11 @@ class CodexIsTests(unittest.TestCase):
         contract = json.loads((SKILL_ROOT / "contract.json").read_text(encoding="utf-8"))
         self.assertEqual([item["id"] for item in contract["references"]], ["scene-base", "identity-design"])
         self.assertEqual(contract["output"]["panel_count"], 9)
+        self.assertEqual(contract["output"]["panel_orientation_source"], "scene-base")
+        self.assertTrue(contract["output"]["uniform_panel_orientation"])
+        self.assertTrue(contract["output"]["outer_ratio_independent_from_panel_orientation"])
+        self.assertTrue(contract["authoring"]["requires_per_scene_fact_ledger"])
+        self.assertEqual(contract["authoring"]["shot_selection_strategy"], "evidence_conditioned")
 
     def test_registry_only_indexes_published_package(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -141,4 +146,3 @@ class CodexIsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

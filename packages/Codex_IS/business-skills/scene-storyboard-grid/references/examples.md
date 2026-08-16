@@ -10,7 +10,7 @@
 
 ```text
 OUTPUT CONTRACT
-Create one complete image at the confirmed aspect ratio, containing exactly nine equal panels in a strict 3×3 grid. No titles, panel numbers, captions, watermarks, UI, or decorative outer frame.
+Create one complete image at the confirmed aspect ratio, containing exactly nine equal panels in a strict 3×3 grid. Keep all nine internal panel compositions vertical because the scene reference is portrait-oriented. No titles, panel numbers, captions, watermarks, UI, or decorative outer frame.
 
 REFERENCE ROLES
 Reference image 1 is the closed-world authority for the entire scene and for every visible property of the single sculpture. Do not invent unseen rear geometry.
@@ -54,3 +54,14 @@ No duplicated subject, no geometry drift, no new room elements, no temporal prog
 
 不得出现 through-hole shot。改用已存在的前景遮挡、侧掠厚度、材质微距或高角投影镜头。
 
+## 横向底图与竖向外层画布
+
+输入：用户确认最终整张图片为 3:4，但 `scene-base` 是横向构图。
+
+要求：最终画布仍为竖向 3:4；九个内部小画面全部保持横向构图，并以严格 3×3 等大网格排版。不得把每个小画面强行裁成竖向，也不得横竖混排。通过统一分隔和整体留白适配外层画布，禁止拉伸场景。
+
+## 条件化选镜示例
+
+事实账本确认：主体侧面和厚度可见、前方有建筑遮挡、地面投影清楚；未发现真实孔洞，金属表面只能确认光滑反射，不能确认拉丝或风化，底图也没有暖色轮廓光。
+
+当前提示词可写侧掠厚度、真实前景遮挡和高角投影；不得写 through-hole view、brushed weathered surface 或 warm edge light。其余格使用三分之四关系、低角尺度、保守斜角、裁切、焦段、景深和对焦差异补足。
