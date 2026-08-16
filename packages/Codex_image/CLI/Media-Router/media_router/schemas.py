@@ -23,7 +23,7 @@ class MediaRequest:
     image_provider: str | None = None
     image_model: str | None = None
     image_ratio: str | None = None
-    image_resolution: str = "1K"
+    image_resolution: str | None = None
 
 
 @dataclass(frozen=True)

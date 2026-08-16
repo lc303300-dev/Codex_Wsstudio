@@ -38,7 +38,7 @@ from schemas import IMAGE_SCHEMA, VIDEO_SCHEMA  # noqa: E402
 TOOLS = [
     {
         "name": "generate_image",
-        "description": "Generate or edit one image through the unified media router. By default it uses the configured serial fallback order; when the user explicitly names a supported image route, pass image_provider to use only that route. image_resolution is a peer of image_ratio and supports 1K, 2K, or 4K (default 1K). An explicit user-selected image_ratio is required. This open-world operation may consume provider credits.",
+        "description": "Generate or edit one image through the unified media router. By default it uses the configured serial fallback order; when the user explicitly names a supported image route, pass image_provider to use only that route. image_resolution is optional and supports 1K, 2K, or 4K; when omitted, GPT image routes default to 4K and Gemini image routes default to 2K. An explicit user-selected image_ratio is required. This open-world operation may consume provider credits.",
         "inputSchema": IMAGE_SCHEMA,
         "annotations": {"openWorldHint": True, "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     },

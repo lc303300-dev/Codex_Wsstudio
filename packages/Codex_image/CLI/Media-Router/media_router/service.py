@@ -44,7 +44,7 @@ def execute(command: str, prompt: str, images=(), videos=(), audios=(), **video_
         image_provider=video_options.get("image_provider"),
         image_model=video_options.get("image_model"),
         image_ratio=video_options.get("image_ratio"),
-        image_resolution=video_options.get("image_resolution", "1K"),
+        image_resolution=video_options.get("image_resolution"),
     )
     if command == "generate_image":
         return ImageRouter(config, registry).execute(request).to_dict()

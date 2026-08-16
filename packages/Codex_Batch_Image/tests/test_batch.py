@@ -87,6 +87,16 @@ class BatchTests(unittest.TestCase):
             calls = [json.loads(line) for line in (folder / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual([call["image_provider"] for call in calls], ["dreamina-image", "dreamina-image"])
 
+    def test_omitted_resolution_is_not_forced_to_global_1k(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"batch_id": "provider-default", "image_ratio": "1:1", "image_provider": "comfly-gpt-image-2", "start_delay_seconds": 0, "deadline_seconds": 5,
+                        "groups": [{"id": "A", "prompt": "one", "candidates": 1}]}
+            result = self.invoke(manifest, folder)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            call = json.loads((folder / "calls.jsonl").read_text(encoding="utf-8").strip())
+            self.assertIsNone(call["image_resolution"])
+
     def test_unsupported_image_provider_is_rejected_before_spawn(self):
         with tempfile.TemporaryDirectory() as value:
             folder = Path(value)

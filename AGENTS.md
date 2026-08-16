@@ -12,7 +12,7 @@ Treat Windows local Markdown links and embedded local media as a hard output con
 
 Before every image generation or image edit, require the user to explicitly choose one supported ratio: `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, or `9:16`. If no ratio is explicit, refuse to submit generation and ask the user for it. Never infer image ratio from reference images, orientation, prompt context, earlier turns, filenames, or provider defaults. Pass the chosen value through the structured `generate_image` `image_ratio` field.
 
-Image resolution is a sibling structured `generate_image.image_resolution` option. Supported values are `1K`, `2K`, and `4K`; omit it to retain the backward-compatible `1K` default.
+Image resolution is an optional sibling structured `generate_image.image_resolution` option. Supported values are `1K`, `2K`, and `4K`. When omitted, GPT image routes default to `4K`, Gemini image routes default to `2K`, and Dreamina retains `1K`.
 
 ## Explicit Image Route
 

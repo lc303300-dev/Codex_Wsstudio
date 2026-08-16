@@ -31,7 +31,8 @@ class ComflyAdapter:
     def execute(self, request: MediaRequest, context: TaskContext) -> ProviderResult:
         started, stamp = monotonic(), datetime.now(timezone.utc).isoformat()
         output = context.output_dir / f"{self.provider_id}.png"
-        model_id = self.models_by_resolution.get(request.image_resolution, self.model_id)
+        resolution = request.image_resolution or ("4K" if self.provider_id == "comfly-gpt-image-2" else "2K")
+        model_id = self.models_by_resolution.get(resolution, self.model_id)
         try:
             details = comfly_common.execute_once(
                 model_id,
@@ -39,7 +40,7 @@ class ComflyAdapter:
                 request.images,
                 output,
                 size=request.image_ratio,
-                resolution=request.image_resolution,
+                resolution=resolution,
                 size_profile=self.size_profile,
                 deadline=context.provider_deadline,
                 timeout_failure=FailureClass.PROVIDER_TIMEOUT if context.provider_deadline is not None else None,

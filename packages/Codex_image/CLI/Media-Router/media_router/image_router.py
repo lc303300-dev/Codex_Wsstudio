@@ -37,7 +37,7 @@ class ImageRouter:
             raise ValueError("image_ratio is required; ask the user to choose an image ratio before generation")
         if request.image_ratio not in SUPPORTED_IMAGE_RATIOS:
             raise ValueError("Unsupported image_ratio: " + request.image_ratio)
-        if request.image_resolution not in SUPPORTED_IMAGE_RESOLUTIONS:
+        if request.image_resolution is not None and request.image_resolution not in SUPPORTED_IMAGE_RESOLUTIONS:
             raise ValueError("Unsupported image_resolution: " + request.image_resolution)
         if request.image_provider:
             provider = self.registry.get(request.image_provider)

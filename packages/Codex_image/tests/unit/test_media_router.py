@@ -346,6 +346,27 @@ class ImageRatioAdapterTests(unittest.TestCase):
         self.assertEqual(result.status, "success")
         self.assertEqual(result.model_id, "gemini-3.1-flash-image-preview-2k")
 
+    def test_comfly_routes_apply_provider_defaults_when_resolution_is_omitted(self):
+        cases = (
+            ("comfly-gemini-lite", "gemini-3.1-flash-image-preview", "2K", "gemini-3.1-flash-image-preview-2k"),
+            ("comfly-gpt-image-2", "gpt-image-2", "4K", "gpt-image-2"),
+        )
+        for provider_id, model_id, expected_resolution, expected_model in cases:
+            with self.subTest(provider=provider_id), tempfile.TemporaryDirectory() as temporary:
+                context = self.context(Path(temporary))
+                adapter = ComflyAdapter(provider_id, model_id, size_profile="gemini-resolution" if "gemini" in provider_id else None)
+                adapter.models_by_resolution = {"2K": "gemini-3.1-flash-image-preview-2k"} if "gemini" in provider_id else {}
+
+                def execute_once(model, prompt, images, output, **options):
+                    self.assertEqual(options["resolution"], expected_resolution)
+                    self.assertEqual(model, expected_model)
+                    atomic_write_bytes(output, PNG)
+                    return {"request_id": "offline", "output_bytes": output.stat().st_size}
+
+                with mock.patch("media_router.providers.comfly_adapter.comfly_common.execute_once", side_effect=execute_once):
+                    result = adapter.execute(MediaRequest("prompt", image_ratio="9:16"), context)
+                self.assertEqual(result.status, "success")
+
     def test_registry_uses_configured_comfly_model_and_profile(self):
         config = load_config(private_path=Path("missing-private-config.json"))
         registry = build_registry(config)
@@ -382,6 +403,25 @@ class ImageRatioAdapterTests(unittest.TestCase):
 
                 with mock.patch("media_router.providers.command_adapter._run", side_effect=run):
                     result = adapter.execute(MediaRequest("prompt", image_ratio="3:4", image_resolution="4K"), context)
+                self.assertEqual(result.status, "success")
+
+    def test_python_image_routes_apply_provider_defaults_when_resolution_is_omitted(self):
+        cases = (
+            ("apimart-gpt-image-2", "gpt-image-2", ROOT / "CLI" / "Gpt-API" / "gpt_api.py", "APIMART_API_KEY", "--resolution", "4k"),
+            ("google-gemini-image", "gemini-3.1-flash-image", ROOT / "CLI" / "Gemini-API" / "gemini_api.py", "GEMINI_API_KEY", "--image-size", "2K"),
+        )
+        for provider_id, model_id, script, key_name, resolution_flag, expected_resolution in cases:
+            with self.subTest(provider=provider_id), tempfile.TemporaryDirectory() as temporary:
+                context = self.context(Path(temporary))
+                adapter = PythonImageAdapter(provider_id, model_id, script, key_name)
+
+                def run(command, timeout, log_path, **options):
+                    self.assertEqual(command[command.index(resolution_flag) + 1], expected_resolution)
+                    atomic_write_bytes(context.output_dir / f"{provider_id}.png", PNG)
+                    return subprocess.CompletedProcess(command, 0, "", "")
+
+                with mock.patch("media_router.providers.command_adapter._run", side_effect=run):
+                    result = adapter.execute(MediaRequest("prompt", image_ratio="3:4"), context)
                 self.assertEqual(result.status, "success")
 
     def test_dreamina_receives_structured_ratio(self):

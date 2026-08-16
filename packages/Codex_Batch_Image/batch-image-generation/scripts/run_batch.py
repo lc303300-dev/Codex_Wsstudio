@@ -111,7 +111,7 @@ class StartGate:
 def validate(data: dict[str, Any]) -> None:
     if data.get("image_ratio") not in RATIOS:
         raise ValueError("an explicit supported image_ratio is required")
-    if data.get("image_resolution", "1K") not in IMAGE_RESOLUTIONS:
+    if data.get("image_resolution") is not None and data["image_resolution"] not in IMAGE_RESOLUTIONS:
         raise ValueError("image_resolution must be 1K, 2K, or 4K")
     if data.get("image_provider") is not None and data["image_provider"] not in IMAGE_PROVIDERS:
         raise ValueError("image_provider must be a supported unified image route")
@@ -178,13 +178,15 @@ async def kill_tree(process: asyncio.subprocess.Process) -> None:
         process.kill()
 
 
-async def generate(job: dict[str, Any], ratio: str, resolution: str, image_provider: str | None, router: Path, root: Path, store: Store, gate: StartGate, deadline: float) -> None:
+async def generate(job: dict[str, Any], ratio: str, resolution: str | None, image_provider: str | None, router: Path, root: Path, store: Store, gate: StartGate, deadline: float) -> None:
     if not store.acquire(job["key"]):
         return
     if not await gate.wait(deadline):
         store.finish(job["key"], "abandoned", failure_class="batch_deadline")
         return
-    command = [sys.executable, "-B", str(router), "generate_image", "--prompt", job["prompt"], "--image-ratio", ratio, "--image-resolution", resolution]
+    command = [sys.executable, "-B", str(router), "generate_image", "--prompt", job["prompt"], "--image-ratio", ratio]
+    if resolution:
+        command += ["--image-resolution", resolution]
     if image_provider:
         command += ["--image-provider", image_provider]
     for reference in job["references"]:
@@ -278,7 +280,7 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
 
     async def limited(job: dict[str, Any]) -> None:
         async with semaphore:
-            await generate(job, data["image_ratio"], data.get("image_resolution", "1K"), data.get("image_provider"), router, root, store, gate, deadline)
+            await generate(job, data["image_ratio"], data.get("image_resolution"), data.get("image_provider"), router, root, store, gate, deadline)
 
     tasks = [asyncio.create_task(limited(job)) for job in jobs]
     _, pending = await asyncio.wait(tasks, timeout=max(0, deadline - time.monotonic()))

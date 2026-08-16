@@ -216,7 +216,7 @@ MCP server 只暴露两个工具，不暴露 provider 调试工具：
       "default": []
     },
     "image_ratio": { "type": "string", "enum": ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"] },
-    "image_resolution": { "type": "string", "enum": ["1K", "2K", "4K"], "default": "1K" }
+    "image_resolution": { "type": "string", "enum": ["1K", "2K", "4K"], "description": "optional; GPT routes default to 4K, Gemini routes default to 2K" }
   },
   "required": ["prompt", "image_ratio"],
   "additionalProperties": false
