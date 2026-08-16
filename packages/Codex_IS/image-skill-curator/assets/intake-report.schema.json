@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "status", "skill_id", "display_name", "sources", "duplicate_check", "extraction_summary", "reference_summary", "output_summary", "isolated_content", "contract_conflicts", "blocking_questions", "validation_issues", "experience_preservation", "reviewed_core_sha256", "user_approval"],
+  "properties": {
+    "schema_version": {"const": 1}, "status": {"enum": ["needs_review", "ready_for_approval", "approved", "published", "rejected"]}, "skill_id": {"type": "string"}, "display_name": {"type": "string"},
+    "sources": {"type": "array", "minItems": 1}, "duplicate_check": {"type": "object"}, "extraction_summary": {"type": "object"}, "reference_summary": {"type": "array"}, "output_summary": {"type": "object"}, "isolated_content": {"type": "array"}, "contract_conflicts": {"type": "array"}, "blocking_questions": {"type": "array"}, "validation_issues": {"type": "array"}, "experience_preservation": {"type": "object"}, "reviewed_core_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "user_approval": {"type": "object", "additionalProperties": false, "required": ["required", "approved", "approved_by", "approved_at"], "properties": {"required": {"const": true}, "approved": {"type": "boolean"}, "approved_by": {"type": ["string", "null"]}, "approved_at": {"type": ["string", "null"]}}}
+  }
+}

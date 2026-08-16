@@ -56,7 +56,8 @@ execution remains in Codex_image's unified Media Router.
 
 Codex_IS keeps provider-neutral image business packages in `business-skills/`, validated intent lookup in
 `skill-registry/`, contract-derived material slots and prompt confirmation in `project-pipeline/`, and the public
-entry in `image-skill-router/`. Its private registry, materials, state, prompts, and results stay under
+entries in `image-skill-router/` and `image-skill-curator/`. The curator owns neutral scaffolding, anti-generalization review,
+JSON Schema and semantic validation, approval-bound core hashes, atomic publication, and generated receipts. Its private registry, materials, state, prompts, drafts, and results stay under
 `.codex-is-private/`.
 
 Do not create compatibility copies of moved implementation files at the root. If a root command must remain stable, keep a small forwarding entry script instead.

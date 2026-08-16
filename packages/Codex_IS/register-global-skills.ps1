@@ -38,5 +38,5 @@ function Install-CodexIsSkill {
 }
 
 Install-CodexIsSkill -SkillName "image-skill-router" -Source (Join-Path $projectRoot "image-skill-router")
+Install-CodexIsSkill -SkillName "image-skill-curator" -Source (Join-Path $projectRoot "image-skill-curator")
 Install-CodexIsSkill -SkillName "scene-storyboard-grid" -Source (Join-Path $projectRoot "business-skills\scene-storyboard-grid")
-

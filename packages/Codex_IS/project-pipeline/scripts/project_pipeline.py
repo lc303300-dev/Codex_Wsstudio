@@ -114,6 +114,13 @@ def create(projects: Path, skills: Path, project_id: str | None, skill_id: str, 
         raise PipelineError("unsupported or unconfirmed image ratio")
     if candidate_count < 1 or scene_count < 1:
         raise PipelineError("candidate_count and scene_count must be positive")
+    workload = contract.get("workload", {})
+    for value, key in ((scene_count, "scene_count"), (candidate_count, "candidate_count_per_scene")):
+        bounds = workload.get(key, {})
+        if value < bounds.get("min", 1) or (bounds.get("max") is not None and value > bounds["max"]):
+            raise PipelineError(f"{key} is outside the selected Skill contract")
+    if scene_count * candidate_count > 1 and not workload.get("batch_allowed"):
+        raise PipelineError("the selected Skill does not allow batch workloads")
     identifier = safe_id(project_id)
     root = project_root(projects, identifier)
     if root.exists():
@@ -121,18 +128,22 @@ def create(projects: Path, skills: Path, project_id: str | None, skill_id: str, 
     root.mkdir(parents=True)
     slots = []
     for position, reference in enumerate(contract["references"]):
-        source = root / "materials" / reference["id"] / "source"
-        final = root / "materials" / reference["id"] / "final"
-        source.mkdir(parents=True)
-        final.mkdir(parents=True)
-        slots.append({**reference, "position": position, "source_dir": str(source.resolve()), "final_dir": str(final.resolve()), "files": []})
+        scene_indexes = range(1, scene_count + 1) if reference.get("scope") == "scene" else [None]
+        for scene_index in scene_indexes:
+            base = root / "materials"
+            if scene_index is not None:
+                base = base / f"scene_{scene_index:03d}"
+            source = base / reference["id"] / "source"
+            final = base / reference["id"] / "final"
+            source.mkdir(parents=True); final.mkdir(parents=True)
+            slots.append({**reference, "position": position, "scene_index": scene_index, "source_dir": str(source.resolve()), "final_dir": str(final.resolve()), "files": []})
     (root / "prompts").mkdir()
     (root / "execution").mkdir()
     (root / "results" / "images").mkdir(parents=True)
     (root / "results" / "review").mkdir()
     now = utc_now()
     project = {
-        "schema_version": 1, "project_id": identifier, "state": "awaiting_materials", "state_history": [{"state": "awaiting_skill_confirmation", "at": now}, {"state": "awaiting_ratio_and_count", "at": now}, {"state": "awaiting_materials", "at": now}],
+        "schema_version": 1, "project_id": identifier, "state": "awaiting_materials" if slots else "materials_ready", "state_history": [{"state": "awaiting_skill_confirmation", "at": now}, {"state": "awaiting_ratio_and_count", "at": now}, {"state": "awaiting_materials" if slots else "materials_ready", "at": now}],
         "created_at": now, "updated_at": now,
         "skill": {"skill_id": skill_id, "display_name": display_name, "package_root": str(root_skill.resolve()), "package_hash": receipt["package_sha256"], "contract_hash": sha256_file(contract_path)},
         "image_settings": {"ratio": ratio, "candidate_count": candidate_count, "scene_count": scene_count},
@@ -144,14 +155,14 @@ def create(projects: Path, skills: Path, project_id: str | None, skill_id: str, 
 
 def snapshot(project: dict) -> tuple[list[dict], str]:
     ordered = []
-    for slot in sorted(project["material_slots"], key=lambda item: item["position"]):
+    for slot in sorted(project["material_slots"], key=lambda item: ((item.get("scene_index") or 0), item["position"])):
         files = image_files(Path(slot["final_dir"]))
         count = len(files)
         if count < slot["min_count"] or (slot["max_count"] is not None and count > slot["max_count"]):
             raise PipelineError(f"slot {slot['id']} contains {count} image(s); allowed {slot['min_count']}..{slot['max_count']}")
         slot["files"] = [str(path.resolve()) for path in files]
         for index, path in enumerate(files):
-            ordered.append({"slot_id": slot["id"], "slot_position": slot["position"], "file_position": index, "path": str(path.resolve()), "sha256": sha256_file(path)})
+            ordered.append({"slot_id": slot["id"], "slot_position": slot["position"], "scene_index": slot.get("scene_index"), "send_to_generation": slot.get("send_to_generation", True), "file_position": index, "path": str(path.resolve()), "sha256": sha256_file(path)})
     canonical = json.dumps(ordered, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return ordered, sha256_text(canonical)
 
@@ -240,7 +251,11 @@ def start_generation(projects: Path, project_id: str, dry_run: bool) -> dict:
         raise PipelineError("prompt or materials changed after confirmation")
     total = project["image_settings"]["candidate_count"] * project["image_settings"]["scene_count"]
     entry = "generate_image" if total == 1 else "batch-image-generation"
-    manifest = {"dry_run": dry_run, "entry": entry, "image_ratio": project["image_settings"]["ratio"], "reference_images": [item["path"] for item in materials], "prompt_version": prompt["version"], "prompt_hash": prompt["prompt_hash"], "material_hash": current_material_hash, "scene_count": project["image_settings"]["scene_count"], "candidate_count": project["image_settings"]["candidate_count"], "automatic_retry": False, "automatic_visual_ranking": False}
+    sent = [item for item in materials if item.get("send_to_generation")]
+    grouped = []
+    for scene_index in range(1, project["image_settings"]["scene_count"] + 1):
+        grouped.append({"scene_index": scene_index, "reference_images": [item["path"] for item in sent if item.get("scene_index") in (None, scene_index)]})
+    manifest = {"dry_run": dry_run, "entry": entry, "image_ratio": project["image_settings"]["ratio"], "reference_images_by_scene": grouped, "prompt_version": prompt["version"], "prompt_hash": prompt["prompt_hash"], "material_hash": current_material_hash, "scene_count": project["image_settings"]["scene_count"], "candidate_count": project["image_settings"]["candidate_count"], "automatic_retry": False, "automatic_visual_ranking": False}
     project["generation"] = {"status": "dry_run_ready" if dry_run else "ready_for_external_submission", "manifest": manifest, "started_at": utc_now()}
     write_json(root / "execution" / "manifest.json", manifest)
     transition(project, "generating")
@@ -249,7 +264,7 @@ def start_generation(projects: Path, project_id: str, dry_run: bool) -> dict:
 
 
 def public(root: Path, project: dict) -> dict:
-    return {"project_id": project["project_id"], "state": project["state"], "project_dir": str(root.resolve()), "project_dir_link_target": root.resolve().as_posix(), "material_directories": [{"id": slot["id"], "required": slot["required"], "source_dir": slot["source_dir"], "source_dir_link_target": Path(slot["source_dir"]).as_posix(), "final_dir": slot["final_dir"], "final_dir_link_target": Path(slot["final_dir"]).as_posix()} for slot in project["material_slots"]], "image_settings": project["image_settings"], "active_prompt_version": project["active_prompt_version"], "generation": project["generation"]}
+    return {"project_id": project["project_id"], "state": project["state"], "project_dir": str(root.resolve()), "project_dir_link_target": root.resolve().as_posix(), "material_directories": [{"id": slot["id"], "scope": slot.get("scope"), "scene_index": slot.get("scene_index"), "required": slot["required"], "source_dir": slot["source_dir"], "source_dir_link_target": Path(slot["source_dir"]).as_posix(), "final_dir": slot["final_dir"], "final_dir_link_target": Path(slot["final_dir"]).as_posix()} for slot in project["material_slots"]], "image_settings": project["image_settings"], "active_prompt_version": project["active_prompt_version"], "generation": project["generation"]}
 
 
 def prompt_value(args: argparse.Namespace) -> str:
@@ -300,4 +315,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

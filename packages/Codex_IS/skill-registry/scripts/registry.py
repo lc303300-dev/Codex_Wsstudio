@@ -10,6 +10,10 @@ from pathlib import Path
 IS_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(IS_ROOT / "shared"))
 from package_integrity import package_sha256, validate_receipt  # noqa: E402
+CURATOR_ROOT = IS_ROOT / "image-skill-curator" / "scripts"
+if str(CURATOR_ROOT) not in sys.path:
+    sys.path.insert(0, str(CURATOR_ROOT))
+from skill_package import validate_package  # noqa: E402
 
 DEFAULT_SKILLS = IS_ROOT / "business-skills"
 DEFAULT_DB = IS_ROOT / ".codex-is-private" / "registry" / "skills.sqlite3"
@@ -29,8 +33,9 @@ def discover(skills_root: Path) -> tuple[list[dict], list[dict]]:
         required = [root / "SKILL.md", root / "contract.json", root / "routing.json"]
         missing = [path.name for path in required if not path.is_file()]
         receipt, issues = validate_receipt(root, skill_id)
-        if missing or issues:
-            rejected.append({"skill_id": skill_id, "issues": [*(f"MISSING_{name}" for name in missing), *issues]})
+        package_issues = validate_package(root, require_report=True, require_receipt=True) if not missing else []
+        if missing or issues or package_issues:
+            rejected.append({"skill_id": skill_id, "issues": [*(f"MISSING_{name}" for name in missing), *issues, *package_issues]})
             continue
         contract, routing = read_json(root / "contract.json"), read_json(root / "routing.json")
         if contract.get("skill_id") != skill_id or routing.get("skill_id") != skill_id:
@@ -130,4 +135,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
