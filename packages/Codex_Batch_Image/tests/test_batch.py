@@ -37,6 +37,8 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(plan["deadline_multiplier"], 1.5)
             self.assertEqual(plan["expected_seconds"], 240)
             self.assertEqual(plan["deadline_seconds"], 360)
+            self.assertEqual(plan["completion_grace_seconds"], 120)
+            self.assertEqual(plan["max_runtime_seconds"], 480)
 
     def test_explicit_deadline_overrides_per_image_default(self):
         with tempfile.TemporaryDirectory() as value:
@@ -58,6 +60,16 @@ class BatchTests(unittest.TestCase):
             result = self.invoke(manifest, folder)
             self.assertEqual(result.returncode, 2)
             self.assertFalse((folder / "calls.jsonl").exists())
+
+    def test_invalid_completion_grace_is_rejected_before_spawn(self):
+        for grace in (0, 121):
+            with self.subTest(grace=grace), tempfile.TemporaryDirectory() as value:
+                folder = Path(value)
+                manifest = {"batch_id": f"invalid-grace-{grace}", "image_ratio": "1:1", "completion_grace_seconds": grace,
+                            "groups": [{"id": "A", "prompt": "one", "candidates": 1}]}
+                result = self.invoke(manifest, folder)
+                self.assertEqual(result.returncode, 2)
+                self.assertFalse((folder / "calls.jsonl").exists())
 
     def test_partial_wave_rounds_up(self):
         with tempfile.TemporaryDirectory() as value:
@@ -120,23 +132,40 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(len(summary["review_sheets"]), 2)
             self.assertTrue(all(Path(path).is_file() for path in summary["review_sheets"]))
 
-    def test_deadline_abandons_and_never_resubmits(self):
+    def test_deadline_stops_new_submissions_then_fails_running_after_grace(self):
         with tempfile.TemporaryDirectory() as value:
             folder = Path(value)
-            manifest = {"batch_id": "b2", "image_ratio": "9:16", "output_dir": "out", "start_delay_seconds": 0, "deadline_seconds": 0.3,
+            manifest = {"batch_id": "b2", "image_ratio": "9:16", "output_dir": "out", "concurrency": 1, "start_delay_seconds": 0, "deadline_seconds": 0.3, "completion_grace_seconds": 0.2,
                         "groups": [{"id": "A", "prompt": "hang", "candidates": 2}]}
             first = self.invoke(manifest, folder)
             self.assertEqual(first.returncode, 0, first.stderr)
             calls = (folder / "calls.jsonl").read_text(encoding="utf-8").splitlines()
-            self.assertEqual(len(calls), 2)
+            self.assertEqual(len(calls), 1)
+            summary = json.loads((folder / "out" / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["counts"], {"success": 0, "failed": 1, "abandoned": 1})
+            self.assertEqual(summary["max_runtime_seconds"], 0.5)
+            self.assertEqual(len(summary["review_sheets"]), 1)
+            self.assertTrue(Path(summary["review_sheets"][0]).is_file())
             second = self.invoke(manifest, folder)
             self.assertEqual(second.returncode, 0, second.stderr)
-            self.assertEqual(len((folder / "calls.jsonl").read_text(encoding="utf-8").splitlines()), 2)
+            self.assertEqual(len((folder / "calls.jsonl").read_text(encoding="utf-8").splitlines()), 1)
             db = sqlite3.connect(folder / "out" / "batch-state.sqlite3")
             try:
-                self.assertEqual(db.execute("SELECT count(*) FROM jobs WHERE status='abandoned'").fetchone()[0], 2)
+                self.assertEqual(db.execute("SELECT count(*) FROM jobs WHERE status='failed' AND failure_class='batch_completion_grace_timeout'").fetchone()[0], 1)
+                self.assertEqual(db.execute("SELECT count(*) FROM jobs WHERE status='abandoned' AND failure_class='batch_deadline_not_submitted'").fetchone()[0], 1)
             finally:
                 db.close()
+
+    def test_running_job_can_land_during_completion_grace(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"batch_id": "grace-success", "image_ratio": "9:16", "output_dir": "out", "start_delay_seconds": 0, "deadline_seconds": 0.2, "completion_grace_seconds": 1,
+                        "groups": [{"id": "A", "prompt": "slow", "candidates": 1}]}
+            result = self.invoke(manifest, folder)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            summary = json.loads((folder / "out" / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["counts"], {"success": 1, "failed": 0, "abandoned": 0})
+            self.assertEqual(summary["completion_grace_seconds"], 1)
 
 
 if __name__ == "__main__":

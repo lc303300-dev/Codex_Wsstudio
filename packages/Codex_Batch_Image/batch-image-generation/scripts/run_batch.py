@@ -24,6 +24,7 @@ IMAGE_PROVIDERS = {"comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-imag
 IMAGE_RESOLUTIONS = {"1K", "2K", "4K"}
 DEFAULT_SECONDS_PER_IMAGE = 60.0
 DEFAULT_DEADLINE_MULTIPLIER = 1.5
+DEFAULT_COMPLETION_GRACE_SECONDS = 120.0
 
 
 def now_utc() -> str:
@@ -76,10 +77,18 @@ class Store:
         )
         self.db.commit()
 
-    def abandon(self) -> None:
+    def abandon_pending(self) -> None:
         self.db.execute("BEGIN IMMEDIATE")
         self.db.execute(
-            "UPDATE jobs SET status='abandoned',finished_at=?,failure_class='batch_deadline' WHERE status IN ('pending','running')",
+            "UPDATE jobs SET status='abandoned',finished_at=?,failure_class='batch_deadline_not_submitted' WHERE status='pending'",
+            (now_utc(),),
+        )
+        self.db.commit()
+
+    def fail_running_after_grace(self) -> None:
+        self.db.execute("BEGIN IMMEDIATE")
+        self.db.execute(
+            "UPDATE jobs SET status='failed',finished_at=?,failure_class='batch_completion_grace_timeout' WHERE status='running'",
             (now_utc(),),
         )
         self.db.commit()
@@ -136,6 +145,8 @@ def validate(data: dict[str, Any]) -> None:
         raise ValueError("deadline_multiplier must be >= 1")
     if "deadline_seconds" in data and float(data["deadline_seconds"]) <= 0:
         raise ValueError("deadline_seconds must be > 0")
+    if "completion_grace_seconds" in data and not 0 < float(data["completion_grace_seconds"]) <= DEFAULT_COMPLETION_GRACE_SECONDS:
+        raise ValueError("completion_grace_seconds must be > 0 and <= 120")
 
 
 def resolve_timing(data: dict[str, Any], job_count: int) -> tuple[float, float]:
@@ -178,11 +189,13 @@ async def kill_tree(process: asyncio.subprocess.Process) -> None:
         process.kill()
 
 
-async def generate(job: dict[str, Any], ratio: str, resolution: str | None, image_provider: str | None, router: Path, root: Path, store: Store, gate: StartGate, deadline: float) -> None:
+async def generate(job: dict[str, Any], ratio: str, resolution: str | None, image_provider: str | None, router: Path, root: Path, store: Store, gate: StartGate, dispatch_deadline: float, completion_deadline: float) -> None:
+    if not await gate.wait(dispatch_deadline):
+        return
     if not store.acquire(job["key"]):
         return
-    if not await gate.wait(deadline):
-        store.finish(job["key"], "abandoned", failure_class="batch_deadline")
+    if time.monotonic() >= dispatch_deadline:
+        store.finish(job["key"], "abandoned", failure_class="batch_deadline_not_submitted")
         return
     command = [sys.executable, "-B", str(router), "generate_image", "--prompt", job["prompt"], "--image-ratio", ratio]
     if resolution:
@@ -197,13 +210,13 @@ async def generate(job: dict[str, Any], ratio: str, resolution: str | None, imag
         start_new_session=os.name != "nt",
     )
     try:
-        remaining = deadline - time.monotonic()
+        remaining = completion_deadline - time.monotonic()
         if remaining <= 0:
             raise asyncio.TimeoutError
         stdout, _ = await asyncio.wait_for(process.communicate(), remaining)
     except (asyncio.TimeoutError, asyncio.CancelledError):
         await kill_tree(process)
-        store.finish(job["key"], "abandoned", failure_class="batch_deadline")
+        store.finish(job["key"], "failed", failure_class="batch_completion_grace_timeout")
         return
     try:
         result = router_result(stdout)
@@ -211,7 +224,7 @@ async def generate(job: dict[str, Any], ratio: str, resolution: str | None, imag
         store.finish(job["key"], "failed", failure_class="invalid_router_result")
         return
     source = Path(result["output_path"]) if result.get("output_path") else None
-    if result.get("status") == "success" and source and source.is_file() and time.monotonic() <= deadline:
+    if result.get("status") == "success" and source and source.is_file() and time.monotonic() <= completion_deadline:
         destination_dir = root / "results" / job["group"]
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination = destination_dir / f"{job['index']:02d}{source.suffix.lower() or '.png'}"
@@ -269,27 +282,32 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
         for index in range(1, int(group["candidates"]) + 1):
             jobs.append({"key": f"{data['batch_id']}:{group['id']}:{index}:{version}", "group": str(group["id"]), "index": index, "prompt": str(group["prompt"]), "references": [p for p in references if p]})
     expected_seconds, deadline_seconds = resolve_timing(data, len(jobs))
+    completion_grace_seconds = float(data.get("completion_grace_seconds", DEFAULT_COMPLETION_GRACE_SECONDS))
     if dry_run:
-        return {"status": "dry_run", "batch_id": data["batch_id"], "jobs": len(jobs), "groups": len(data["groups"]), "image_provider": data.get("image_provider"), "concurrency": int(data.get("concurrency", 10)), "start_delay_seconds": float(data.get("start_delay_seconds", 1)), "seconds_per_image": float(data.get("seconds_per_image", DEFAULT_SECONDS_PER_IMAGE)), "deadline_multiplier": float(data.get("deadline_multiplier", DEFAULT_DEADLINE_MULTIPLIER)), "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "output_dir": str(root)}
+        return {"status": "dry_run", "batch_id": data["batch_id"], "jobs": len(jobs), "groups": len(data["groups"]), "image_provider": data.get("image_provider"), "concurrency": int(data.get("concurrency", 10)), "start_delay_seconds": float(data.get("start_delay_seconds", 1)), "seconds_per_image": float(data.get("seconds_per_image", DEFAULT_SECONDS_PER_IMAGE)), "deadline_multiplier": float(data.get("deadline_multiplier", DEFAULT_DEADLINE_MULTIPLIER)), "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "completion_grace_seconds": completion_grace_seconds, "max_runtime_seconds": deadline_seconds + completion_grace_seconds, "output_dir": str(root)}
     root.mkdir(parents=True, exist_ok=True)
     store = Store(root / "batch-state.sqlite3")
     for job in jobs:
         store.add(job["key"], job["group"], job["index"], job["prompt"])
-    deadline = time.monotonic() + deadline_seconds
+    dispatch_deadline = time.monotonic() + deadline_seconds
+    completion_deadline = dispatch_deadline + completion_grace_seconds
     gate, semaphore = StartGate(float(data.get("start_delay_seconds", 1))), asyncio.Semaphore(int(data.get("concurrency", 10)))
 
     async def limited(job: dict[str, Any]) -> None:
         async with semaphore:
-            await generate(job, data["image_ratio"], data.get("image_resolution"), data.get("image_provider"), router, root, store, gate, deadline)
+            await generate(job, data["image_ratio"], data.get("image_resolution"), data.get("image_provider"), router, root, store, gate, dispatch_deadline, completion_deadline)
 
     tasks = [asyncio.create_task(limited(job)) for job in jobs]
-    _, pending = await asyncio.wait(tasks, timeout=max(0, deadline - time.monotonic()))
+    _, pending = await asyncio.wait(tasks, timeout=max(0, dispatch_deadline - time.monotonic()))
     if pending:
-        store.abandon()
-        for task in pending:
-            task.cancel()
-        await asyncio.gather(*pending, return_exceptions=True)
-    store.abandon()
+        store.abandon_pending()
+        _, pending = await asyncio.wait(pending, timeout=max(0, completion_deadline - time.monotonic()))
+        if pending:
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*pending, return_exceptions=True)
+            store.fail_running_after_grace()
+    store.abandon_pending()
     rows = store.rows()
     successes: dict[str, dict[int, Path]] = {}
     for row in rows:
@@ -297,7 +315,7 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
             successes.setdefault(row["group_id"], {})[row["candidate_index"]] = Path(row["collected_output"])
     sheets = [str(contact_sheet(group, data["image_ratio"], base, root, successes.get(str(group["id"]), {}))) for group in data["groups"]]
     counts = {state: sum(row["status"] == state for row in rows) for state in ("success", "failed", "abandoned")}
-    summary = {"status": "complete", "batch_id": data["batch_id"], "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "counts": counts, "review_sheets": sheets, "output_dir": str(root.resolve())}
+    summary = {"status": "complete", "batch_id": data["batch_id"], "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "completion_grace_seconds": completion_grace_seconds, "max_runtime_seconds": deadline_seconds + completion_grace_seconds, "counts": counts, "review_sheets": sheets, "output_dir": str(root.resolve())}
     (root / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     store.db.close()
     return summary

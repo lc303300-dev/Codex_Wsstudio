@@ -49,7 +49,7 @@ index code in `skill-registry/`, contract-driven collection logic in
 `material-collection/`, the governed runtime state bridge in `project-pipeline/`,
 and the global routing entry in `video-skill-router/`.
 
-Codex_Batch_Image owns manifest scheduling, SQLite state, hard-deadline abandonment,
+Codex_Batch_Image owns manifest scheduling, SQLite state, dispatch-deadline cutoff plus bounded completion grace,
 successful-result collection, and numbered human-review sheets. Paid single-image
 execution remains in Codex_image's unified Media Router.
 

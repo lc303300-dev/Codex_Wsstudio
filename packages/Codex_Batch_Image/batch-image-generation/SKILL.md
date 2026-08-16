@@ -12,9 +12,9 @@ Run deterministic batch scheduling without using child Agents for paid image sub
 1. Require the user to explicitly choose one supported ratio before submission: `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, or `9:16`.
 2. Confirm the batch is intentional because each candidate may consume credits. Skip this confirmation for `-DryRun`; confirm before the first real run.
 3. Build a JSON manifest from [references/manifest-schema.md](references/manifest-schema.md). Preserve reference-image order. Do not proactively ask for a route; if the user explicitly names one supported, unambiguous image route, set the batch-wide `image_provider` so every candidate goes directly to that route.
-4. Run `scripts/run_batch.py` through the package entry point. Default to 10 in-flight tasks and at least 1 second between real submission starts. Estimate one minute per concurrent wave, then set the maximum generation-stage wait to 1.5 times that estimate.
-5. At the deadline, stop dispatching, terminate local waits, and mark all unfinished tasks `abandoned`. Never query, reconcile, retry, or silently resubmit abandoned tasks.
-6. Collect only successful images already landed before the deadline.
+4. Run `scripts/run_batch.py` through the package entry point. Default to 10 in-flight tasks and at least 1 second between real submission starts. Estimate one minute per concurrent wave, then set the dispatch deadline to 1.5 times that estimate.
+5. At the dispatch deadline, stop starting new tasks. Mark tasks that never started as `abandoned`, but keep waiting for already-running tasks for at most 120 additional seconds.
+6. Accept successful images that land during this completion grace period. When the grace period ends, terminate remaining local waits and mark those running tasks `failed`; never retry or silently resubmit them.
 7. Create one contact sheet per group. Put the group’s original/reference image first, followed by numbered candidate slots. Preserve blank slots for missing results.
 8. Return the contact sheets for human review. Do not perform automatic visual QA, dimension checks, scoring, ranking, or candidate rejection.
 
@@ -30,7 +30,8 @@ Preview the plan without paid submissions by adding `-DryRun`.
 
 ## Operating Rules
 
-- Treat the stage deadline as wall-clock time beginning when the runner starts.
+- Treat the dispatch deadline as wall-clock time beginning when the runner starts. It closes new submissions but does not cancel already-running tasks.
+- After the dispatch deadline, use a completion grace period of at most 120 seconds. The default is 120 seconds; a positive `completion_grace_seconds` manifest override may shorten it but never extend it.
 - Calculate the estimate as `ceil(planned candidate count / concurrency) * 60 seconds`, then calculate the default whole-batch deadline as `estimate * 1.5`. For example, 40 candidates at concurrency 10 have a 4-minute estimate and a 6-minute deadline. An explicit positive `deadline_seconds` in the manifest overrides the calculated deadline.
 - Set `original_image` explicitly whenever a group has multiple references so a material/style reference cannot become review slot 0 by accident.
 - Keep job identity stable as `batch_id:group_id:candidate_index:prompt_version`. SQLite uniqueness prevents duplicate submission.
@@ -42,4 +43,4 @@ Preview the plan without paid submissions by adding `-DryRun`.
 
 ## Outputs
 
-Write `batch-state.sqlite3`, `summary.json`, collected images under `results/<group>/`, and review boards under `review/`. Report partial completion plainly; missing candidates are expected after failures or the hard deadline.
+Write `batch-state.sqlite3`, `summary.json`, collected images under `results/<group>/`, and review boards under `review/`. Report partial completion plainly; missing candidates are expected after failures, the dispatch deadline, or the completion-grace timeout.

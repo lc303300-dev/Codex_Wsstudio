@@ -19,6 +19,8 @@ with log.open("a", encoding="utf-8") as handle:
     handle.write(json.dumps({"prompt": args.prompt, "images": args.image, "image_provider": args.image_provider, "image_resolution": args.image_resolution, "started": time.monotonic()}) + "\n")
 if args.prompt.startswith("hang"):
     time.sleep(30)
+if args.prompt.startswith("slow"):
+    time.sleep(0.4)
 if args.prompt.startswith("fail"):
     print(json.dumps({"status": "failed", "failure_class": "definite_provider_failure"}))
     raise SystemExit(2)
