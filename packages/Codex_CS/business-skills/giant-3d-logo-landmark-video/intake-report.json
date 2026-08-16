@@ -1,19 +1,21 @@
 {
   "schema_version": 1,
-  "status": "approved",
+  "status": "ready_for_approval",
   "skill_id": "giant-3d-logo-landmark-video",
   "display_name": "巨型3D Logo 地标巡游视频",
   "sources": [
     {
-      "name": "巨型3D立体Logo地标巡游多场景硬切视频提示词生成 Skill.md",
-      "source_label": "巨型3D立体Logo地标巡游多场景硬切视频提示词生成 Skill.md",
+      "name": "required-examples-change-request.md",
+      "source_label": "用户要求将 examples.md 改为首版提示词创作必读项",
       "encoding": "utf-8-sig",
-      "sha256": "05c8c288dc18c2a1eac1e67d1a59ec01bbbca2f89c16539b97990fc038c37146"
+      "sha256": "ae47400c3997e06b1990a83284d46f6cd9ae941db5ba892ee2aa696e9b93fe8f"
     }
   ],
   "duplicate_check": {
-    "classification": "new",
-    "matches": [],
+    "classification": "upgrade_existing",
+    "matches": [
+      "giant-3d-logo-landmark-video"
+    ],
     "optional_sources_missing": []
   },
   "extraction_summary": {
@@ -87,11 +89,11 @@
   "validation_issues": [],
   "experience_preservation": {
     "source_claims_accounted_for": true,
-    "notes": "Cleaned legacy source experience is preserved in references for review; examples do not define the contract."
+    "notes": "现有专业经验与已批准范例全部保留；本次仅把完整范例提升为首版提示词创作的必读知识，范例仍不定义契约。"
   },
   "user_approval": {
     "required": true,
-    "approved": true
+    "approved": false
   },
   "pacing_rule_summary": [
     {

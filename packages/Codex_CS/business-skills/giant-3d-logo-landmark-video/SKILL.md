@@ -15,7 +15,7 @@ description: 将3D Logo设定图与一张或多张城市地标参考素材编排
 - 编写提示词时读取 `references/creative-guidance.md`。
 - 需要采用社区实践时读取 `references/community-experience.md`，只使用符合当前条件的经验。
 - 定稿前读取 `references/failure-cases.md`。
-- 仅在需要相似案例或用户要求时读取 `references/examples.md`；不得用示例改变素材契约。
+- 编写首版提示词前必须完整读取 `references/examples.md`，将其用于组织结构、表达完整度和质量校验；不得用示例改变素材契约或覆盖用户当前明确指令。
 
 ## 执行原则
 
