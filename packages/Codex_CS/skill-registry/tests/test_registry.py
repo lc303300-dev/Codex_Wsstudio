@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -9,6 +10,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import registry
+
+CURATOR_SCRIPTS = Path(__file__).resolve().parents[2] / "codex-cs-skill-curator" / "scripts"
+sys.path.insert(0, str(CURATOR_SCRIPTS))
+from skill_package import package_sha256 as curator_package_sha256  # noqa: E402
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -26,7 +31,10 @@ def make_skill(library: Path, skill_id: str, display_name: str, description: str
     if routing:
         write_json(root / "routing.json", routing)
     write_json(root / "intake-receipt.json", {
-        "schema_version": 1, "skill_id": skill_id, "status": "published", "approved_by": "user",
+        "schema_version": 2, "hash_algorithm": "codex-cs-package-sha256-v2",
+        "skill_id": skill_id, "status": "published", "approved_by": "user",
+        "validator_version": "1.2.0", "validated_at": "2026-08-16T00:00:00+00:00",
+        "sources": [{"name": "source.md", "sha256": "0" * 64}],
         "package_sha256": registry.package_sha256(root),
     })
     return root
@@ -78,6 +86,45 @@ class RegistryTests(unittest.TestCase):
         registry.build(self.library, self.database)
         self.assertTrue(registry.validate_registry(self.database, self.library)["valid"])
         self.assertEqual(registry.list_skills(self.database)["skills"][0]["skill_id"], "architecture")
+
+    def test_registry_and_curator_share_canonical_hash(self) -> None:
+        root = make_skill(self.library, "shared", "共享哈希", "验证注册表与治理器使用同一哈希算法")
+        (root / "mixed.txt").write_bytes(b"one\r\ntwo\r\n")
+        (root / "asset.bin").write_bytes(b"one\r\ntwo")
+        self.assertEqual(curator_package_sha256(root), registry.package_sha256(root))
+
+    def test_validate_reports_stale_index_after_valid_republish(self) -> None:
+        root = make_skill(self.library, "city", "城市宣传片", "城市形象片")
+        registry.build(self.library, self.database)
+        (root / "SKILL.md").write_text("合法升级内容", encoding="utf-8")
+        receipt = json.loads((root / "intake-receipt.json").read_text(encoding="utf-8"))
+        receipt["package_sha256"] = registry.package_sha256(root)
+        write_json(root / "intake-receipt.json", receipt)
+        result = registry.validate_registry(self.database, self.library)
+        self.assertFalse(result["valid"])
+        self.assertIn("stale or missing index: city", result["issues"])
+        registry.build(self.library, self.database)
+        self.assertTrue(registry.validate_registry(self.database, self.library)["valid"])
+
+    def test_validate_reports_unavailable_index_for_stale_receipt(self) -> None:
+        root = make_skill(self.library, "city", "城市宣传片", "城市形象片")
+        registry.build(self.library, self.database)
+        (root / "SKILL.md").write_text("tampered", encoding="utf-8")
+        result = registry.validate_registry(self.database, self.library)
+        self.assertFalse(result["valid"])
+        self.assertIn("index contains unavailable skill: city", result["issues"])
+
+    def test_lookup_cli_fails_closed_when_registry_is_stale(self) -> None:
+        root = make_skill(self.library, "city", "城市宣传片", "城市形象片")
+        registry.build(self.library, self.database)
+        (root / "SKILL.md").write_text("tampered", encoding="utf-8")
+        script = Path(__file__).resolve().parents[1] / "scripts" / "lookup_skill.py"
+        completed = subprocess.run(
+            [sys.executable, str(script), "城市宣传片", "--database", str(self.database), "--library", str(self.library)],
+            text=True, capture_output=True, encoding="utf-8", check=False,
+        )
+        self.assertNotEqual(0, completed.returncode)
+        self.assertIn("registry_issues", completed.stdout)
 
     def test_exact_alias(self) -> None:
         make_skill(self.library, "logo", "巨型Logo地标", "品牌Logo城市巡游", {

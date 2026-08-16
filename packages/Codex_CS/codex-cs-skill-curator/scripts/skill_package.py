@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from package_integrity import (
+    CANONICAL_HASH_ALGORITHM,
+    file_sha256,
+    package_sha256,
+    validate_receipt,
+)
 
-VALIDATOR_VERSION = "1.1.0"
+
+VALIDATOR_VERSION = "1.2.0"
 SKILL_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 REFERENCE_IDS = {"image", "video", "audio"}
 REFERENCE_ROLES = {
@@ -82,30 +88,6 @@ def parse_openai_yaml(text: str) -> dict[str, str]:
         if match:
             values[key] = match.group(1)
     return values
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def package_sha256(root: Path, *, include_receipt: bool = False) -> str:
-    digest = hashlib.sha256()
-    files = sorted(
-        path for path in root.rglob("*")
-        if path.is_file() and (include_receipt or path.name != "intake-receipt.json")
-    )
-    for path in files:
-        relative = path.relative_to(root).as_posix().encode("utf-8")
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        data = path.read_bytes()
-        digest.update(len(data).to_bytes(8, "big"))
-        digest.update(data)
-    return digest.hexdigest()
 
 
 def load_contract(root: Path) -> dict:
@@ -349,26 +331,18 @@ def validate_package(root: Path, *, require_receipt: bool = False) -> list[Issue
 
     receipt_path = root / "intake-receipt.json"
     if require_receipt or receipt_path.exists():
-        if not receipt_path.is_file():
-            _add(issues, "MISSING_RECEIPT", "Published packages require intake-receipt.json", "intake-receipt.json")
-        else:
-            try:
-                receipt = json.loads(receipt_path.read_text(encoding="utf-8-sig"))
-            except (OSError, ValueError, json.JSONDecodeError) as exc:
-                _add(issues, "INVALID_RECEIPT", str(exc), "intake-receipt.json")
-                receipt = {}
-            receipt_fields = {"schema_version", "skill_id", "status", "validator_version", "approved_by", "validated_at", "sources", "package_sha256"}
-            if set(receipt) != receipt_fields:
-                _add(issues, "INVALID_RECEIPT_FIELDS", f"Receipt fields must be exactly: {sorted(receipt_fields)}", "intake-receipt.json")
-            if receipt.get("schema_version") != 1 or receipt.get("skill_id") != skill_id or receipt.get("status") != "published" or receipt.get("approved_by") != "user":
-                _add(issues, "INVALID_RECEIPT_IDENTITY", "Receipt identity or approval fields are invalid", "intake-receipt.json")
-            sources = receipt.get("sources")
-            if not isinstance(sources, list) or not sources:
-                _add(issues, "MISSING_RECEIPT_SOURCES", "Receipt must contain at least one source hash", "intake-receipt.json")
-            elif any(not isinstance(item, dict) or set(item) != {"name", "sha256"} or not re.fullmatch(r"[a-f0-9]{64}", str(item.get("sha256", ""))) for item in sources):
-                _add(issues, "INVALID_RECEIPT_SOURCES", "Every receipt source requires name and SHA-256", "intake-receipt.json")
-            actual_hash = package_sha256(root)
-            if receipt.get("package_sha256") != actual_hash:
-                _add(issues, "STALE_RECEIPT", "Package content changed after publication receipt generation", "intake-receipt.json")
+        _, receipt_issues = validate_receipt(root, skill_id)
+        messages = {
+            "MISSING_RECEIPT": "Published packages require intake-receipt.json",
+            "INVALID_RECEIPT": "intake-receipt.json is not valid JSON",
+            "INVALID_RECEIPT_FIELDS": "Receipt fields do not match its schema version",
+            "INVALID_RECEIPT_IDENTITY": "Receipt identity or approval fields are invalid",
+            "MISSING_RECEIPT_SOURCES": "Receipt must contain at least one source hash",
+            "INVALID_RECEIPT_SOURCES": "Every receipt source requires name and SHA-256",
+            "UNSUPPORTED_RECEIPT_SCHEMA": "Receipt schema or hash algorithm is unsupported",
+            "STALE_RECEIPT": "Package content changed after publication receipt generation",
+        }
+        for code in receipt_issues:
+            _add(issues, code, messages[code], "intake-receipt.json")
 
     return issues

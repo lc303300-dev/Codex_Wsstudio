@@ -10,7 +10,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from skill_package import VALIDATOR_VERSION, file_sha256, load_contract, package_sha256, validate_package
+from skill_package import CANONICAL_HASH_ALGORITHM, VALIDATOR_VERSION, file_sha256, load_contract, package_sha256, validate_package
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 
@@ -66,7 +66,8 @@ def main() -> int:
         if receipt_path.exists():
             receipt_path.unlink()
         receipt = {
-            "schema_version": 1,
+            "schema_version": 2,
+            "hash_algorithm": CANONICAL_HASH_ALGORITHM,
             "skill_id": contract["skill_id"],
             "status": "published",
             "validator_version": VALIDATOR_VERSION,

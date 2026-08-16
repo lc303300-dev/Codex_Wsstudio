@@ -59,7 +59,7 @@ awaiting_skill_confirmation
 python skill-registry/scripts/lookup_skill.py "<用户创作意图>"
 ```
 
-注册表不存在或过期时，先运行：
+查询入口会在检索前验证注册表与正式 Skill 凭证；如返回 `registry_issues` 或非零退出码，先运行：
 
 ```powershell
 python skill-registry/scripts/build_registry.py

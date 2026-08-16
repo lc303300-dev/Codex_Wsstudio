@@ -12,6 +12,11 @@ from pathlib import Path
 
 
 CS_ROOT = Path(__file__).resolve().parents[2]
+INTEGRITY_ROOT = CS_ROOT / "codex-cs-skill-curator" / "scripts"
+if str(INTEGRITY_ROOT) not in sys.path:
+    sys.path.insert(0, str(INTEGRITY_ROOT))
+
+from package_integrity import package_sha256, validate_receipt  # noqa: E402
 DEFAULT_SKILLS_ROOT = CS_ROOT / "business-skills"
 DEFAULT_PROJECTS_ROOT = CS_ROOT / ".codex-cs-private" / "projects"
 PROJECT_FILE = "project.json"
@@ -89,8 +94,9 @@ def require_state(project: dict, allowed: set[str]) -> None:
         raise PipelineError(f"state {project['state']} does not allow this action; expected one of {sorted(allowed)}")
 
 
-def load_contract(skills_root: Path, skill_id: str, display_name: str) -> tuple[Path, dict]:
-    contract_path = skills_root.resolve() / skill_id / "contract.json"
+def load_contract(skills_root: Path, skill_id: str, display_name: str) -> tuple[Path, dict, dict]:
+    package_root = skills_root.resolve() / skill_id
+    contract_path = package_root / "contract.json"
     if not contract_path.is_file():
         raise PipelineError(f"published Skill contract not found: {contract_path}")
     contract = read_json(contract_path)
@@ -101,7 +107,28 @@ def load_contract(skills_root: Path, skill_id: str, display_name: str) -> tuple[
     references = contract.get("references")
     if not isinstance(references, list) or not references:
         raise PipelineError("contract must define at least one reference slot")
-    return contract_path, contract
+    receipt, receipt_issues = validate_receipt(package_root, skill_id)
+    if receipt_issues:
+        raise PipelineError("published Skill receipt is missing or invalid: " + ", ".join(receipt_issues))
+    assert receipt is not None
+    return contract_path, contract, receipt
+
+
+def verify_project_skill(project: dict) -> None:
+    skill = project.get("skill", {})
+    contract_path = Path(str(skill.get("contract_path", "")))
+    package_root = contract_path.parent
+    receipt, receipt_issues = validate_receipt(package_root, skill.get("skill_id"))
+    if receipt_issues:
+        raise PipelineError("published Skill receipt is missing or invalid: " + ", ".join(receipt_issues))
+    assert receipt is not None
+    if not skill.get("package_hash"):
+        if not contract_path.is_file() or file_sha256(contract_path) != skill.get("contract_hash"):
+            raise PipelineError("published Skill contract changed after legacy project creation")
+        return
+    current_hash = package_sha256(package_root)
+    if current_hash != skill.get("package_hash") or receipt.get("package_sha256") != skill.get("package_hash"):
+        raise PipelineError("published Skill package changed after project creation")
 
 
 def clamp_count(value: int, minimum: int, maximum: int | None) -> int:
@@ -149,7 +176,7 @@ def create_project(
         raise PipelineError(f"unsupported ratio {ratio}; choose one of {sorted(RATIOS)}")
     if duration < 4 or duration > 30:
         raise PipelineError("duration must be between 4 and 30 seconds")
-    contract_path, contract = load_contract(skills_root, skill_id, display_name)
+    contract_path, contract, receipt = load_contract(skills_root, skill_id, display_name)
     identifier = safe_project_id(project_id)
     root = project_path(projects_root, identifier)
     if root.exists():
@@ -200,6 +227,9 @@ def create_project(
             "confirmed": True,
             "contract_path": str(contract_path.resolve()),
             "contract_hash": file_sha256(contract_path),
+            "package_hash": receipt["package_sha256"],
+            "receipt_schema_version": receipt["schema_version"],
+            "receipt_validated_at": receipt["validated_at"],
         },
         "video_settings": {"ratio": ratio, "duration_seconds": duration},
         "image_stage": None,
@@ -316,6 +346,7 @@ def load_prompt_text(text: str | None, prompt_file: Path | None) -> str:
 
 def set_cs_prompt(projects_root: Path, project_id: str, content: str) -> dict:
     root, project = load_project(projects_root, project_id)
+    verify_project_skill(project)
     require_state(project, {"final_images_ready"})
     if project["prompts"]:
         raise PipelineError("CS may create only prompt V1; all revisions must use the DT revision command")
@@ -396,6 +427,7 @@ def confirm_prompt(projects_root: Path, project_id: str) -> dict:
 
 def start_generation(projects_root: Path, project_id: str) -> dict:
     root, project = load_project(projects_root, project_id)
+    verify_project_skill(project)
     require_state(project, {"prompt_confirmed"})
     _, current_material_hash = material_snapshot(project)
     active = project["prompts"][project["active_prompt_version"] - 1]

@@ -133,6 +133,36 @@ class SkillCuratorTests(unittest.TestCase):
             codes = {issue.code for issue in validate_package(published, require_receipt=True)}
             self.assertIn("STALE_RECEIPT", codes)
 
+    def test_package_hash_is_stable_across_text_line_endings_and_bom(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            lf = root / "lf"
+            crlf = root / "crlf"
+            lf.mkdir()
+            crlf.mkdir()
+            (lf / "SKILL.md").write_text("第一行\n第二行\n", encoding="utf-8")
+            (crlf / "SKILL.md").write_bytes(b"\xef\xbb\xbf" + "第一行\r\n第二行\r\n".encode("utf-8"))
+            (lf / "contract.json").write_text('{"value": 1}\n', encoding="utf-8")
+            (crlf / "contract.json").write_bytes(b'{"value": 1}\r\n')
+            (lf / "asset.bin").write_bytes(b"same\r\nbytes")
+            (crlf / "asset.bin").write_bytes(b"same\r\nbytes")
+            self.assertEqual(package_sha256(lf), package_sha256(crlf))
+
+    def test_package_hash_detects_text_and_binary_changes(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            first = root / "first"
+            second = root / "second"
+            first.mkdir()
+            second.mkdir()
+            (first / "SKILL.md").write_text("内容\n", encoding="utf-8")
+            (second / "SKILL.md").write_text("内容变化\n", encoding="utf-8")
+            self.assertNotEqual(package_sha256(first), package_sha256(second))
+            (second / "SKILL.md").write_text("内容\n", encoding="utf-8")
+            (first / "asset.bin").write_bytes(b"a\r\nb")
+            (second / "asset.bin").write_bytes(b"a\nb")
+            self.assertNotEqual(package_sha256(first), package_sha256(second))
+
     def test_registry_ignores_direct_drop_and_accepts_only_published_package(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

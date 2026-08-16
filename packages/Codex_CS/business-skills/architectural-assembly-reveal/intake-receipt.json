@@ -1,15 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "hash_algorithm": "codex-cs-package-sha256-v2",
   "skill_id": "architectural-assembly-reveal",
   "status": "published",
-  "validator_version": "1.1.0",
+  "validator_version": "1.2.0",
   "approved_by": "user",
-  "validated_at": "2026-08-15T11:19:44.300661+00:00",
+  "validated_at": "2026-08-16T06:31:37.293003+00:00",
   "sources": [
     {
       "name": "建筑特写至全貌拆解组装动画视频提示词生成 Skill.md",
       "sha256": "04a33d9ce95081a6923bf5ec3f3c15fbebf223e31ad04f8342b2562635948bbd"
     }
   ],
-  "package_sha256": "e88be3aa2406ea08e634e48a74f73792fc5bec0c236882a502d5a3b75ff4013d"
+  "package_sha256": "8a1c425b4060d32ef3712286fb1806bf87994b99070dbe218f08a5a3277a47f8"
 }

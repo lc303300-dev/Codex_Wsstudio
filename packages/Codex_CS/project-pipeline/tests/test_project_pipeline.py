@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +13,10 @@ SPEC = importlib.util.spec_from_file_location("project_pipeline", MODULE_PATH)
 pipeline = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader
 SPEC.loader.exec_module(pipeline)
+
+INTEGRITY_ROOT = Path(__file__).resolve().parents[2] / "codex-cs-skill-curator" / "scripts"
+sys.path.insert(0, str(INTEGRITY_ROOT))
+from package_integrity import CANONICAL_HASH_ALGORITHM, package_sha256  # noqa: E402
 
 
 class ProjectPipelineTests(unittest.TestCase):
@@ -43,6 +48,20 @@ class ProjectPipelineTests(unittest.TestCase):
             "duration_to_count": [], "provenance": "source_explicit", "confidence": "high", "rationale": "每五秒一张场景图"
         }
         contract_path.write_text(json.dumps(contract, ensure_ascii=False), encoding="utf-8")
+        (skill / "SKILL.md").write_text("---\nname: test-skill\ndescription: 测试已发布视频业务 Skill\n---\n\n# 测试\n", encoding="utf-8")
+        receipt = {
+            "schema_version": 2,
+            "hash_algorithm": CANONICAL_HASH_ALGORITHM,
+            "skill_id": "test-skill",
+            "status": "published",
+            "validator_version": "1.2.0",
+            "approved_by": "user",
+            "validated_at": "2026-08-16T00:00:00+00:00",
+            "sources": [{"name": "source.md", "sha256": "0" * 64}],
+            "package_sha256": package_sha256(skill),
+        }
+        (skill / "intake-receipt.json").write_text(json.dumps(receipt, ensure_ascii=False), encoding="utf-8")
+        self.skill = skill
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -74,6 +93,37 @@ class ProjectPipelineTests(unittest.TestCase):
         for duration in (3, 31):
             with self.assertRaisesRegex(pipeline.PipelineError, "between 4 and 30"):
                 pipeline.create_project(self.projects, self.skills, f"bad-{duration}", "test-skill", "测试 Skill", "9:16", duration, True)
+
+    def test_create_rejects_missing_or_stale_receipt(self) -> None:
+        receipt = self.skill / "intake-receipt.json"
+        receipt.unlink()
+        with self.assertRaisesRegex(pipeline.PipelineError, "MISSING_RECEIPT"):
+            pipeline.create_project(self.projects, self.skills, "missing", "test-skill", "测试 Skill", "9:16", 15, True)
+        self.assertFalse((self.projects / "missing").exists())
+
+        self.setUp_receipt()
+        with (self.skill / "contract.json").open("a", encoding="utf-8") as stream:
+            stream.write(" ")
+        with self.assertRaisesRegex(pipeline.PipelineError, "STALE_RECEIPT"):
+            pipeline.create_project(self.projects, self.skills, "stale", "test-skill", "测试 Skill", "9:16", 15, True)
+        self.assertFalse((self.projects / "stale").exists())
+
+    def setUp_receipt(self) -> None:
+        receipt = {
+            "schema_version": 2, "hash_algorithm": CANONICAL_HASH_ALGORITHM,
+            "skill_id": "test-skill", "status": "published", "validator_version": "1.2.0",
+            "approved_by": "user", "validated_at": "2026-08-16T00:00:00+00:00",
+            "sources": [{"name": "source.md", "sha256": "0" * 64}],
+            "package_sha256": package_sha256(self.skill),
+        }
+        (self.skill / "intake-receipt.json").write_text(json.dumps(receipt, ensure_ascii=False), encoding="utf-8")
+
+    def test_create_accepts_line_ending_only_change(self) -> None:
+        skill_file = self.skill / "SKILL.md"
+        normalized = skill_file.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        skill_file.write_bytes(normalized.replace(b"\n", b"\r\n"))
+        result = pipeline.create_project(self.projects, self.skills, "line-endings", "test-skill", "测试 Skill", "9:16", 15, True)
+        self.assertEqual(result["state"], "awaiting_image_stage_choice")
 
     def test_happy_path_with_cs_prompt(self) -> None:
         self.create()
@@ -119,6 +169,18 @@ class ProjectPipelineTests(unittest.TestCase):
         project = json.loads((self.projects / "demo" / "project.json").read_text(encoding="utf-8"))
         Path(project["material_slots"][0]["final_dir"], "01.png").write_bytes(b"changed")
         with self.assertRaisesRegex(pipeline.PipelineError, "changed after confirmation"):
+            pipeline.start_generation(self.projects, "demo")
+
+    def test_stale_skill_blocks_generation(self) -> None:
+        self.create()
+        pipeline.choose_image_stage(self.projects, "demo", "user_supplied")
+        self.put_sources()
+        pipeline.lock_final(self.projects, "demo", True)
+        pipeline.set_cs_prompt(self.projects, "demo", "V1")
+        pipeline.confirm_prompt(self.projects, "demo")
+        with (self.skill / "SKILL.md").open("a", encoding="utf-8") as stream:
+            stream.write("\ntampered\n")
+        with self.assertRaisesRegex(pipeline.PipelineError, "STALE_RECEIPT"):
             pipeline.start_generation(self.projects, "demo")
 
     def test_slot_count_is_enforced(self) -> None:

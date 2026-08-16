@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
 import sqlite3
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
+
+CS_ROOT = Path(__file__).resolve().parents[2]
+INTEGRITY_ROOT = CS_ROOT / "codex-cs-skill-curator" / "scripts"
+if str(INTEGRITY_ROOT) not in sys.path:
+    sys.path.insert(0, str(INTEGRITY_ROOT))
+
+from package_integrity import package_sha256, validate_receipt  # noqa: E402
 
 
 SCHEMA_VERSION = 1
@@ -23,19 +30,6 @@ def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
-def package_sha256(root: Path) -> str:
-    digest = hashlib.sha256()
-    files = sorted(p for p in root.rglob("*") if p.is_file() and p.name != "intake-receipt.json")
-    for path in files:
-        relative = path.relative_to(root).as_posix().encode("utf-8")
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        data = path.read_bytes()
-        digest.update(len(data).to_bytes(8, "big"))
-        digest.update(data)
-    return digest.hexdigest()
-
-
 def validate_published_package(root: Path) -> tuple[dict | None, list[str]]:
     issues: list[str] = []
     required = ("SKILL.md", "contract.json", "intake-receipt.json")
@@ -46,19 +40,23 @@ def validate_published_package(root: Path) -> tuple[dict | None, list[str]]:
         return None, issues
     try:
         contract = read_json(root / "contract.json")
-        receipt = read_json(root / "intake-receipt.json")
     except (OSError, json.JSONDecodeError) as exc:
         return None, [f"invalid JSON: {exc}"]
     skill_id = contract.get("skill_id")
     if not isinstance(skill_id, str) or root.name != skill_id:
         issues.append("skill_id does not match directory")
-    if receipt.get("status") != "published" or receipt.get("approved_by") != "user":
-        issues.append("receipt is not user-approved published state")
-    if receipt.get("skill_id") != skill_id:
-        issues.append("receipt skill_id mismatch")
-    actual_hash = package_sha256(root)
-    if receipt.get("package_sha256") != actual_hash:
-        issues.append("stale publication receipt")
+    _, receipt_issues = validate_receipt(root, skill_id if isinstance(skill_id, str) else None)
+    receipt_messages = {
+        "MISSING_RECEIPT": "missing intake-receipt.json",
+        "INVALID_RECEIPT": "invalid receipt JSON",
+        "INVALID_RECEIPT_FIELDS": "invalid receipt fields",
+        "INVALID_RECEIPT_IDENTITY": "receipt is not user-approved published state or skill_id mismatches",
+        "MISSING_RECEIPT_SOURCES": "receipt has no source hashes",
+        "INVALID_RECEIPT_SOURCES": "receipt source hashes are invalid",
+        "UNSUPPORTED_RECEIPT_SCHEMA": "unsupported receipt schema or hash algorithm",
+        "STALE_RECEIPT": "stale publication receipt",
+    }
+    issues.extend(receipt_messages[code] for code in receipt_issues)
     for field in ("display_name", "description", "references"):
         if field not in contract:
             issues.append(f"contract missing {field}")
@@ -334,6 +332,7 @@ def parser() -> argparse.ArgumentParser:
     lookup_cmd = sub.add_parser("lookup")
     lookup_cmd.add_argument("query")
     lookup_cmd.add_argument("--database", type=Path, default=DEFAULT_DB)
+    lookup_cmd.add_argument("--library", type=Path, default=DEFAULT_LIBRARY)
     lookup_cmd.add_argument("--limit", type=int, default=5)
     list_cmd = sub.add_parser("list")
     list_cmd.add_argument("--database", type=Path, default=DEFAULT_DB)
@@ -349,7 +348,11 @@ def main(argv: list[str] | None = None) -> int:
         output = build(args.library, args.database, rebuild=args.rebuild)
         code = 1 if output["rejected"] else 0
     elif args.command == "lookup":
-        output, code = lookup(args.database, args.query, args.limit), 0
+        freshness = validate_registry(args.database, args.library)
+        if freshness["valid"]:
+            output, code = lookup(args.database, args.query, args.limit), 0
+        else:
+            output, code = {"query": args.query, "candidates": [], "registry_issues": freshness["issues"]}, 1
     elif args.command == "list":
         output, code = list_skills(args.database), 0
     else:
