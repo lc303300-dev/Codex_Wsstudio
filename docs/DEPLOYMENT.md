@@ -113,3 +113,8 @@ Run it independently to audit an existing machine:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\maintenance\verify-deployment.ps1
 ```
+
+The verification probes the installed `codex-media-plugin` MCP server and requires
+`tools/list` to expose both `generate_image` and `generate_video`. If verification
+passes but an already-open Codex task still cannot call those tools, restart Codex or
+start a new task so the app reloads personal plugin tools.

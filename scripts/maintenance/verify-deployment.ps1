@@ -54,6 +54,14 @@ Require-Path (Join-Path $CodexHome "skills\codex-github\SKILL.md") "global Tool 
 Require-Path (Join-Path $CodexHome "skills\codex-github\scripts\tool_scout.py") "global Tool Scout runtime"
 Require-Path (Join-Path $CodexHome "plugins\codex-media-plugin\.codex-plugin\plugin.json") "global codex-media plugin"
 
+$globalConfig = Join-Path $CodexHome "config.toml"
+if (Test-Path -LiteralPath $globalConfig -PathType Leaf) {
+    $configText = Get-Content -LiteralPath $globalConfig -Raw -Encoding UTF8
+    if ($configText -notmatch '\[plugins\."codex-media-plugin@personal"\]' -or $configText -notmatch '(?s)\[plugins\."codex-media-plugin@personal"\].*?enabled\s*=\s*true') {
+        $errors.Add("Global Codex config does not enable codex-media-plugin@personal: $globalConfig")
+    }
+}
+
 $toolScoutSkill = Join-Path $CodexHome "skills\codex-github\SKILL.md"
 if (Test-Path -LiteralPath $toolScoutSkill -PathType Leaf) {
     $toolScoutText = Get-Content -LiteralPath $toolScoutSkill -Raw -Encoding UTF8
@@ -196,6 +204,32 @@ foreach ($marker in $mediaMarkers) {
     } catch {
         $errors.Add("Invalid media registration marker: $marker")
     }
+}
+
+$installedMediaMcp = Join-Path $CodexHome "plugins\codex-media-plugin\mcp\run.ps1"
+if (Test-Path -LiteralPath $installedMediaMcp -PathType Leaf) {
+    try {
+        $toolListRequest = '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+        $toolListOutput = $toolListRequest | powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installedMediaMcp
+        if ($LASTEXITCODE -ne 0) {
+            throw "codex-media MCP probe exited with code $LASTEXITCODE"
+        }
+        $toolListJson = @($toolListOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })[-1]
+        $toolList = $toolListJson | ConvertFrom-Json
+        if ($toolList.error) {
+            throw "codex-media MCP tools/list returned error: $($toolList.error.message)"
+        }
+        $mediaToolNames = @($toolList.result.tools | ForEach-Object { [string]$_.name })
+        foreach ($expectedTool in @("generate_image", "generate_video")) {
+            if ($expectedTool -notin $mediaToolNames) {
+                $errors.Add("codex-media MCP tools/list does not expose $expectedTool. Returned: $($mediaToolNames -join ', ')")
+            }
+        }
+    } catch {
+        $errors.Add("Unable to verify codex-media MCP tools/list from installed plugin: $installedMediaMcp ($($_.Exception.Message))")
+    }
+} else {
+    $errors.Add("Missing installed codex-media MCP runner: $installedMediaMcp")
 }
 
 $batchMarker = Join-Path $CodexHome "skills\batch-image-generation\.codex-batch-image-registration.json"
