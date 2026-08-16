@@ -20,6 +20,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 RATIOS = {"21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"}
+IMAGE_PROVIDERS = {"comfly-gemini-lite", "comfly-gpt-image-2-all", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"}
 DEFAULT_SECONDS_PER_IMAGE = 60.0
 DEFAULT_DEADLINE_MULTIPLIER = 1.5
 
@@ -109,6 +110,8 @@ class StartGate:
 def validate(data: dict[str, Any]) -> None:
     if data.get("image_ratio") not in RATIOS:
         raise ValueError("an explicit supported image_ratio is required")
+    if data.get("image_provider") is not None and data["image_provider"] not in IMAGE_PROVIDERS:
+        raise ValueError("image_provider must be a supported unified image route")
     groups = data.get("groups")
     if not isinstance(groups, list) or not groups:
         raise ValueError("groups must be a non-empty array")
@@ -172,13 +175,15 @@ async def kill_tree(process: asyncio.subprocess.Process) -> None:
         process.kill()
 
 
-async def generate(job: dict[str, Any], ratio: str, router: Path, root: Path, store: Store, gate: StartGate, deadline: float) -> None:
+async def generate(job: dict[str, Any], ratio: str, image_provider: str | None, router: Path, root: Path, store: Store, gate: StartGate, deadline: float) -> None:
     if not store.acquire(job["key"]):
         return
     if not await gate.wait(deadline):
         store.finish(job["key"], "abandoned", failure_class="batch_deadline")
         return
     command = [sys.executable, "-B", str(router), "generate_image", "--prompt", job["prompt"], "--image-ratio", ratio]
+    if image_provider:
+        command += ["--image-provider", image_provider]
     for reference in job["references"]:
         command += ["--image", str(reference)]
     process = await asyncio.create_subprocess_exec(
@@ -260,7 +265,7 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
             jobs.append({"key": f"{data['batch_id']}:{group['id']}:{index}:{version}", "group": str(group["id"]), "index": index, "prompt": str(group["prompt"]), "references": [p for p in references if p]})
     expected_seconds, deadline_seconds = resolve_timing(data, len(jobs))
     if dry_run:
-        return {"status": "dry_run", "batch_id": data["batch_id"], "jobs": len(jobs), "groups": len(data["groups"]), "concurrency": int(data.get("concurrency", 10)), "start_delay_seconds": float(data.get("start_delay_seconds", 1)), "seconds_per_image": float(data.get("seconds_per_image", DEFAULT_SECONDS_PER_IMAGE)), "deadline_multiplier": float(data.get("deadline_multiplier", DEFAULT_DEADLINE_MULTIPLIER)), "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "output_dir": str(root)}
+        return {"status": "dry_run", "batch_id": data["batch_id"], "jobs": len(jobs), "groups": len(data["groups"]), "image_provider": data.get("image_provider"), "concurrency": int(data.get("concurrency", 10)), "start_delay_seconds": float(data.get("start_delay_seconds", 1)), "seconds_per_image": float(data.get("seconds_per_image", DEFAULT_SECONDS_PER_IMAGE)), "deadline_multiplier": float(data.get("deadline_multiplier", DEFAULT_DEADLINE_MULTIPLIER)), "expected_seconds": expected_seconds, "deadline_seconds": deadline_seconds, "output_dir": str(root)}
     root.mkdir(parents=True, exist_ok=True)
     store = Store(root / "batch-state.sqlite3")
     for job in jobs:
@@ -270,7 +275,7 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
 
     async def limited(job: dict[str, Any]) -> None:
         async with semaphore:
-            await generate(job, data["image_ratio"], router, root, store, gate, deadline)
+            await generate(job, data["image_ratio"], data.get("image_provider"), router, root, store, gate, deadline)
 
     tasks = [asyncio.create_task(limited(job)) for job in jobs]
     _, pending = await asyncio.wait(tasks, timeout=max(0, deadline - time.monotonic()))

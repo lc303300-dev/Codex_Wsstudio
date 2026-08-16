@@ -11,7 +11,7 @@ Run deterministic batch scheduling without using child Agents for paid image sub
 
 1. Require the user to explicitly choose one supported ratio before submission: `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, or `9:16`.
 2. Confirm the batch is intentional because each candidate may consume credits. Skip this confirmation for `-DryRun`; confirm before the first real run.
-3. Build a JSON manifest from [references/manifest-schema.md](references/manifest-schema.md). Preserve reference-image order.
+3. Build a JSON manifest from [references/manifest-schema.md](references/manifest-schema.md). Preserve reference-image order. Do not proactively ask for a route; if the user explicitly names one supported, unambiguous image route, set the batch-wide `image_provider` so every candidate goes directly to that route.
 4. Run `scripts/run_batch.py` through the package entry point. Default to 10 in-flight tasks and at least 1 second between real submission starts. Estimate one minute per concurrent wave, then set the maximum generation-stage wait to 1.5 times that estimate.
 5. At the deadline, stop dispatching, terminate local waits, and mark all unfinished tasks `abandoned`. Never query, reconcile, retry, or silently resubmit abandoned tasks.
 6. Collect only successful images already landed before the deadline.

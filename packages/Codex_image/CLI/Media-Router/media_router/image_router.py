@@ -22,13 +22,12 @@ class ImageRouter:
     def ordered_providers(self, request: MediaRequest) -> list:
         configured = self.config["providers"]
         requested = request.image_provider
-        image_ids = [provider_id for provider_id, provider in self.registry.items() if provider.capability == "image" and (provider_id == requested or configured[provider_id].get("enabled", True))]
+        image_ids = [provider_id for provider_id, provider in self.registry.items() if provider.capability == "image" and configured[provider_id].get("enabled", True)]
         if requested:
             image_ids = [item for item in image_ids if item == requested]
         return [self.registry[provider_id] for provider_id in sorted(image_ids, key=lambda item: configured[item]["priority"])]
 
-    @staticmethod
-    def validate(request: MediaRequest) -> None:
+    def validate(self, request: MediaRequest) -> None:
         if not request.prompt.strip():
             raise ValueError("prompt must not be empty")
         if request.videos or request.audios:
@@ -37,6 +36,13 @@ class ImageRouter:
             raise ValueError("image_ratio is required; ask the user to choose an image ratio before generation")
         if request.image_ratio not in SUPPORTED_IMAGE_RATIOS:
             raise ValueError("Unsupported image_ratio: " + request.image_ratio)
+        if request.image_provider:
+            provider = self.registry.get(request.image_provider)
+            configured = self.config.get("providers", {}).get(request.image_provider)
+            if provider is None or configured is None or provider.capability != "image":
+                raise ValueError("Unsupported image_provider: " + request.image_provider)
+            if not configured.get("enabled", True):
+                raise ValueError("Requested image_provider is disabled: " + request.image_provider)
         missing = [str(path) for path in request.images if not path.is_file()]
         if missing:
             raise FileNotFoundError("Missing reference images: " + "; ".join(missing))

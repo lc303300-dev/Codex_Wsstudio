@@ -45,8 +45,10 @@ class BatchTests(unittest.TestCase):
                         "groups": [{"id": "A", "prompt": "one", "candidates": 4}]}
             result = self.invoke(manifest, folder, dry_run=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(json.loads(result.stdout)["expected_seconds"], 60)
-            self.assertEqual(json.loads(result.stdout)["deadline_seconds"], 75)
+            plan = json.loads(result.stdout)
+            self.assertEqual(plan["expected_seconds"], 60)
+            self.assertEqual(plan["deadline_seconds"], 75)
+            self.assertIsNone(plan["image_provider"])
 
     def test_nonpositive_seconds_per_image_is_rejected_before_spawn(self):
         with tempfile.TemporaryDirectory() as value:
@@ -72,6 +74,24 @@ class BatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as value:
             folder = Path(value)
             result = self.invoke({"groups": [{"id": "A", "prompt": "ok", "candidates": 1}]}, folder)
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse((folder / "calls.jsonl").exists())
+
+    def test_explicit_image_provider_is_forwarded_to_every_job(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"batch_id": "route", "image_ratio": "1:1", "image_provider": "dreamina-image", "start_delay_seconds": 0, "deadline_seconds": 5,
+                        "groups": [{"id": "A", "prompt": "one", "candidates": 2}]}
+            result = self.invoke(manifest, folder)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            calls = [json.loads(line) for line in (folder / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+            self.assertEqual([call["image_provider"] for call in calls], ["dreamina-image", "dreamina-image"])
+
+    def test_unsupported_image_provider_is_rejected_before_spawn(self):
+        with tempfile.TemporaryDirectory() as value:
+            folder = Path(value)
+            manifest = {"image_ratio": "1:1", "image_provider": "unknown", "groups": [{"id": "A", "prompt": "ok", "candidates": 1}]}
+            result = self.invoke(manifest, folder)
             self.assertEqual(result.returncode, 2)
             self.assertFalse((folder / "calls.jsonl").exists())
 

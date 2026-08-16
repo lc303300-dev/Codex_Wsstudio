@@ -51,6 +51,10 @@ The same global guidance requires an explicit ratio for every image generation o
 ratios are rejected before any provider submission instead of being inferred from references or
 provider defaults.
 
+Image routes still use the configured serial fallback order by default. If the user explicitly
+names one supported, unambiguous route, the unified `generate_image` tool can go directly to that
+route and will not try other routes. Codex does not proactively ask ordinary users to choose one.
+
 Before writing files in this checkout, run:
 
 ```powershell

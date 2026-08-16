@@ -94,6 +94,12 @@ an explicit user-selected ratio before submission; the ratio is passed through t
 `generate_image.image_ratio` field, and missing values are rejected before any paid provider call.
 Deployment verification fails if this rule is absent from the installed global guidance.
 
+The installed guidance treats the configured image route order as the default rather than a
+mandatory path. Ordinary requests continue to use automatic serial fallback. If the current user
+explicitly names a supported, unambiguous route, Codex passes it through
+`generate_image.image_provider`, uses only that route, and does not invoke a provider-specific
+skill directly.
+
 It also refreshes the unified media tools and `codex-media-plugin` from
 `packages/Codex_image/`, including managed personal marketplace and cached plugin
 copies, then refreshes the globally registered `codex-github`, `video-to-gif`,

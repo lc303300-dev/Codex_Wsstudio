@@ -29,9 +29,10 @@ class PluginContractTests(unittest.TestCase):
 
     def test_exact_public_schemas(self):
         tools = {tool["name"]: tool["inputSchema"] for tool in server.TOOLS}
-        self.assertEqual(set(tools["generate_image"]["properties"]), {"prompt", "images", "image_ratio"})
+        self.assertEqual(set(tools["generate_image"]["properties"]), {"prompt", "images", "image_ratio", "image_provider"})
         self.assertEqual(set(tools["generate_image"]["required"]), {"prompt", "image_ratio"})
         self.assertEqual(tools["generate_image"]["properties"]["image_ratio"]["enum"], ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"])
+        self.assertEqual(tools["generate_image"]["properties"]["image_provider"]["enum"], ["comfly-gemini-lite", "comfly-gpt-image-2-all", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"])
         self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution"})
         self.assertFalse(tools["generate_image"]["additionalProperties"])
         self.assertFalse(tools["generate_video"]["additionalProperties"])
@@ -101,6 +102,12 @@ class PluginContractTests(unittest.TestCase):
         self.assertEqual(result["structuredContent"]["failure_class"], "input_error")
         self.assertIn("image_ratio is required", result["structuredContent"]["safe_reason"])
         execute.assert_called_once()
+
+    def test_explicit_image_provider_is_forwarded(self):
+        failed = {"status": "failed", "failure_class": "auth_unavailable"}
+        with mock.patch.object(server, "execute", return_value=failed) as execute:
+            server.handle({"jsonrpc": "2.0", "id": 13, "method": "tools/call", "params": {"name": "generate_image", "arguments": {"prompt": "test", "image_ratio": "1:1", "image_provider": "dreamina-image"}}})
+        self.assertEqual(execute.call_args.kwargs["image_provider"], "dreamina-image")
 
     def test_successful_video_returns_file_resource_with_normalized_uri(self):
         mp4 = b"\x00\x00\x00\x18ftypisom" + b"offline-video"

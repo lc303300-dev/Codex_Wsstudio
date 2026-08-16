@@ -18,7 +18,7 @@ Codex 中只公开并注册两个默认工具：
 1. `$default-image-generation`
 2. `$default-video-generation`
 
-底层 provider、模型、API Key、CLI 登录、回退顺序和日志均由项目内部处理，不要求普通用户选择供应商。
+底层模型、API Key、CLI 登录、默认回退顺序和日志均由项目内部处理，不主动要求普通用户选择供应商。用户在当前请求中明确点名受支持且无歧义的图片线路时，统一 `generate_image` 可通过受限的 `image_provider` 字段直达该线路。
 
 ### 1.1 公开输入范围
 
@@ -35,7 +35,7 @@ Codex 中只公开并注册两个默认工具：
 - `videos`：可选本地视频路径数组。
 - `audios`：可选本地音频路径数组。
 
-不要把 provider、model、API URL、API Key、CLI 子命令、输出目录、日志目录、并发参数、超时参数或代理参数暴露为默认工具的公开输入。
+除受限枚举的图片 `image_provider` 外，不要把任意 provider、model、API URL、API Key、CLI 子命令、输出目录、日志目录、并发参数、超时参数或代理参数暴露为默认工具的公开输入。`image_provider` 只在用户明确点名线路时传入；缺省时仍使用配置的默认顺序。
 
 图片任务不从提示词、参考图、方向、历史上下文、文件名或 provider 默认值推断比例。用户必须明确选择图片比例，并通过结构化 `image_ratio` 传入；缺失或不支持时在付费提交前以 `input_error` 拒绝。视频比例、分辨率、时长、画质或模型偏好继续按各自工具契约处理。
 
@@ -52,7 +52,7 @@ Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任�
 
 规则：
 
-- 一个任务中的七级回退永远串行，绝不并行、竞速或 hedging。
+- 一个默认路由任务中的六级回退永远串行，绝不并行、竞速或 hedging；显式线路任务只调用指定 adapter。
 - 当前 adapter 成功产生可验证的非空本地图片后立即停止。
 - 只有明确可回退的失败才进入下一个 adapter。
 - Comfly 三个 adapter 共用 `COMFLY_API_KEY`、Base URL、请求构造和下载实现，但具有独立 adapter ID、模型 ID、健康状态、日志、指标、并发槽位和熔断状态。
@@ -251,7 +251,7 @@ MCP server 只暴露两个工具，不暴露 provider 调试工具：
 
 - 生成图片、画图、文生图。
 - 根据一张或多张图片编辑、合成、改图。
-- 默认图片工具，不要求用户指定 provider。
+- 默认图片工具，不主动要求用户指定 provider；用户明确点名受支持线路时允许直达。
 
 `default-video-generation` 的描述覆盖：
 
@@ -699,7 +699,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 
 ### 阶段 3：路由器
 
-1. 实现七级图片串行路由。
+1. 实现六级图片默认串行路由和显式单线路直达。
 2. 实现视频输入到 Dreamina 子命令的映射。
 3. 实现 readiness skip、错误分类和成功即停。
 4. 实现任务目录和原子结果。
@@ -743,7 +743,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 ### 16.1 图片路由
 
 - 三个 Comfly model 是三个独立 adapter。
-- 默认顺序严格为 1–7。
+- 未指定线路时，默认顺序严格为 1–6；明确指定时只调用目标线路。
 - 当前 adapter 成功后不调用后续 adapter。
 - 明确失败进入下一 adapter。
 - input error 不回退。
@@ -817,14 +817,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 5. 一次 image + video + audio 视频。
 6. 八任务滚动六并发验收。
 
-不要为了验证回退而真实故意消耗七个 provider。回退顺序主要通过离线 fake adapters 验证；真实 provider 故障只在自然发生时记录。
+不要为了验证回退而真实故意消耗六个 provider。回退顺序主要通过离线 fake adapters 验证；真实 provider 故障只在自然发生时记录。
 
 ## 18. 验收标准
 
 重构完成必须同时满足：
 
 - Codex 普通用户只看到两个默认工具和两个默认技能。
-- 图片任务按七个 adapter 严格串行回退。
+- 未指定线路的图片任务按六个 adapter 严格串行回退；显式线路任务只尝试指定 adapter。
 - Comfly 三模型可独立统计、熔断、限流和测试。
 - 视频只使用 Seedance CLI，并公开 image/video/audio 输入。
 - 所有 adapter 默认并发为 6。
@@ -840,7 +840,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 
 ## 19. 明确禁止事项
 
-- 不得把七个 provider 同时并行请求并选择最快结果。
+- 不得把六个 provider 同时并行请求并选择最快结果。
 - 不得把 provider/model 作为默认公开工具参数。
 - 不得让子 Agent 创建子 Agent。
 - 不得在聊天、命令行参数、源码、日志或注册 metadata 中放置 API Key。
@@ -861,5 +861,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\get-pipeline-setup-status.
 1. 当前 checkout 中的 `AGENTS.md`
 2. 当前 checkout 中的 `UNIFIED_MEDIA_TOOL_REFACTOR_BLUEPRINT.md`
 
-严格按蓝图分阶段实施 Codex_image 统一媒体工具重构。先建立基线和离线测试，不执行任何新的付费联网生成。所有 provider 默认并发设为 6；多任务最多维持 6 个子 Agent 并滚动补位，但单个图片任务中的七级 provider 回退必须严格串行。Comfly 三模型必须拆成三个独立 adapter。视频只使用 Seedance CLI，并公开 prompt、images、videos、audios。最终只注册 generate_image 和 generate_video 两个工具，以及两个对应默认技能。每完成一个阶段就更新计划并运行该阶段测试；离线验收全部通过后停止，汇报改动和预计联网测试费用，等待确认。
+严格按蓝图分阶段实施 Codex_image 统一媒体工具重构。先建立基线和离线测试，不执行任何新的付费联网生成。所有 provider 默认并发设为 6；多任务最多维持 6 个子 Agent 并滚动补位，但单个默认图片任务中的六级 provider 回退必须严格串行，用户显式指定线路时只调用该 adapter。Comfly 三模型必须拆成三个独立 adapter。视频只使用 Seedance CLI，并公开 prompt、images、videos、audios。最终只注册 generate_image 和 generate_video 两个工具，以及两个对应默认技能。每完成一个阶段就更新计划并运行该阶段测试；离线验收全部通过后停止，汇报改动和预计联网测试费用，等待确认。
 ```

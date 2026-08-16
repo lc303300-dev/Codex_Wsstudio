@@ -102,6 +102,20 @@ foreach ($marker in $imageRatioRuleMarkers) {
     }
 }
 
+$imageRouteRuleMarkers = @(
+    "Treat the configured image-provider order as the default, not a mandatory workflow",
+    "generate_image.image_provider",
+    "does not fall back to other routes"
+)
+foreach ($marker in $imageRouteRuleMarkers) {
+    if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not ((Get-Content -LiteralPath $source -Raw -Encoding UTF8) -like "*$marker*")) {
+        $errors.Add("Explicit image-route rule is absent from the repository global guidance source: $marker")
+    }
+    if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not ((Get-Content -LiteralPath $target -Raw -Encoding UTF8) -like "*$marker*")) {
+        $errors.Add("Explicit image-route rule is absent from the installed global guidance: $marker")
+    }
+}
+
 $expectedImageRoot = Join-Path $RepositoryRoot "packages\Codex_image"
 $mediaConfigPath = Join-Path $expectedImageRoot "config\media-router.defaults.json"
 if (Test-Path -LiteralPath $mediaConfigPath -PathType Leaf) {

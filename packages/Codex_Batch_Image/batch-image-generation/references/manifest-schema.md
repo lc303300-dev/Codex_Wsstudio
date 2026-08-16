@@ -6,6 +6,7 @@ Use UTF-8 JSON. Resolve relative paths from the manifest directory.
 {
   "batch_id": "xian-logo-v1",
   "image_ratio": "9:16",
+  "image_provider": "dreamina-image",
   "output_dir": "./batch-output",
   "concurrency": 10,
   "start_delay_seconds": 1,
@@ -22,7 +23,7 @@ Use UTF-8 JSON. Resolve relative paths from the manifest directory.
 }
 ```
 
-Require `image_ratio` and a non-empty `groups` array. Each group requires a unique `id`, a non-empty `prompt`, and `candidates >= 1`. `batch_id` defaults to a generated ID. `original_image` is optional; otherwise use the first reference image as slot 0. Defaults are 10 workers, 1 second start spacing, 60 seconds per concurrent wave, a 1.5 deadline multiplier, and prompt version `v1`.
+Require `image_ratio` and a non-empty `groups` array. Optional `image_provider` is a batch-wide, user-explicit route and must be one of the unified router's supported IDs; omit it to retain the default serial route order. When present, every candidate uses only that route without cross-route fallback. Each group requires a unique `id`, a non-empty `prompt`, and `candidates >= 1`. `batch_id` defaults to a generated ID. `original_image` is optional; otherwise use the first reference image as slot 0. Defaults are 10 workers, 1 second start spacing, 60 seconds per concurrent wave, a 1.5 deadline multiplier, and prompt version `v1`.
 
 Calculate `expected_seconds` as `ceil(total planned candidates / concurrency) * seconds_per_image`. Calculate the default whole-batch `deadline_seconds` as `expected_seconds * deadline_multiplier`, measured from runner start. For example, 40 candidates at concurrency 10 have a 240-second estimate and a 360-second maximum wait. Set `deadline_seconds` only when an explicit whole-batch override is needed.
 

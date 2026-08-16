@@ -122,10 +122,30 @@ class ImageRouterTests(unittest.TestCase):
         self.assertEqual(result.status, "success")
         self.assertEqual(calls, ["p2"])
 
-    def test_seven_failures_are_recorded_in_order(self):
-        result, calls = self.run_router([FailureClass.DEFINITE_PROVIDER_FAILURE] * 7)
+    def test_unknown_image_provider_is_input_error(self):
+        calls = []
+        registry = {"p1": FakeProvider("p1", "m1", "success", calls)}
+        with tempfile.TemporaryDirectory() as temporary:
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_provider="missing", image_ratio="4:3"))
+        self.assertEqual(result.failure_class, FailureClass.INPUT_ERROR.value)
+        self.assertIn("Unsupported image_provider", result.safe_reason)
+        self.assertEqual(calls, [])
+
+    def test_disabled_explicit_image_provider_is_input_error(self):
+        calls = []
+        registry = {"p1": FakeProvider("p1", "m1", "success", calls)}
+        config = router_config(registry)
+        config["providers"]["p1"]["enabled"] = False
+        with tempfile.TemporaryDirectory() as temporary:
+            result = ImageRouter(config, registry, TaskStore(Path(temporary))).execute(MediaRequest("prompt", image_provider="p1", image_ratio="4:3"))
+        self.assertEqual(result.failure_class, FailureClass.INPUT_ERROR.value)
+        self.assertIn("disabled", result.safe_reason)
+        self.assertEqual(calls, [])
+
+    def test_six_failures_are_recorded_in_order(self):
+        result, calls = self.run_router([FailureClass.DEFINITE_PROVIDER_FAILURE] * 6)
         self.assertEqual(result.status, "failed")
-        self.assertEqual(calls, [f"p{i}" for i in range(1, 8)])
+        self.assertEqual(calls, [f"p{i}" for i in range(1, 7)])
         self.assertEqual([attempt["provider_id"] for attempt in result.attempts], calls)
 
     def test_non_fallback_failures_stop(self):

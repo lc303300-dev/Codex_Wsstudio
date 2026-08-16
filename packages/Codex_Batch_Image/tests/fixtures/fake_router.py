@@ -11,10 +11,11 @@ parser.add_argument("command")
 parser.add_argument("--prompt", required=True)
 parser.add_argument("--image", action="append", default=[])
 parser.add_argument("--image-ratio", required=True)
+parser.add_argument("--image-provider")
 args = parser.parse_args()
 log = Path(os.environ["FAKE_ROUTER_LOG"])
 with log.open("a", encoding="utf-8") as handle:
-    handle.write(json.dumps({"prompt": args.prompt, "images": args.image, "started": time.monotonic()}) + "\n")
+    handle.write(json.dumps({"prompt": args.prompt, "images": args.image, "image_provider": args.image_provider, "started": time.monotonic()}) + "\n")
 if args.prompt.startswith("hang"):
     time.sleep(30)
 if args.prompt.startswith("fail"):

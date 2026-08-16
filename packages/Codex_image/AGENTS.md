@@ -7,7 +7,7 @@ Expose and use only these default media tools for ordinary requests:
 - `generate_image` through `$default-image-generation` for text-to-image and one-or-more-image editing.
 - `generate_video` through `$default-video-generation` for text, image, video, or audio referenced video generation.
 
-Do not ask ordinary users to select a provider. Provider skills remain source-maintenance and explicit-diagnostic assets only; their `agents/openai.yaml` files must keep `allow_implicit_invocation: false`.
+Do not proactively ask ordinary users to select a provider. Provider skills remain source-maintenance and explicit-diagnostic assets only; their `agents/openai.yaml` files must keep `allow_implicit_invocation: false`. If the current user explicitly names one supported, unambiguous image route, honor it through the unified `generate_image.image_provider` field; never invoke the provider-specific skill or adapter directly.
 
 Both tools are external open-world operations that may consume provider credits. Offline validation, status checks, request construction, help commands, and dry runs are allowed. Before any real generation or edit, confirm the user's requested generation is intentional. Before a new network acceptance suite or failure/concurrency test that may consume extra credits, list the maximum paid requests and obtain explicit confirmation.
 
@@ -15,7 +15,7 @@ Both tools are external open-world operations that may consume provider credits.
 
 Every image generation or edit requires an explicit user-selected ratio before any paid submission. Supported ratios are `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, and `9:16`. Never infer a ratio from reference images, image orientation, prompt context, earlier tasks, filenames, or provider defaults. The public `generate_image` contract requires structured `image_ratio`; missing or unsupported values fail as `input_error` before any provider is called.
 
-Route each image task strictly serially and stop after the first validated non-empty local image:
+When the user does not explicitly select a route, route each image task strictly serially in this default order and stop after the first validated non-empty local image:
 
 1. `comfly-gemini-lite` -> the model declared in `config/media-router.defaults.json` (currently `gemini-3.1-flash-image-preview`)
 2. `comfly-gpt-image-2-all` -> `gpt-image-2-all`
@@ -23,6 +23,8 @@ Route each image task strictly serially and stop after the first validated non-e
 4. `apimart-gpt-image-2` -> APIMart `gpt-image-2`
 5. `google-gemini-image` -> official Gemini image API
 6. `dreamina-image` -> Dreamina Image 4.0 by default
+
+The list above is a default order, not a mandatory path. When the current user explicitly requests one supported route, pass its exact adapter ID through `generate_image.image_provider`, skip every other route, and do not fall back elsewhere if it fails. Supported public route IDs are the six IDs listed above. Do not guess ambiguous names: for example, plain `Gemini` is ambiguous between the Comfly Gemini and official Google Gemini routes. Unsupported, non-image, or config-disabled routes fail as `input_error` before any paid provider call.
 
 Never race, hedge, or parallelize adapters within one image task. Comfly models are separate logical adapters with independent concurrency, health, metrics, logs, and circuit state. The Comfly common layer performs exactly one fixed-model request and never loops over models.
 

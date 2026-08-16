@@ -12,6 +12,10 @@ Treat Windows local Markdown links and embedded local media as a hard output con
 
 Before every image generation or image edit, require the user to explicitly choose one supported ratio: `21:9`, `16:9`, `3:2`, `4:3`, `1:1`, `3:4`, `2:3`, or `9:16`. If no ratio is explicit, refuse to submit generation and ask the user for it. Never infer image ratio from reference images, orientation, prompt context, earlier turns, filenames, or provider defaults. Pass the chosen value through the structured `generate_image` `image_ratio` field.
 
+## Explicit Image Route
+
+Treat the configured image-provider sequence as the default rather than a mandatory workflow. Do not proactively ask ordinary users to choose a route. When the current user explicitly names one supported and unambiguous image route, pass it through the unified `generate_image.image_provider` field so the router uses only that route and does not fall back to other routes. Keep provider-specific skills and adapters private; ask a minimal clarification for ambiguous names and reject unsupported or disabled routes before paid submission.
+
 When the user is clearly asking to set up, install, deploy, update deployment, or bootstrap this repository, treat the request as a one-click deployment request and run:
 
 ```powershell
