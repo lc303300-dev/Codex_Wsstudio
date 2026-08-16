@@ -4,12 +4,11 @@
   "image_timeouts": { "provider_seconds": 120, "task_seconds": 300 },
   "media_inputs": { "max_image_long_edge": 1920 },
   "providers": {
-    "comfly-gemini-lite": { "enabled": true, "priority": 1, "max_concurrency": 6, "model": "gemini-3.1-flash-image-preview", "size_profile": "gemini-1k" },
-    "comfly-gpt-image-2-all": { "enabled": true, "priority": 2, "max_concurrency": 6, "model": "gpt-image-2-all" },
-    "comfly-gpt-image-2": { "enabled": true, "priority": 3, "max_concurrency": 6, "model": "gpt-image-2" },
-    "apimart-gpt-image-2": { "enabled": true, "priority": 4, "max_concurrency": 6 },
-    "google-gemini-image": { "enabled": true, "priority": 5, "max_concurrency": 6 },
-    "dreamina-image": { "enabled": true, "priority": 6, "max_concurrency": 6, "capacity_key": "seedance-cli" },
+    "comfly-gemini-lite": { "enabled": true, "priority": 1, "max_concurrency": 6, "model": "gemini-3.1-flash-image-preview", "models_by_resolution": { "1K": "gemini-3.1-flash-image-preview", "2K": "gemini-3.1-flash-image-preview-2k", "4K": "gemini-3.1-flash-image-preview-4k" }, "size_profile": "gemini-resolution" },
+    "comfly-gpt-image-2": { "enabled": true, "priority": 2, "max_concurrency": 6, "model": "gpt-image-2" },
+    "apimart-gpt-image-2": { "enabled": true, "priority": 3, "max_concurrency": 6 },
+    "google-gemini-image": { "enabled": true, "priority": 4, "max_concurrency": 6 },
+    "dreamina-image": { "enabled": true, "priority": 5, "max_concurrency": 6, "capacity_key": "seedance-cli" },
     "dreamina-video": { "enabled": true, "max_concurrency": 6, "capacity_key": "seedance-cli" }
   }
 }

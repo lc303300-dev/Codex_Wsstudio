@@ -125,6 +125,13 @@ if (Test-Path -LiteralPath $mediaConfigPath -PathType Leaf) {
         if ($geminiModel -ne "gemini-3.1-flash-image-preview") {
             $errors.Add("Comfly Gemini route is not current: $geminiModel")
         }
+        $geminiModels = $mediaConfig.providers."comfly-gemini-lite".models_by_resolution
+        if ([string]$geminiModels."2K" -ne "gemini-3.1-flash-image-preview-2k" -or [string]$geminiModels."4K" -ne "gemini-3.1-flash-image-preview-4k") {
+            $errors.Add("Comfly Gemini resolution model mapping is not current.")
+        }
+        if ($null -ne $mediaConfig.providers."comfly-gpt-image-2-all") {
+            $errors.Add("Retired Comfly gpt-image-2-all route is still configured.")
+        }
     } catch {
         $errors.Add("Invalid media router configuration: $mediaConfigPath")
     }
@@ -139,7 +146,7 @@ from media_router.config import load_config
 from media_router.providers.registry import build_registry
 config = load_config()
 adapter = build_registry(config)["comfly-gemini-lite"]
-print(json.dumps({"model": adapter.model_id, "size_profile": adapter.size_profile}))
+print(json.dumps({"model": adapter.model_id, "size_profile": adapter.size_profile, "models_by_resolution": adapter.models_by_resolution}))
 '@
     $previousPythonPath = $env:PYTHONPATH
     try {
@@ -150,8 +157,11 @@ print(json.dumps({"model": adapter.model_id, "size_profile": adapter.size_profil
         if ([string]$runtime.model -ne "gemini-3.1-flash-image-preview") {
             $errors.Add("Runtime Comfly Gemini route is not current: $($runtime.model)")
         }
-        if ([string]$runtime.size_profile -ne "gemini-1k") {
+        if ([string]$runtime.size_profile -ne "gemini-resolution") {
             $errors.Add("Runtime Comfly Gemini size profile is not current: $($runtime.size_profile)")
+        }
+        if ([string]$runtime.models_by_resolution."2K" -ne "gemini-3.1-flash-image-preview-2k" -or [string]$runtime.models_by_resolution."4K" -ne "gemini-3.1-flash-image-preview-4k") {
+            $errors.Add("Runtime Comfly Gemini resolution model mapping is not current.")
         }
     } catch {
         $errors.Add("Unable to verify the effective runtime Comfly Gemini route.")

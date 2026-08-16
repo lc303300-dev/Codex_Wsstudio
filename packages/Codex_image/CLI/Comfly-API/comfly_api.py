@@ -15,11 +15,13 @@ from media_router.safe_logging import write_json  # noqa: E402
 
 
 PROVIDER_CONFIG = load_config()["providers"]
-MODEL_PROFILES = {
-    value["model"]: value.get("size_profile")
-    for name, value in PROVIDER_CONFIG.items()
-    if name.startswith("comfly-")
-}
+MODEL_PROFILES = {}
+for name, value in PROVIDER_CONFIG.items():
+    if not name.startswith("comfly-"):
+        continue
+    MODEL_PROFILES[value["model"]] = value.get("size_profile")
+    for model in value.get("models_by_resolution", {}).values():
+        MODEL_PROFILES[model] = value.get("size_profile")
 MODELS = tuple(MODEL_PROFILES)
 
 
@@ -44,6 +46,7 @@ def main() -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--log", required=True)
     parser.add_argument("--size")
+    parser.add_argument("--resolution", choices=("1K", "2K", "4K"), default="1K")
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -61,7 +64,7 @@ def main() -> None:
         "endpoint": comfly_common.EDITS_URL if images else comfly_common.GENERATIONS_URL,
         "prompt": prompt_summary(prompt),
         "image_count": len(images),
-        "size": comfly_common.normalize_size(args.model, args.size, MODEL_PROFILES[args.model]),
+        "size": comfly_common.normalize_size(args.model, args.size, MODEL_PROFILES[args.model], args.resolution),
         "dry_run": args.dry_run,
         "api_key_configured": bool(comfly_common.api_key()),
     }
@@ -70,7 +73,7 @@ def main() -> None:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return
     try:
-        details = comfly_common.execute_once(args.model, prompt, images, output, args.size, args.timeout, size_profile=MODEL_PROFILES[args.model])
+        details = comfly_common.execute_once(args.model, prompt, images, output, args.size, args.timeout, size_profile=MODEL_PROFILES[args.model], resolution=args.resolution)
     except Exception as exc:
         report.update(status="failed", failure_type=type(exc).__name__)
         write_json(log_path, report)

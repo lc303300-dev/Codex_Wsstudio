@@ -13,12 +13,13 @@ from . import comfly_common
 class ComflyAdapter:
     capability = "image"
 
-    def __init__(self, provider_id: str, model_id: str, max_concurrency: int = 6, size_profile: str | None = None):
+    def __init__(self, provider_id: str, model_id: str, max_concurrency: int = 6, size_profile: str | None = None, models_by_resolution: dict[str, str] | None = None):
         self.provider_id = provider_id
         self.model_id = model_id
         self.capacity_key = provider_id
         self.max_concurrency = max_concurrency
         self.size_profile = size_profile
+        self.models_by_resolution = models_by_resolution or {}
         self.runtime = ProviderRuntime(PRIVATE_ROOT / "logs" / "providers", provider_id)
 
     def check_readiness(self) -> Readiness:
@@ -30,22 +31,24 @@ class ComflyAdapter:
     def execute(self, request: MediaRequest, context: TaskContext) -> ProviderResult:
         started, stamp = monotonic(), datetime.now(timezone.utc).isoformat()
         output = context.output_dir / f"{self.provider_id}.png"
+        model_id = self.models_by_resolution.get(request.image_resolution, self.model_id)
         try:
             details = comfly_common.execute_once(
-                self.model_id,
+                model_id,
                 request.prompt,
                 request.images,
                 output,
                 size=request.image_ratio,
+                resolution=request.image_resolution,
                 size_profile=self.size_profile,
                 deadline=context.provider_deadline,
                 timeout_failure=FailureClass.PROVIDER_TIMEOUT if context.provider_deadline is not None else None,
             )
             duration = int((monotonic()-started)*1000)
             self.runtime.record(True, duration)
-            return ProviderResult(self.provider_id, self.model_id, "success", request_id=details["request_id"], output_path=str(output), output_bytes=details["output_bytes"], started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)
+            return ProviderResult(self.provider_id, model_id, "success", request_id=details["request_id"], output_path=str(output), output_bytes=details["output_bytes"], started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)
         except MediaRouterError as exc:
             duration = int((monotonic()-started)*1000)
             self.runtime.record(False, duration)
             status = "needs_review" if exc.failure_class.value == "indeterminate_submission" else "cancelled" if exc.failure_class.value == "cancelled" else "failed"
-            return ProviderResult(self.provider_id, self.model_id, status, failure_class=exc.failure_class, safe_reason=str(exc), started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)
+            return ProviderResult(self.provider_id, model_id, status, failure_class=exc.failure_class, safe_reason=str(exc), started_at=stamp, finished_at=datetime.now(timezone.utc).isoformat(), duration_ms=duration)

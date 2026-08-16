@@ -24,7 +24,6 @@ if ($CheckLogin -and $dreaminaReady) {
 
 $providerReady = [ordered]@{
     "comfly-gemini-lite" = (Test-Key "COMFLY_API_KEY")
-    "comfly-gpt-image-2-all" = (Test-Key "COMFLY_API_KEY")
     "comfly-gpt-image-2" = (Test-Key "COMFLY_API_KEY")
     "apimart-gpt-image-2" = (Test-Key "APIMART_API_KEY")
     "google-gemini-image" = (Test-Key "GEMINI_API_KEY")

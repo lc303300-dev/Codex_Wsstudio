@@ -44,9 +44,8 @@ Codex 中只公开并注册两个默认工具：
 Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任务严格按以下顺序串行尝试：
 
 1. `comfly-gemini-lite` → Comfly `gemini-3.1-flash-image-preview`
-2. `comfly-gpt-image-2-all` → Comfly `gpt-image-2-all`
-3. `comfly-gpt-image-2` → Comfly `gpt-image-2`
-4. `apimart-gpt-image-2` → 现有 `gpt-api`
+2. `comfly-gpt-image-2` → Comfly `gpt-image-2`
+3. `apimart-gpt-image-2` → 现有 `gpt-api`
 5. `google-gemini-image` → 现有 `gemini-api`
 6. `dreamina-image` → 现有 `seedance-cli` 图片能力
 
@@ -95,7 +94,6 @@ Comfly 的三个模型视为三个独立的逻辑 API adapter。单个图片任�
 | Adapter ID | 默认并发 |
 | --- | ---: |
 | `comfly-gemini-lite` | 6 |
-| `comfly-gpt-image-2-all` | 6 |
 | `comfly-gpt-image-2` | 6 |
 | `apimart-gpt-image-2` | 6 |
 | `google-gemini-image` | 6 |
@@ -156,9 +154,8 @@ flowchart TD
 
     GI --> IR["Image Router"]
     IR --> C1["1 comfly-gemini-lite"]
-    C1 -. "可回退失败" .-> C2["2 comfly-gpt-image-2-all"]
-    C2 -. "可回退失败" .-> C3["3 comfly-gpt-image-2"]
-    C3 -. "可回退失败" .-> A["4 apimart-gpt-image-2"]
+    C1 -. "可回退失败" .-> C2["2 comfly-gpt-image-2"]
+    C2 -. "可回退失败" .-> A["3 apimart-gpt-image-2"]
     A -. "可回退失败" .-> G["5 google-gemini-image"]
     G -. "可回退失败" .-> D["6 dreamina-image"]
 
@@ -218,7 +215,8 @@ MCP server 只暴露两个工具，不暴露 provider 调试工具：
       "items": { "type": "string" },
       "default": []
     },
-    "image_ratio": { "type": "string", "enum": ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"] }
+    "image_ratio": { "type": "string", "enum": ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"] },
+    "image_resolution": { "type": "string", "enum": ["1K", "2K", "4K"], "default": "1K" }
   },
   "required": ["prompt", "image_ratio"],
   "additionalProperties": false
@@ -356,9 +354,8 @@ Codex_image/
   },
   "providers": {
     "comfly-gemini-lite": { "enabled": true, "priority": 1, "max_concurrency": 6 },
-    "comfly-gpt-image-2-all": { "enabled": true, "priority": 2, "max_concurrency": 6 },
-    "comfly-gpt-image-2": { "enabled": true, "priority": 3, "max_concurrency": 6 },
-    "apimart-gpt-image-2": { "enabled": true, "priority": 4, "max_concurrency": 6 },
+    "comfly-gpt-image-2": { "enabled": true, "priority": 2, "max_concurrency": 6 },
+    "apimart-gpt-image-2": { "enabled": true, "priority": 3, "max_concurrency": 6 },
     "google-gemini-image": { "enabled": true, "priority": 5, "max_concurrency": 6 },
     "dreamina-image": { "enabled": true, "priority": 6, "max_concurrency": 6, "capacity_key": "seedance-cli" },
     "dreamina-video": { "enabled": true, "max_concurrency": 6, "capacity_key": "seedance-cli" }
@@ -590,7 +587,6 @@ return aggregate(results)
   },
   "providers": {
     "comfly-gemini-lite": { "ready": true, "max_concurrency": 6 },
-    "comfly-gpt-image-2-all": { "ready": true, "max_concurrency": 6 },
     "comfly-gpt-image-2": { "ready": true, "max_concurrency": 6 },
     "apimart-gpt-image-2": { "ready": true, "max_concurrency": 6 },
     "google-gemini-image": { "ready": true, "max_concurrency": 6 },

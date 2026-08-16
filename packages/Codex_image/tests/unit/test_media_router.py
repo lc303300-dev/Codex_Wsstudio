@@ -331,23 +331,28 @@ class ImageRatioAdapterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             context = self.context(root)
-            adapter = ComflyAdapter("comfly-gemini-lite", "gemini-3.1-flash-image-preview", size_profile="gemini-1k")
+            adapter = ComflyAdapter("comfly-gemini-lite", "gemini-3.1-flash-image-preview", size_profile="gemini-resolution")
 
             def execute_once(model, prompt, images, output, **options):
                 atomic_write_bytes(output, PNG)
                 self.assertEqual(options["size"], "9:16")
+                self.assertEqual(options["resolution"], "2K")
+                self.assertEqual(model, "gemini-3.1-flash-image-preview-2k")
                 return {"request_id": "offline", "output_bytes": output.stat().st_size}
 
             with mock.patch("media_router.providers.comfly_adapter.comfly_common.execute_once", side_effect=execute_once):
-                result = adapter.execute(MediaRequest("prompt", image_ratio="9:16"), context)
+                adapter.models_by_resolution = {"2K": "gemini-3.1-flash-image-preview-2k"}
+                result = adapter.execute(MediaRequest("prompt", image_ratio="9:16", image_resolution="2K"), context)
         self.assertEqual(result.status, "success")
+        self.assertEqual(result.model_id, "gemini-3.1-flash-image-preview-2k")
 
     def test_registry_uses_configured_comfly_model_and_profile(self):
         config = load_config(private_path=Path("missing-private-config.json"))
         registry = build_registry(config)
         adapter = registry["comfly-gemini-lite"]
         self.assertEqual(adapter.model_id, "gemini-3.1-flash-image-preview")
-        self.assertEqual(adapter.size_profile, "gemini-1k")
+        self.assertEqual(adapter.size_profile, "gemini-resolution")
+        self.assertEqual(adapter.models_by_resolution["4K"], "gemini-3.1-flash-image-preview-4k")
 
     def test_private_config_can_override_comfly_model(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -369,11 +374,14 @@ class ImageRatioAdapterTests(unittest.TestCase):
 
                 def run(command, timeout, log_path, **options):
                     self.assertEqual(command[command.index(flag) + 1], "3:4")
+                    resolution_flag = "--resolution" if provider_id == "apimart-gpt-image-2" else "--image-size"
+                    expected_resolution = "4k" if provider_id == "apimart-gpt-image-2" else "4K"
+                    self.assertEqual(command[command.index(resolution_flag) + 1], expected_resolution)
                     atomic_write_bytes(context.output_dir / f"{provider_id}.png", PNG)
                     return subprocess.CompletedProcess(command, 0, "", "")
 
                 with mock.patch("media_router.providers.command_adapter._run", side_effect=run):
-                    result = adapter.execute(MediaRequest("prompt", image_ratio="3:4"), context)
+                    result = adapter.execute(MediaRequest("prompt", image_ratio="3:4", image_resolution="4K"), context)
                 self.assertEqual(result.status, "success")
 
     def test_dreamina_receives_structured_ratio(self):
@@ -808,12 +816,37 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(comfly_common.DOWNLOAD_HEADERS["Referer"], "https://ai.comfly.org/")
         self.assertIn("image/", comfly_common.DOWNLOAD_HEADERS["Accept"])
 
-    def test_comfly_gemini_lite_normalizes_to_1k_sizes_and_rejects_2k(self):
-        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1K", "gemini-1k"), "1024x1024")
-        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "3:4", "gemini-1k"), "896x1200")
-        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1024x1024", "gemini-1k"), "1024x1024")
-        with self.assertRaises(MediaRouterError):
-            comfly_common.normalize_size("gemini-3.1-flash-image-preview", "2K", "gemini-1k")
+    def test_comfly_gemini_normalizes_ratio_for_each_resolution(self):
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview", "1:1", "gemini-resolution", "1K"), "1024x1024")
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview-2k", "3:4", "gemini-resolution", "2K"), "1792x2400")
+        self.assertEqual(comfly_common.normalize_size("gemini-3.1-flash-image-preview-4k", "16:9", "gemini-resolution", "4K"), "5504x3072")
+
+    def test_comfly_gpt_image_2_maps_ratio_and_resolution_to_documented_size(self):
+        self.assertEqual(comfly_common.normalize_size("gpt-image-2", "9:16", resolution="1K"), "720x1280")
+        self.assertEqual(comfly_common.normalize_size("gpt-image-2", "9:16", resolution="2K"), "1152x2048")
+        self.assertEqual(comfly_common.normalize_size("gpt-image-2", "9:16", resolution="4K"), "2160x3840")
+
+    def test_comfly_gpt_image_2_request_uses_pixel_size_without_resolution_field(self):
+        payload = json.loads(comfly_common.json_body("gpt-image-2", "prompt", "9:16", resolution="4K"))
+        self.assertEqual(payload["size"], "2160x3840")
+        self.assertNotIn("resolution", payload)
+        with tempfile.TemporaryDirectory() as temporary:
+            image = Path(temporary) / "source.png"
+            image.write_bytes(b"private")
+            multipart, _ = comfly_common.multipart_body("gpt-image-2", "prompt", "9:16", (image,), "OfflineBoundary", resolution="4K")
+        self.assertIn(b'name="size"\r\n\r\n2160x3840', multipart)
+        self.assertNotIn(b'name="resolution"', multipart)
+
+    def test_comfly_gpt_image_2_sizes_satisfy_provider_constraints(self):
+        for resolution, sizes in comfly_common.GPT_IMAGE_2_SIZES.items():
+            for ratio, size in sizes.items():
+                width, height = (int(value) for value in size.split("x"))
+                self.assertLessEqual(max(width, height), 3840, (resolution, ratio, size))
+                self.assertEqual(width % 16, 0, (resolution, ratio, size))
+                self.assertEqual(height % 16, 0, (resolution, ratio, size))
+                self.assertLessEqual(max(width, height) / min(width, height), 3, (resolution, ratio, size))
+                self.assertGreaterEqual(width * height, 655_360, (resolution, ratio, size))
+                self.assertLessEqual(width * height, 8_294_400, (resolution, ratio, size))
 
     def test_comfly_timeout_detection_does_not_reclassify_other_network_errors(self):
         self.assertTrue(comfly_common._is_timeout_error(TimeoutError()))

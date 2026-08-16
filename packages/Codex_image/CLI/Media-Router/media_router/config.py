@@ -49,6 +49,10 @@ def load_config(default_path: Path = DEFAULT_CONFIG, private_path: Path = PRIVAT
             if not isinstance(model, str) or not model.strip():
                 raise ValueError(f"providers.{provider_id}.model must be a non-empty string")
             size_profile = provider.get("size_profile")
-            if size_profile is not None and size_profile not in {"gemini-1k"}:
+            if size_profile is not None and size_profile not in {"gemini-resolution"}:
                 raise ValueError(f"providers.{provider_id}.size_profile is unsupported: {size_profile}")
+            models_by_resolution = provider.get("models_by_resolution")
+            if models_by_resolution is not None:
+                if set(models_by_resolution) != {"1K", "2K", "4K"} or not all(isinstance(value, str) and value.strip() for value in models_by_resolution.values()):
+                    raise ValueError(f"providers.{provider_id}.models_by_resolution must define non-empty 1K, 2K, and 4K models")
     return config

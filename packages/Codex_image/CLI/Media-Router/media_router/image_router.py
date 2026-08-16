@@ -12,6 +12,7 @@ from .schemas import MediaRequest, MediaResult, TaskContext
 from .task_store import TaskStore
 
 SUPPORTED_IMAGE_RATIOS = {"21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"}
+SUPPORTED_IMAGE_RESOLUTIONS = {"1K", "2K", "4K"}
 
 
 class ImageRouter:
@@ -36,6 +37,8 @@ class ImageRouter:
             raise ValueError("image_ratio is required; ask the user to choose an image ratio before generation")
         if request.image_ratio not in SUPPORTED_IMAGE_RATIOS:
             raise ValueError("Unsupported image_ratio: " + request.image_ratio)
+        if request.image_resolution not in SUPPORTED_IMAGE_RESOLUTIONS:
+            raise ValueError("Unsupported image_resolution: " + request.image_resolution)
         if request.image_provider:
             provider = self.registry.get(request.image_provider)
             configured = self.config.get("providers", {}).get(request.image_provider)

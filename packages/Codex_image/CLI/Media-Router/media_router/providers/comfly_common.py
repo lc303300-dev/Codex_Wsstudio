@@ -23,7 +23,7 @@ DOWNLOAD_HEADERS = {
     "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     "Referer": "https://ai.comfly.org/",
 }
-GEMINI_1K_PROFILE = "gemini-1k"
+GEMINI_RESOLUTION_PROFILE = "gemini-resolution"
 GEMINI_LITE_1K_SIZES = {
     "1:1": "1024x1024",
     "2:3": "848x1264",
@@ -37,6 +37,38 @@ GEMINI_LITE_1K_SIZES = {
     "21:9": "1584x672",
 }
 GEMINI_LITE_DEFAULT_SIZE = GEMINI_LITE_1K_SIZES["1:1"]
+GPT_IMAGE_2_SIZES = {
+    "1K": {
+        "21:9": "1280x544",
+        "16:9": "1280x720",
+        "3:2": "1200x800",
+        "4:3": "1152x864",
+        "1:1": "1024x1024",
+        "3:4": "864x1152",
+        "2:3": "800x1200",
+        "9:16": "720x1280",
+    },
+    "2K": {
+        "21:9": "2048x880",
+        "16:9": "2048x1152",
+        "3:2": "1920x1280",
+        "4:3": "1920x1440",
+        "1:1": "2048x2048",
+        "3:4": "1440x1920",
+        "2:3": "1280x1920",
+        "9:16": "1152x2048",
+    },
+    "4K": {
+        "21:9": "3840x1648",
+        "16:9": "3840x2160",
+        "3:2": "3520x2352",
+        "4:3": "3312x2480",
+        "1:1": "2880x2880",
+        "3:4": "2480x3312",
+        "2:3": "2352x3520",
+        "9:16": "2160x3840",
+    },
+}
 
 
 def _is_timeout_error(exc: BaseException) -> bool:
@@ -69,33 +101,59 @@ def opener() -> urllib.request.OpenerDirector:
     return urllib.request.build_opener(urllib.request.ProxyHandler(proxies))
 
 
-def normalize_size(model: str, size: str | None, size_profile: str | None = None) -> str:
+def normalize_size(model: str, size: str | None, size_profile: str | None = None, resolution: str = "1K") -> str:
     value = (size or "").strip()
-    if size_profile != GEMINI_1K_PROFILE:
+    if model == "gpt-image-2":
+        sizes = GPT_IMAGE_2_SIZES.get(resolution.upper())
+        if sizes is None:
+            raise MediaRouterError("Unsupported image resolution: " + resolution, FailureClass.INPUT_ERROR)
+        if not value or value.upper() in {"1K", "2K", "4K"}:
+            return sizes["1:1"]
+        if value in sizes:
+            return sizes[value]
+        if value in sizes.values():
+            return value
+        raise MediaRouterError(
+            f"{model} requires a supported aspect ratio for {resolution.upper()} output",
+            FailureClass.INPUT_ERROR,
+        )
+    if size_profile != GEMINI_RESOLUTION_PROFILE:
         return value or "1024x1024"
-    if not value or value.upper() == "1K":
-        return GEMINI_LITE_DEFAULT_SIZE
+    scale = {"1K": 1, "2K": 2, "4K": 4}.get(resolution.upper())
+    if scale is None:
+        raise MediaRouterError("Unsupported image resolution: " + resolution, FailureClass.INPUT_ERROR)
+    if not value or value.upper() in {"1K", "2K", "4K"}:
+        width, height = (int(part) for part in GEMINI_LITE_DEFAULT_SIZE.split("x"))
+        return f"{width * scale}x{height * scale}"
     if value in GEMINI_LITE_1K_SIZES:
-        return GEMINI_LITE_1K_SIZES[value]
-    allowed_sizes = set(GEMINI_LITE_1K_SIZES.values())
+        width, height = (int(part) for part in GEMINI_LITE_1K_SIZES[value].split("x"))
+        return f"{width * scale}x{height * scale}"
+    allowed_sizes = set(GEMINI_LITE_1K_SIZES.values()) if scale == 1 else set()
     if value in allowed_sizes:
         return value
     raise MediaRouterError(
-        f"{model} supports only 1K output sizes: " + ", ".join(f"{ratio}={size}" for ratio, size in GEMINI_LITE_1K_SIZES.items()),
+        f"{model} requires a supported aspect ratio for {resolution.upper()} output",
         FailureClass.INPUT_ERROR,
     )
 
 
-def json_body(model: str, prompt: str, size: str, size_profile: str | None = None) -> bytes:
-    size = normalize_size(model, size, size_profile)
-    return json.dumps({"model": model, "prompt": prompt, "n": 1, "size": size, "response_format": "url"}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+def json_body(model: str, prompt: str, size: str, size_profile: str | None = None, resolution: str = "1K") -> bytes:
+    size = normalize_size(model, size, size_profile, resolution)
+    payload = {"model": model, "prompt": prompt, "n": 1, "size": size, "response_format": "url"}
+    if model != "gpt-image-2":
+        payload["resolution"] = resolution.lower()
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
-def multipart_body(model: str, prompt: str, size: str, images: tuple[Path, ...], boundary: str | None = None, size_profile: str | None = None) -> tuple[bytes, str]:
-    size = normalize_size(model, size, size_profile)
+def multipart_body(model: str, prompt: str, size: str, images: tuple[Path, ...], boundary: str | None = None, size_profile: str | None = None, resolution: str = "1K") -> tuple[bytes, str]:
+    size = normalize_size(model, size, size_profile, resolution)
     boundary = boundary or f"----CodexMedia{uuid.uuid4().hex}"
     chunks: list[bytes] = []
-    for name, value in (("model", model), ("prompt", prompt), ("n", "1"), ("size", size), ("response_format", "url")):
+    fields = [("model", model), ("prompt", prompt), ("n", "1"), ("size", size)]
+    if model != "gpt-image-2":
+        fields.append(("resolution", resolution.lower()))
+    fields.append(("response_format", "url"))
+    for name, value in fields:
         chunks += [f"--{boundary}\r\n".encode(), f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode(), value.encode("utf-8"), b"\r\n"]
     for index, path in enumerate(images, 1):
         mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
@@ -122,7 +180,7 @@ def request_id(headers, payload: dict) -> str | None:
     return None
 
 
-def execute_once(model: str, prompt: str, images: tuple[Path, ...], output: Path, size: str = "1024x1024", timeout: float = 180, deadline: float | None = None, timeout_failure: FailureClass | None = None, size_profile: str | None = None) -> dict:
+def execute_once(model: str, prompt: str, images: tuple[Path, ...], output: Path, size: str = "1024x1024", timeout: float = 180, deadline: float | None = None, timeout_failure: FailureClass | None = None, size_profile: str | None = None, resolution: str = "1K") -> dict:
     def remaining() -> float:
         value = min(timeout, deadline - monotonic()) if deadline is not None else timeout
         if value <= 0:
@@ -136,12 +194,12 @@ def execute_once(model: str, prompt: str, images: tuple[Path, ...], output: Path
     if images:
         endpoint = EDITS_URL
         try:
-            body, content_type = multipart_body(model, prompt, size, images, size_profile=size_profile)
+            body, content_type = multipart_body(model, prompt, size, images, size_profile=size_profile, resolution=resolution)
         except OSError as exc:
             raise MediaRouterError("A local reference image could not be read", FailureClass.INPUT_ERROR) from exc
     else:
         endpoint = GENERATIONS_URL
-        body, content_type = json_body(model, prompt, size, size_profile), "application/json; charset=utf-8"
+        body, content_type = json_body(model, prompt, size, size_profile, resolution), "application/json; charset=utf-8"
     request = urllib.request.Request(endpoint, data=body, headers={"Authorization": f"Bearer {key}", "Content-Type": content_type, "Accept": "application/json"}, method="POST")
     try:
         with client.open(request, timeout=remaining()) as response:

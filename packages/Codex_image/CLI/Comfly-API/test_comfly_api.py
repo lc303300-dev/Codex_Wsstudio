@@ -16,7 +16,7 @@ SPEC.loader.exec_module(comfly_api)
 
 class ComflyCliTests(unittest.TestCase):
     def test_models_are_explicit_and_fixed(self):
-        self.assertEqual(comfly_api.MODELS, ("gemini-3.1-flash-image-preview", "gpt-image-2-all", "gpt-image-2"))
+        self.assertEqual(comfly_api.MODELS, ("gemini-3.1-flash-image-preview", "gemini-3.1-flash-image-preview-2k", "gemini-3.1-flash-image-preview-4k", "gpt-image-2"))
         self.assertFalse(hasattr(comfly_api, "MODEL_PRIORITY"))
 
     def test_prompt_summary_is_redacted(self):

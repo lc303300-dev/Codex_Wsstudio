@@ -91,7 +91,7 @@ the repository guidance source or the installed global `AGENTS.md`.
 
 It also installs the required image-ratio contract. Every image generation or edit must have
 an explicit user-selected ratio before submission; the ratio is passed through the structured
-`generate_image.image_ratio` field, and missing values are rejected before any paid provider call.
+`generate_image.image_ratio` field, and missing values are rejected before any paid provider call. Image resolution is a sibling `generate_image.image_resolution` option with `1K`, `2K`, and `4K`; it defaults to `1K` for backward compatibility.
 Deployment verification fails if this rule is absent from the installed global guidance.
 
 The installed guidance treats the configured image route order as the default rather than a

@@ -4,10 +4,11 @@ IMAGE_SCHEMA = {
         "prompt": {"type": "string", "minLength": 1},
         "images": {"type": "array", "items": {"type": "string"}, "default": []},
         "image_ratio": {"type": "string", "enum": ["21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"]},
+        "image_resolution": {"type": "string", "enum": ["1K", "2K", "4K"], "default": "1K"},
         "image_provider": {
             "type": "string",
             "description": "Optional user-explicit image route. Omit to use the default serial fallback order.",
-            "enum": ["comfly-gemini-lite", "comfly-gpt-image-2-all", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"],
+            "enum": ["comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"],
         },
     },
     "required": ["prompt", "image_ratio"],

@@ -13,7 +13,8 @@ def parser() -> argparse.ArgumentParser:
     image.add_argument("--prompt", required=True)
     image.add_argument("--image", action="append", default=[])
     image.add_argument("--image-ratio", required=True, choices=("21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"))
-    image.add_argument("--image-provider", choices=("comfly-gemini-lite", "comfly-gpt-image-2-all", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"))
+    image.add_argument("--image-resolution", choices=("1K", "2K", "4K"), default="1K")
+    image.add_argument("--image-provider", choices=("comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"))
     video = commands.add_parser("generate_video")
     video.add_argument("--prompt", required=True)
     video.add_argument("--image", action="append", default=[])
@@ -32,7 +33,7 @@ def main() -> int:
     args = parser().parse_args()
     options = {}
     if args.command == "generate_image":
-        options = {"image_ratio": args.image_ratio, "image_provider": args.image_provider}
+        options = {"image_ratio": args.image_ratio, "image_resolution": args.image_resolution, "image_provider": args.image_provider}
     elif args.command == "generate_video":
         options = {
             "video_duration": args.video_duration,

@@ -18,11 +18,10 @@ Every image generation or edit requires an explicit user-selected ratio before a
 When the user does not explicitly select a route, route each image task strictly serially in this default order and stop after the first validated non-empty local image:
 
 1. `comfly-gemini-lite` -> the model declared in `config/media-router.defaults.json` (currently `gemini-3.1-flash-image-preview`)
-2. `comfly-gpt-image-2-all` -> `gpt-image-2-all`
-3. `comfly-gpt-image-2` -> `gpt-image-2`
-4. `apimart-gpt-image-2` -> APIMart `gpt-image-2`
-5. `google-gemini-image` -> official Gemini image API
-6. `dreamina-image` -> Dreamina Image 4.0 by default
+2. `comfly-gpt-image-2` -> `gpt-image-2`
+3. `apimart-gpt-image-2` -> APIMart `gpt-image-2`
+4. `google-gemini-image` -> official Gemini image API
+5. `dreamina-image` -> Dreamina Image 4.0 by default
 
 The list above is a default order, not a mandatory path. When the current user explicitly requests one supported route, pass its exact adapter ID through `generate_image.image_provider`, skip every other route, and do not fall back elsewhere if it fails. Supported public route IDs are the six IDs listed above. Do not guess ambiguous names: for example, plain `Gemini` is ambiguous between the Comfly Gemini and official Google Gemini routes. Unsupported, non-image, or config-disabled routes fail as `input_error` before any paid provider call.
 

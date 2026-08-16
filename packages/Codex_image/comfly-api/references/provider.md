@@ -5,21 +5,23 @@
 - Text-to-image: `POST /images/generations`
 - Image editing: `POST /images/edits`
 - Generation body: UTF-8 JSON with `Content-Type: application/json; charset=utf-8`
-- Edit body: multipart form data; repeat the `image` file field and include `model`, `prompt`, `n`, `size`, and `response_format=url`
+- Edit body: multipart form data; repeat the `image` file field and include `model`, `prompt`, `n`, `size`, and `response_format=url`. Gemini requests also include their provider-specific `resolution` field; GPT Image 2 requests do not.
 - Result URL: `data[0].url`; an empty `b64_json` is not a failure when the URL is usable
 - Download headers: browser `User-Agent`, image-oriented `Accept`, and `Referer: https://ai.comfly.org/`
 - Private configuration from the project root: `.codex-image-private/.env`
-- `gemini-3.1-flash-image-preview` uses the 1K output class only. Accept `1K` or the documented 1K aspect-ratio sizes, and reject `2K`/`4K`.
+- Gemini uses `gemini-3.1-flash-image-preview` for 1K, `gemini-3.1-flash-image-preview-2k` for 2K, and `gemini-3.1-flash-image-preview-4k` for 4K.
+- GPT Image 2 receives a concrete pixel `size`, not an aspect-ratio token or a `resolution` field. For example, 9:16 maps to `720x1280`, `1152x2048`, and `2160x3840` for the public 1K, 2K, and 4K choices.
 
 ## Model Routing
 
-Use only this fixed, serial priority:
+Available explicit models are:
 
 1. `gemini-3.1-flash-image-preview`
-2. `gpt-image-2-all`
-3. `gpt-image-2`
+2. `gemini-3.1-flash-image-preview-2k`
+3. `gemini-3.1-flash-image-preview-4k`
+4. `gpt-image-2`
 
-Advance only after an API failure, missing URL, download failure, non-image response, or empty output. Stop after the first success. Do not invoke another local pipeline or provider.
+Submit exactly the explicitly selected model. Do not invoke another local pipeline or provider.
 
 ## Logging
 
