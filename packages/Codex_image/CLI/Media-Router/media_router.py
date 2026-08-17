@@ -26,6 +26,9 @@ def parser() -> argparse.ArgumentParser:
     video.add_argument("--video-model-selection-source", choices=("user_explicit",))
     video.add_argument("--video-execution-mode", choices=("production", "production_submit_only", "test_submit_only"), default="production")
     video.add_argument("--video-resolution")
+    video.add_argument("--video-confirmation-model")
+    video.add_argument("--video-confirmation-resolution")
+    video.add_argument("--video-confirmation-duration")
     return root
 
 
@@ -44,6 +47,9 @@ def main() -> int:
             "video_model_selection_source": args.video_model_selection_source,
             "video_execution_mode": args.video_execution_mode,
             "video_resolution": args.video_resolution,
+            "video_confirmation_model": args.video_confirmation_model,
+            "video_confirmation_resolution": args.video_confirmation_resolution,
+            "video_confirmation_duration": args.video_confirmation_duration,
         }
     result = execute(args.command, args.prompt, args.image, getattr(args, "video", ()), getattr(args, "audio", ()), **options)
     print(json.dumps(result, ensure_ascii=False, indent=2))

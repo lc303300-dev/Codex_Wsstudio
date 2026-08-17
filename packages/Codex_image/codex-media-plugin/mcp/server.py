@@ -171,7 +171,7 @@ def handle(message: dict) -> dict | None:
         if name not in {"generate_image", "generate_video"}:
             return response(identifier, error={"code": -32602, "message": "Unknown tool"})
         try:
-            options = {key: arguments[key] for key in ("image_ratio", "image_resolution", "image_provider", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution") if key in arguments}
+            options = {key: arguments[key] for key in ("image_ratio", "image_resolution", "image_provider", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration") if key in arguments}
             result = execute(name, arguments.get("prompt", ""), arguments.get("images", []), arguments.get("videos", []), arguments.get("audios", []), **options)
         except Exception as exc:
             result = {"status": "failed", "safe_reason": type(exc).__name__}

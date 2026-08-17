@@ -20,6 +20,9 @@ class MediaRequest:
     video_ratio: str | None = None
     video_duration: str | None = None
     video_resolution: str | None = None
+    video_confirmation_model: str | None = None
+    video_confirmation_resolution: str | None = None
+    video_confirmation_duration: str | None = None
     image_provider: str | None = None
     image_model: str | None = None
     image_ratio: str | None = None

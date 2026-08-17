@@ -496,6 +496,24 @@ class VideoRouterTests(unittest.TestCase):
         self.assertEqual(args[args.index("--video_resolution") + 1], "480p")
         self.assertEqual(args[args.index("--poll") + 1], "180")
 
+    def test_prompt_resolution_words_do_not_override_default(self):
+        request = MediaRequest("画面细节参考 4K，禁止 720p 输出")
+        args = build_video_arguments("text2video", request)
+        self.assertEqual(args[args.index("--video_resolution") + 1], "480p")
+
+    def test_formal_submission_requires_matching_confirmation(self):
+        router = VideoRouter({}, type("Provider", (), {})())
+        with self.assertRaisesRegex(ValueError, "requires confirmation"):
+            router.validate(MediaRequest("motion", video_duration="5"))
+        request = MediaRequest("motion", video_duration="5", video_confirmation_model="seedance2.5", video_confirmation_resolution="480p", video_confirmation_duration="5")
+        self.assertEqual(router.validate(request), "text2video")
+
+    def test_seedance_25_rejects_unsupported_high_resolution(self):
+        router = VideoRouter({}, type("Provider", (), {})())
+        request = MediaRequest("motion", video_duration="5", video_resolution="1080p", video_confirmation_model="seedance2.5", video_confirmation_resolution="1080p", video_confirmation_duration="5")
+        with self.assertRaisesRegex(ValueError, "unsupported"):
+            router.validate(request)
+
     def test_test_channel_forces_non_vip_seedance_20_720p_without_polling(self):
         request = MediaRequest(
             "motion",
@@ -613,6 +631,9 @@ class VideoRouterTests(unittest.TestCase):
                 video_ratio="9:16",
                 video_duration="8",
                 video_resolution="1080p",
+                video_confirmation_model="seedance2.0mini",
+                video_confirmation_resolution="1080p",
+                video_confirmation_duration="8",
             )
             self.assertEqual(select_video_command(request), "text2video")
             args = build_video_arguments("text2video", request)
@@ -640,6 +661,9 @@ class VideoRouterTests(unittest.TestCase):
                 video_ratio="9:16",
                 video_model="seedance2.5",
                 video_resolution="480p",
+                video_confirmation_model="seedance2.5",
+                video_confirmation_resolution="480p",
+                video_confirmation_duration="20",
             )
             args = build_video_arguments("multimodal2video", request)
         self.assertEqual(args[args.index("--duration") + 1], "20")
@@ -678,7 +702,7 @@ class VideoRouterTests(unittest.TestCase):
             source = root / "wide.png"
             write_solid_png(source, 3840, 2160)
             config = {"media_inputs": {"max_image_long_edge": 1920}, "providers": {}}
-            result = VideoRouter(config, Provider(), TaskStore(root / "private")).execute(MediaRequest("motion", (source,)))
+            result = VideoRouter(config, Provider(), TaskStore(root / "private")).execute(MediaRequest("motion", (source,), video_duration="5", video_confirmation_model="seedance2.5", video_confirmation_resolution="480p", video_confirmation_duration="5"))
 
             self.assertEqual(result.status, "success")
             self.assertEqual(received["command"], "multimodal2video")
@@ -712,6 +736,7 @@ class VideoRouterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             request = self.request(root, images=30, videos=10, audios=10)
+            request = MediaRequest(request.prompt, request.images, request.videos, request.audios, video_duration="4", video_confirmation_model="seedance2.5", video_confirmation_resolution="480p", video_confirmation_duration="4")
             router = VideoRouter({"providers": {}}, Provider(), TaskStore(root / "private"), duration_probe=lambda _: 2)
             self.assertEqual(router.validate(request), "multimodal2video")
 

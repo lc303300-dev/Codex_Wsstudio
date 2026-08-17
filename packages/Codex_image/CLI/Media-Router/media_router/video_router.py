@@ -60,8 +60,7 @@ def _prompt_preferences(prompt: str) -> tuple[str | None, str | None, str | None
     labelled = re.search(r"(?i)(?:视频时长|video\s*duration)\s*[:：]?\s*(\d{1,2})\s*(?:秒|s(?:ec(?:onds?)?)?)\b", prompt)
     duration_match = labelled or re.search(r"(?i)(?<![.\d])([4-9]|[12]\d|30)\s*(?:秒|s(?:ec(?:onds?)?)?)\b", prompt)
     duration = duration_match.group(1) if duration_match and 4 <= int(duration_match.group(1)) <= 30 else None
-    resolution = next((value for value in ("4k", "1080p", "720p", "480p") if value.lower() in prompt.lower()), None)
-    return ratio, duration, resolution
+    return ratio, duration, None
 
 
 def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
@@ -70,7 +69,7 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
     ratio, duration, resolution = _prompt_preferences(request.prompt)
     ratio = request.video_ratio or ratio
     duration = request.video_duration or duration
-    resolution = request.video_resolution or resolution
+    resolution = request.video_resolution
     selected_model = request.video_model or DEFAULT_VIDEO_MODEL
     poll = "180"
     if request.video_execution_mode in {"test_submit_only", "production_submit_only"}:
@@ -121,6 +120,19 @@ class VideoRouter:
             )
         _, inferred_duration, _ = _prompt_preferences(request.prompt)
         selected_duration = request.video_duration or inferred_duration
+        selected_resolution = request.video_resolution or DEFAULT_VIDEO_RESOLUTION
+        allowed_resolutions = {"480p", "720p"} if selected_model == DEFAULT_VIDEO_MODEL else {"480p", "720p", "1080p", "4k"}
+        if selected_resolution not in allowed_resolutions:
+            raise ValueError(f"Resolution {selected_resolution} is unsupported for {selected_model}")
+        if request.video_execution_mode != "test_submit_only":
+            if not all((request.video_confirmation_model, request.video_confirmation_resolution, request.video_confirmation_duration)):
+                raise ValueError("Formal video submission requires confirmation of model, resolution, and duration")
+            if request.video_confirmation_model != selected_model:
+                raise ValueError("Confirmed video model does not match the final request")
+            if request.video_confirmation_resolution != selected_resolution:
+                raise ValueError("Confirmed video resolution does not match the final request")
+            if selected_duration is None or request.video_confirmation_duration != str(selected_duration):
+                raise ValueError("Confirmed video duration does not match the final request")
         if request.video_execution_mode == "test_submit_only" and selected_duration and not 4 <= int(selected_duration) <= 15:
             raise ValueError("The seedance2.0 test channel supports 4-15 second output")
         command = select_video_command(request)

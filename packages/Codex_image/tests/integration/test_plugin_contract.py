@@ -35,7 +35,7 @@ class PluginContractTests(unittest.TestCase):
         self.assertEqual(tools["generate_image"]["properties"]["image_resolution"]["enum"], ["1K", "2K", "4K"])
         self.assertNotIn("default", tools["generate_image"]["properties"]["image_resolution"])
         self.assertEqual(tools["generate_image"]["properties"]["image_provider"]["enum"], ["comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"])
-        self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution"})
+        self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration"})
         self.assertFalse(tools["generate_image"]["additionalProperties"])
         self.assertFalse(tools["generate_video"]["additionalProperties"])
 

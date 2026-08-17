@@ -5,7 +5,7 @@ description: Execute an already-finalized video prompt through the unified Seeda
 
 # Default Video Generation
 
-Call `generate_video` with only the user's non-empty `prompt` and ordered local `images`, `videos`, and `audios` paths. Video generation always uses Seedance/Dreamina; never switch providers. Do not expose provider, model, credential, concurrency, timeout, output, or log settings.
+Call `generate_video` with the user's non-empty `prompt`, ordered local `images`, `videos`, and `audios` paths, and the structured final model, resolution, and duration. Before any formal production submission, require the user to repeat and confirm those three values; pass them as the matching `video_confirmation_model`, `video_confirmation_resolution`, and `video_confirmation_duration` fields. Video generation always uses Seedance/Dreamina; never switch providers. Do not expose provider, credential, concurrency, timeout, output, or log settings.
 
 When a completed video is downloaded successfully, use the original-file resource returned by the tool. Do not reconstruct video links from the raw `output_path`; on Windows, a backslash path is not a portable media URI. A submit-only result has no local resource and should continue to use its task ID and user message.
 
