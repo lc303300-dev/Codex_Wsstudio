@@ -9,6 +9,7 @@ New-Item -ItemType Directory -Path (Join-Path $PersonalPluginsRoot "codex-media-
 Set-Content -LiteralPath (Join-Path $PersonalPluginsRoot "codex-media-plugin\.codex-plugin\plugin.json") -Value "{}" -Encoding UTF8
 New-Item -ItemType Directory -Path (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-plugin") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-plugin\plugin.json") -Value "{}" -Encoding UTF8
+New-Item -ItemType Directory -Path (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-empty") -Force | Out-Null
 [ordered]@{
     stale = $true
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\stale-cache.json") -Encoding UTF8
@@ -63,6 +64,12 @@ if (-not (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal
 }
 if (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\stale-cache.json") -PathType Leaf) {
     throw "Stale cache content was not cleared."
+}
+$repairedEmptyCache = Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-empty"
+foreach ($requiredPath in @(".codex-plugin\plugin.json", ".mcp.json", "mcp\run.ps1", "skills\default-video-generation\SKILL.md")) {
+    if (-not (Test-Path -LiteralPath (Join-Path $repairedEmptyCache $requiredPath) -PathType Leaf)) {
+        throw "Empty cached plugin was not repaired; missing $requiredPath."
+    }
 }
 $backups = @(Get-ChildItem -LiteralPath (Join-Path $ProjectRoot ".codex-image-private\validation\state-migration") -File -Filter "state-v1-*.json")
 if (-not $backups.Count) { throw "State migration backup was not created." }

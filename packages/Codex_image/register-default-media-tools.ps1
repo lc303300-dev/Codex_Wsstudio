@@ -77,19 +77,31 @@ function Refresh-ManagedPluginCaches {
 
     Get-ChildItem -LiteralPath $cacheRoot -Directory | ForEach-Object {
         $cachePlugin = $_.FullName
-        if (-not (Test-Path -LiteralPath (Join-Path $cachePlugin ".codex-plugin\plugin.json") -PathType Leaf)) { return }
         $marker = Join-Path $cachePlugin $MarkerName
-        if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) {
-            Write-Warning "Skipping unmanaged cached codex-media-plugin: $cachePlugin"
-            return
+        $manifest = Join-Path $cachePlugin ".codex-plugin\plugin.json"
+        if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+            $entries = @(Get-ChildItem -LiteralPath $cachePlugin -Force -ErrorAction SilentlyContinue)
+            if ($entries.Count -eq 0) {
+                Write-Warning "Repairing empty cached codex-media-plugin: $cachePlugin"
+                Remove-Item -LiteralPath $cachePlugin -Recurse -Force
+            } elseif (-not (Test-Path -LiteralPath $marker -PathType Leaf)) {
+                Write-Warning "Skipping unmanaged incomplete cached codex-media-plugin: $cachePlugin"
+                return
+            }
         }
-
-        $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($record.source_root -ne $ProjectRoot) {
-            if (Test-CodexImageSourceRoot -SourceRoot ([string]$record.source_root)) {
-                Write-Host "Refreshing cached codex-media-plugin from stale source root: $($record.source_root)"
-            } else {
-                Write-Host "Refreshing cached codex-media-plugin from unavailable source root: $($record.source_root)"
+        if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) {
+            if (Test-Path -LiteralPath $cachePlugin -PathType Container) {
+                Write-Warning "Skipping unmanaged cached codex-media-plugin: $cachePlugin"
+                return
+            }
+        } else {
+            $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($record.source_root -ne $ProjectRoot) {
+                if (Test-CodexImageSourceRoot -SourceRoot ([string]$record.source_root)) {
+                    Write-Host "Refreshing cached codex-media-plugin from stale source root: $($record.source_root)"
+                } else {
+                    Write-Host "Refreshing cached codex-media-plugin from unavailable source root: $($record.source_root)"
+                }
             }
         }
         try {

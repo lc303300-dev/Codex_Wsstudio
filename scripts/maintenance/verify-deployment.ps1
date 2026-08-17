@@ -256,8 +256,24 @@ if (-not (Test-Path -LiteralPath $expectedPreview -PathType Leaf)) {
 $cacheRoot = Join-Path $CodexHome "plugins\cache\personal\codex-media-plugin"
 if (Test-Path -LiteralPath $cacheRoot -PathType Container) {
     Get-ChildItem -LiteralPath $cacheRoot -Directory | ForEach-Object {
+        $requiredCachePaths = @(
+            ".codex-plugin\plugin.json",
+            ".mcp.json",
+            "mcp\run.ps1",
+            "skills\default-image-generation\SKILL.md",
+            "skills\default-video-generation\SKILL.md"
+        )
+        foreach ($relativePath in $requiredCachePaths) {
+            $requiredPath = Join-Path $_.FullName $relativePath
+            if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+                $errors.Add("Incomplete cached media plugin; missing $relativePath`: $($_.FullName)")
+            }
+        }
         $cacheMarker = Join-Path $_.FullName ".codex-image-registration.json"
-        if (-not (Test-Path -LiteralPath $cacheMarker -PathType Leaf)) { return }
+        if (-not (Test-Path -LiteralPath $cacheMarker -PathType Leaf)) {
+            $errors.Add("Missing cached media plugin registration marker: $cacheMarker")
+            return
+        }
         try {
             $record = Get-Content -LiteralPath $cacheMarker -Raw -Encoding UTF8 | ConvertFrom-Json
             if ([System.IO.Path]::GetFullPath([string]$record.source_root) -ne $expectedImageRoot) {
