@@ -1,7 +1,0 @@
-interface:
-  display_name: "Codex CS 视频 Skill 入库治理"
-  short_description: "规范化、验证并发布可执行的 Codex_CS 视频业务 Skill"
-  default_prompt: "Use $codex-cs-skill-curator to normalize and validate this uploaded video Skill Markdown file for my Codex_CS library."
-policy:
-  allow_implicit_invocation: true
-

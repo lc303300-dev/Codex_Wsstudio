@@ -8,7 +8,9 @@ config.toml.backup-*
 **/.env.*
 !**/.env.example
 **/.codex-image-private/
+**/.codex-batch-image-private/
 **/.codex-is-private/
+**/.codex-flow-private/
 **/.pytest_cache/
 
 # Generated data

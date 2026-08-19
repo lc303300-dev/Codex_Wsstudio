@@ -1,7 +1,0 @@
-interface:
-  display_name: "巨型IP地标巡游硬切视频"
-  short_description: "将IP角色设定图与多张城市地标实景合成参考编排为巨型卡通IP巡游、道具互动和多场景硬切视频提示词。"
-  default_prompt: "Use $giant-ip-landmark-parade to create a professional video prompt from my supplied references and requirements."
-policy:
-  allow_implicit_invocation: true
-

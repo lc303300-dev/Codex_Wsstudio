@@ -1,4 +1,0 @@
-interface:
-  display_name: "视频业务 Skill 路由"
-  short_description: "确认业务 Skill、比例和时长，编排素材、生图、提示词确认与视频生成。"
-  default_prompt: "使用 $video-skill-router 根据我的创作目标选择业务 Skill；先让我确认 Skill 名称、画幅比例和时长，再创建素材项目并带我完成图片、提示词确认和视频生成。"

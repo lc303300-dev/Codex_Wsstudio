@@ -1,7 +1,0 @@
-interface:
-  display_name: "城市与地产人居宣传片"
-  short_description: "将城市地标、楼盘布局、立面细节和阳台景观等参考素材编排为城市叙事到社区平视穿梭的人居宣传片提示词。"
-  default_prompt: "Use $city-real-estate-habitat-promo to create a professional video prompt from my supplied references and requirements."
-policy:
-  allow_implicit_invocation: true
-

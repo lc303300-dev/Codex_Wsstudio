@@ -1,5 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object", "additionalProperties": false,
-  "required": ["schema_version", "hash_algorithm", "skill_id", "status", "validator_version", "approved_by", "validated_at", "sources", "intake_report_sha256", "reviewed_core_sha256", "package_sha256"],
-  "properties": {"schema_version": {"const": 2}, "hash_algorithm": {"const": "codex-is-package-sha256-v2"}, "skill_id": {"type": "string"}, "status": {"const": "published"}, "validator_version": {"type": "string"}, "approved_by": {"const": "user"}, "validated_at": {"type": "string"}, "sources": {"type": "array", "minItems": 1}, "intake_report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "reviewed_core_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "package_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
-}

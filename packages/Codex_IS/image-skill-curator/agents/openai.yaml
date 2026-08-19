@@ -1,4 +1,0 @@
-interface:
-  display_name: "图片业务 Skill 入库治理"
-  short_description: "提取、审核、校验并发布可审计的 Codex_IS 图片业务 Skill"
-  default_prompt: "Use $image-skill-curator to turn this image workflow document into a governed Codex_IS business Skill."
