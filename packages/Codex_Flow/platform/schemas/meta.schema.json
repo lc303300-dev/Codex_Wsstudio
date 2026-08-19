@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Flow skill metadata",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "name", "version"],
+  "properties": {
+    "schema": { "type": "string" },
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "description": { "type": "string" }
+  }
+}

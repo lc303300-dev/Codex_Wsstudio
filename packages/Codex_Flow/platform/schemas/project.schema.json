@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Flow project manifest",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["project_id", "skill", "settings", "artifacts", "approvals", "execution"],
+  "properties": {
+    "project_id": { "type": "string" },
+    "skill": { "type": "object" },
+    "settings": { "type": "object" },
+    "artifacts": { "type": "array" },
+    "approvals": { "type": "array" },
+    "execution": { "type": "array" }
+  }
+}

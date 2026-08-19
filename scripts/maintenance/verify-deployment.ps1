@@ -30,15 +30,12 @@ Require-Path (Join-Path $RepositoryRoot "packages\Codex_image\register-default-m
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\register-global-skill.ps1") "Codex_DT registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\codex-dt-video-prompt\SKILL.md") "Codex_DT skill"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_DT\.claude\skills\video-director-prompt\SKILL.md") "Codex_DT video director skill"
-Require-Path (Join-Path $RepositoryRoot "packages\Codex_CS\register-global-skill.ps1") "Codex_CS registration script"
-Require-Path (Join-Path $RepositoryRoot "packages\Codex_CS\codex-cs-skill-curator\SKILL.md") "Codex_CS curator skill"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Flow\register-global-skills.ps1") "Codex_Flow registration script"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Flow\codex-flow\SKILL.md") "Codex_Flow router Skill"
+Require-Path (Join-Path $RepositoryRoot "packages\Codex_Flow\business-skills\scene-storyboard-grid\SKILL.md") "Codex_Flow migrated storyboard Skill"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Batch_Image\register-global-skill.ps1") "batch image registration script"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Batch_Image\run-batch-image-generation.ps1") "batch image entry point"
 Require-Path (Join-Path $RepositoryRoot "packages\Codex_Batch_Image\batch-image-generation\SKILL.md") "batch image skill"
-Require-Path (Join-Path $RepositoryRoot "packages\Codex_IS\register-global-skills.ps1") "Codex_IS registration script"
-Require-Path (Join-Path $RepositoryRoot "packages\Codex_IS\image-skill-router\SKILL.md") "Codex_IS image router Skill"
-Require-Path (Join-Path $RepositoryRoot "packages\Codex_IS\image-skill-curator\SKILL.md") "Codex_IS image curator Skill"
-Require-Path (Join-Path $RepositoryRoot "packages\Codex_IS\business-skills\scene-storyboard-grid\SKILL.md") "Codex_IS scene storyboard Skill"
 Require-Path (Join-Path $RepositoryRoot "scripts") "scripts directory" "Container"
 Require-Path (Join-Path $CodexHome "AGENTS.md") "global Codex guidance"
 Require-Path (Join-Path $CodexHome "config.toml") "global Codex config"
@@ -46,13 +43,20 @@ Require-Path (Join-Path $CodexHome "skills\default-image-generation\SKILL.md") "
 Require-Path (Join-Path $CodexHome "skills\default-video-generation\SKILL.md") "global default video generation skill"
 Require-Path (Join-Path $CodexHome "skills\batch-image-generation\SKILL.md") "global batch image generation skill"
 Require-Path (Join-Path $CodexHome "skills\batch-image-generation\.codex-batch-image-registration.json") "global batch image registration marker"
-Require-Path (Join-Path $CodexHome "skills\image-skill-router\SKILL.md") "global Codex_IS image router Skill"
-Require-Path (Join-Path $CodexHome "skills\image-skill-router\.codex-is-registration.json") "global Codex_IS router marker"
-Require-Path (Join-Path $CodexHome "skills\image-skill-curator\SKILL.md") "global Codex_IS curator Skill"
-Require-Path (Join-Path $CodexHome "skills\scene-storyboard-grid\SKILL.md") "global Codex_IS storyboard Skill"
+Require-Path (Join-Path $CodexHome "skills\codex-flow\SKILL.md") "global Codex_Flow router Skill"
+Require-Path (Join-Path $CodexHome "skills\codex-flow\.codex-flow-registration.json") "global Codex_Flow router marker"
+Require-Path (Join-Path $CodexHome "skills\scene-storyboard-grid\SKILL.md") "global Codex_Flow storyboard Skill"
+Require-Path (Join-Path $CodexHome "skills\scene-storyboard-grid\.codex-flow-registration.json") "global Codex_Flow storyboard marker"
 Require-Path (Join-Path $CodexHome "skills\codex-github\SKILL.md") "global Tool Scout skill"
 Require-Path (Join-Path $CodexHome "skills\codex-github\scripts\tool_scout.py") "global Tool Scout runtime"
 Require-Path (Join-Path $CodexHome "plugins\codex-media-plugin\.codex-plugin\plugin.json") "global codex-media plugin"
+
+foreach ($legacySkill in @("image-skill-router", "image-skill-curator", "codex-cs-skill-curator", "video-skill-router")) {
+    $legacyPath = Join-Path $CodexHome "skills\$legacySkill"
+    if (Test-Path -LiteralPath $legacyPath -PathType Container) {
+        $errors.Add("Legacy global Skill remains installed: $legacyPath")
+    }
+}
 
 $globalConfig = Join-Path $CodexHome "config.toml"
 if (Test-Path -LiteralPath $globalConfig -PathType Leaf) {

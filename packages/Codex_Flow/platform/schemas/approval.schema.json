@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Flow approval record",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["approval_id", "review_id", "skill_id", "package_hash", "consumed"],
+  "properties": {
+    "approval_id": { "type": "string" },
+    "review_id": { "type": "string" },
+    "skill_id": { "type": "string" },
+    "package_hash": { "type": "string" },
+    "consumed": { "type": "boolean" }
+  }
+}

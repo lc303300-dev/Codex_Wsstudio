@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Flow UI manifest",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "parameters"],
+  "properties": {
+    "schema": { "type": "string" },
+    "parameters": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  }
+}

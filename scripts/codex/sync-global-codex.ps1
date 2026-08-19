@@ -130,24 +130,16 @@ if (Test-Path -LiteralPath $dtRegistration -PathType Leaf) {
     }
 }
 
-$csRegistration = Join-Path $RepositoryRoot "packages\Codex_CS\register-global-skill.ps1"
-if (Test-Path -LiteralPath $csRegistration -PathType Leaf) {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $csRegistration -CodexHome $CodexHome
-    if ($LASTEXITCODE -ne 0) {
-        throw "Codex_CS global skill registration failed with exit code ${LASTEXITCODE}."
-    }
-}
-
 $batchImageRegistration = Join-Path $RepositoryRoot "packages\Codex_Batch_Image\register-global-skill.ps1"
 if (Test-Path -LiteralPath $batchImageRegistration -PathType Leaf) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $batchImageRegistration -CodexHome $CodexHome
     if ($LASTEXITCODE -ne 0) { throw "Codex_Batch_Image global skill registration failed with exit code ${LASTEXITCODE}." }
 }
 
-$isRegistration = Join-Path $RepositoryRoot "packages\Codex_IS\register-global-skills.ps1"
-if (Test-Path -LiteralPath $isRegistration -PathType Leaf) {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $isRegistration -CodexHome $CodexHome
-    if ($LASTEXITCODE -ne 0) { throw "Codex_IS global Skill registration failed with exit code ${LASTEXITCODE}." }
+$flowRegistration = Join-Path $RepositoryRoot "packages\Codex_Flow\register-global-skills.ps1"
+if (Test-Path -LiteralPath $flowRegistration -PathType Leaf) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $flowRegistration -CodexHome $CodexHome
+    if ($LASTEXITCODE -ne 0) { throw "Codex_Flow global Skill registration failed with exit code ${LASTEXITCODE}." }
 }
 
 Write-Host ""

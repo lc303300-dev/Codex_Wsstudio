@@ -184,15 +184,15 @@ This bootstrap rule applies even when the opening message says `全自动生成�
 - Never infer reference order from filenames, visual layout, user wording order after upload, or natural-language aliases when CLI arguments are present. The ordered CLI argument list is authoritative.
 - For a single-image item, submit one `--image <path>` and write `图片1` in the prompt.
 
-### Codex_CS prompt revision handoff
+### Codex Flow prompt revision handoff
 
-When a complete first prompt came from a governed Codex_CS Skill, CS remains the source of its contract, material order, ratio, and duration. Do not rewrite that first prompt merely because DT is available. If the user requests a change, run `scripts/classify_revision.py` with the current prompt, user feedback, and locked CS context, then apply the emitted revision policy:
+When a complete first prompt came from a governed Codex Flow Skill, Flow remains the source of its workflow context, material order, ratio, and duration. Do not rewrite that first prompt merely because DT is available. If the user requests a change, run `scripts/classify_revision.py` with the current prompt, user feedback, and locked Flow context, then apply the emitted revision policy:
 
 - `explicit_local`: revise only the stated target and do not search the corpus.
 - `ambiguous_creative`: corpus search is allowed but limited to the three most relevant matches.
 - `structural_rewrite`: corpus search is allowed but limited to the three most relevant matches.
 
-All classes preserve content the user did not ask to change. Contract rules and ordered material bindings are immutable. Ratio and duration change only when the user explicitly changes project settings. Return the revised prompt for user confirmation; do not create an audit report and do not submit video from the revision step. See `docs/prompt_revision_workflow.md` and the schemas under `schemas/`.
+All classes preserve content the user did not ask to change. Workflow rules and ordered material bindings are immutable. Ratio and duration change only when the user explicitly changes project settings. Return the revised prompt for user confirmation; do not create an audit report and do not submit video from the revision step. See `docs/prompt_revision_workflow.md` and the schemas under `schemas/`.
 
 ## Third-party projects
 

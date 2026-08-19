@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Flow review record",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["review_id", "skill_id", "package_hash", "review_card_hash"],
+  "properties": {
+    "review_id": { "type": "string" },
+    "skill_id": { "type": "string" },
+    "package_hash": { "type": "string" },
+    "review_card_hash": { "type": "string" }
+  }
+}

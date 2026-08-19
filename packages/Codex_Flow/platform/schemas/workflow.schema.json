@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Flow workflow",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "profile", "stages"],
+  "properties": {
+    "schema": { "type": "string" },
+    "profile": { "type": "string" },
+    "stages": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  }
+}

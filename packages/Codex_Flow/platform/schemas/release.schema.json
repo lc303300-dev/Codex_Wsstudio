@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Flow release record",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["release_id", "skill_id", "version", "package_hash"],
+  "properties": {
+    "release_id": { "type": "string" },
+    "skill_id": { "type": "string" },
+    "version": { "type": "string" },
+    "package_hash": { "type": "string" }
+  }
+}

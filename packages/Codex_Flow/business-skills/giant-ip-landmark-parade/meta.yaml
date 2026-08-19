@@ -1,0 +1,40 @@
+schema: codex-flow-skill/v1
+name: giant-ip-landmark-parade
+version: 1.0.0
+display-name-zh: 巨型IP地标巡游硬切视频
+source: legacy-cs-video
+release-tier: experimental
+primary-output: video
+intermediate-outputs:
+  - image
+  - storyboard
+workflow-profile: staged
+interaction-profile: conversation
+tags:
+  - migrated
+  - cs-video
+  - video
+aliases:
+  - 巨型IP地标巡游硬切视频
+exclude-intents:
+  []
+capabilities:
+  - video.generate
+  - dt.video-revise
+references:
+  creative_guidance:
+    path: references/creative-guidance.md
+    load-at:
+      - authoring
+  community_experience:
+    path: references/community-experience.md
+    load-at:
+      - authoring
+  failure_cases:
+    path: references/failure-cases.md
+    load-at:
+      - final-qc
+  examples:
+    path: references/examples.md
+    load-at:
+      - authoring

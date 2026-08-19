@@ -13,8 +13,8 @@ $imageRoot = Join-Path $root "packages\Codex_image"
 $dtRoot = Join-Path $root "packages\Codex_DT"
 $gifRoot = Join-Path $root "packages\Codex_Gif"
 $githubRoot = Join-Path $root "packages\Codex_Github"
+$flowRoot = Join-Path $root "packages\Codex_Flow"
 $batchImageRoot = Join-Path $root "packages\Codex_Batch_Image"
-$isRoot = Join-Path $root "packages\Codex_IS"
 $seedanceWrapper = Join-Path $imageRoot "CLI\Seedance-CLI\run.ps1"
 $previewTool = Join-Path $CodexHome "tools\Convert-CodexImagePreview.ps1"
 
@@ -34,7 +34,7 @@ foreach ($command in @("git", "python", "powershell.exe")) {
         throw "Required command is missing: $command"
     }
 }
-foreach ($directory in @($imageRoot, $dtRoot, $gifRoot, $githubRoot, $batchImageRoot, $isRoot)) {
+foreach ($directory in @($imageRoot, $dtRoot, $gifRoot, $githubRoot, $flowRoot, $batchImageRoot)) {
     if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
         throw "Required project directory is missing: $directory"
     }

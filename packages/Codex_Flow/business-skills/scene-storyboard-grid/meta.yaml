@@ -1,0 +1,45 @@
+schema: codex-flow-skill/v1
+name: scene-storyboard-grid
+version: 1.0.0
+display-name-zh: 场景一致性九宫格分镜
+source: legacy-is-image
+release-tier: experimental
+primary-output: image
+intermediate-outputs:
+  - prompt
+workflow-profile: staged
+interaction-profile: conversation
+tags:
+  - migrated
+  - is-image
+  - image
+aliases:
+  - 场景一致性九宫格分镜
+  - 九宫格镜头拆解
+  - 场景分镜拆解
+  - 3x3 storyboard
+  - 3×3 storyboard
+  - 同场景多机位九宫格
+exclude-intents:
+  - 视频生成
+  - 动态运镜视频
+  - 九格漫画或时间推进故事板
+  - 单纯拼接已有九张图片
+  - 修改原图中的局部瑕疵
+  - 表情包九宫格
+capabilities:
+  - image.generate
+  - image.batch-generate
+references:
+  creative_guidance:
+    path: references/creative-guidance.md
+    load-at:
+      - authoring
+  failure_cases:
+    path: references/failure-cases.md
+    load-at:
+      - final-qc
+  examples:
+    path: references/examples.md
+    load-at:
+      - authoring

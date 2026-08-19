@@ -22,7 +22,7 @@ The command is repeatable. It:
 - installs Dreamina CLI when it is missing and starts login when required;
 - installs the bundled 1024 px preview converter into `CODEX_HOME/tools/`;
 - registers the unified image/video tools and plugin;
-- registers the video-to-GIF, Tool Scout, Codex_DT, Codex_CS, batch-image-generation, and Codex_IS global skills;
+- registers the video-to-GIF, Tool Scout, Codex_DT, batch-image-generation, and Codex Flow global skills;
 - deploys `Codex_DT` using the sibling `Codex_image` CLI.
 - runs a post-deployment verification that checks required paths, installed global guidance, the sub-agent delegation rule, and project structure.
 
@@ -103,15 +103,22 @@ skill directly.
 It also refreshes the unified media tools and `codex-media-plugin` from
 `packages/Codex_image/`, including managed personal marketplace and cached plugin
 copies, then refreshes the globally registered `codex-github`, `video-to-gif`,
-`codex-dt-video-prompt`, and `codex-cs-skill-curator` skills from
+`codex-dt-video-prompt`, `batch-image-generation`, and `codex-flow` skills from
 `packages/Codex_Github/`, `packages/Codex_Gif/`, `packages/Codex_DT/`,
-`packages/Codex_CS/`, `packages/Codex_Batch_Image/`, and `packages/Codex_IS/` when those package scripts are present.
+`packages/Codex_Batch_Image/`, and `packages/Codex_Flow/` when those package scripts are present.
 
 After deployment, the same pipeline runs `scripts/maintenance/verify-deployment.ps1`.
 Run it independently to audit an existing machine:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\maintenance\verify-deployment.ps1
+```
+
+If a machine still has old global business Skill entries after the Codex Flow
+cutover, remove only the managed legacy registrations with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\remove-legacy-global-skills.ps1
 ```
 
 The verification probes the installed `codex-media-plugin` MCP server and requires

@@ -1,6 +1,6 @@
-# CS 首稿后的 DT 提示词修订
+# Codex Flow 首稿后的 DT 提示词修订
 
-当 Codex_CS Skill 已经生成第一版完整视频提示词时，DT 不重新取得创作主权。只有用户要求修改时，DT 才接收当前提示词、用户反馈和锁定上下文，生成下一版候选提示词。
+当 Codex Flow Skill 已经生成第一版完整视频提示词时，DT 不重新取得创作主权。只有用户要求修改时，DT 才接收当前提示词、用户反馈和锁定上下文，生成下一版候选提示词。
 
 正常交互保持简短：用户确认首稿后直接生成视频；用户提出修改后自动进入 DT 修订，再把新版提示词交给用户确认。不要求用户选择是否调用 DT，也不生成独立审核报告。
 
@@ -14,9 +14,9 @@ python scripts/classify_revision.py --input revision-input.json --out revision-r
 
 输入必须包含：
 
-- `current_prompt`：CS Skill 输出的当前提示词。
+- `current_prompt`：Codex Flow Skill 输出的当前提示词。
 - `user_feedback`：用户本轮修改意见。
-- `locked_context.contract_rules`：CS 契约和强制创作规则。
+- `locked_context.contract_rules`：Codex Flow 工作流上下文和强制创作规则。
 - `locked_context.material_order`：最终素材的权威顺序及角色。
 - `locked_context.ratio`：已确认画幅。
 - `locked_context.duration_seconds`：已确认时长。
