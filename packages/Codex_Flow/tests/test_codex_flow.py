@@ -26,6 +26,8 @@ registry = load_module("codex_flow_registry", PLATFORM / "registry.py")
 approval = load_module("codex_flow_approval", PLATFORM / "approval.py")
 project = load_module("codex_flow_project", PLATFORM / "project.py")
 cutover_check = load_module("codex_flow_cutover_check", PLATFORM / "cutover_check.py")
+image_spec = load_module("codex_flow_image_spec", PLATFORM / "image_spec.py")
+style_library = load_module("codex_flow_style_library", PLATFORM / "style_library.py")
 
 
 def write_minimum_skill(root: Path, *, name: str = "simple-poster", profile: str = "simple") -> Path:
@@ -145,14 +147,97 @@ class CodexFlowTests(unittest.TestCase):
             output = root / "registry.json"
             result = registry.build(skills, output)
             self.assertEqual(result["indexed"], 1)
+            self.assertEqual(result["community_archetypes"], 0)
             self.assertEqual(result["rejected"][0]["skill_id"], invalid.name)
             compiled = json.loads(output.read_text(encoding="utf-8"))
             skill = compiled["skills"][0]
             self.assertEqual(skill["skill_id"], "simple-poster")
             self.assertEqual(skill["capabilities"], ["image.generate"])
-            self.assertNotIn("body", skill)
+            self.assertNotIn("entry", skill)
+            self.assertEqual(compiled["runtime"]["simple-poster"]["entry"].endswith("SKILL.md"), True)
+            self.assertEqual(set(skill), {
+                "skill_id", "source", "version", "description", "display_name",
+                "category", "styles", "scenes", "use_when", "guidance", "pitfalls",
+                "example_cases", "aliases", "tags", "capabilities", "release_tier",
+                "record_type",
+            })
             lookup = registry.lookup("poster", output, 3)
             self.assertEqual(lookup["candidates"][0]["skill_id"], "simple-poster")
+
+    def test_route_uses_high_confidence_skill_or_generic_image_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            skills = root / "skills"
+            skills.mkdir()
+            write_minimum_skill(skills, name="simple-poster")
+            output = root / "registry.json"
+            registry.build(skills, output)
+            matched = registry.route("create a poster", output)
+            self.assertEqual(matched["decision"]["mode"], "specialized_skill")
+            self.assertEqual(matched["decision"]["skill_id"], "simple-poster")
+            fallback = registry.route("redraw the target image in the reference image style", output)
+            self.assertEqual(fallback["decision"]["mode"], "generic_image")
+            self.assertEqual(fallback["decision"]["style_library"], "recommended")
+
+    def test_compact_record_resolves_to_local_runtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            skills = root / "skills"
+            skills.mkdir()
+            write_minimum_skill(skills, name="simple-poster")
+            output = root / "registry.json"
+            registry.build(skills, output)
+            resolved = registry.resolve("simple-poster", output)
+            self.assertEqual(resolved["record"]["skill_id"], "simple-poster")
+            self.assertTrue(resolved["available"])
+            self.assertTrue(resolved["runtime"]["entry"].endswith("SKILL.md"))
+
+    def test_image_spec_assigns_reference_roles_without_provider_fields(self):
+        spec = image_spec.generic_image_spec(
+            "将目标图按参考图风格重绘",
+            "16:9",
+            has_target_image=True,
+            has_style_reference=True,
+        ).to_dict()
+        self.assertEqual(spec["task"], "reference_style_redraw")
+        self.assertEqual(spec["assets"][0]["role"], "preserve_content_and_composition")
+        self.assertEqual(spec["assets"][1]["role"], "transfer_visual_language_only")
+        self.assertNotIn("provider", spec)
+        with self.assertRaises(ValueError):
+            image_spec.generic_image_spec("test", "5:7")
+
+    def test_style_library_lookup_reads_only_compact_template_fields(self):
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "style-library.json"
+            catalog.write_text(json.dumps({
+                "repository": "https://example.test/library",
+                "templates": [{
+                    "id": "watercolor-art",
+                    "title": {"zh": "水彩插画"},
+                    "description": {"zh": "柔和水彩笔触"},
+                    "guidance": {"zh": ["锁定主体构图"]},
+                    "pitfalls": {"zh": ["避免构图漂移"]},
+                    "styles": ["Illustration"],
+                    "scenes": ["Creative"],
+                    "tags": ["Style"],
+                }],
+            }, ensure_ascii=False), encoding="utf-8")
+            result = style_library.lookup("水彩插画风格重绘", catalog)
+            self.assertEqual(result["candidates"][0]["id"], "watercolor-art")
+            self.assertNotIn("exampleCases", result["candidates"][0])
+
+    def test_gallery_parser_preserves_attributed_case_records(self):
+        markdown = (
+            '<a name="case-42"></a>\n\n'
+            '### 例 42：水彩城市地图\n\n'
+            '**提示词：**\n\n'
+            '```text\n水彩插画风格的城市美食地图\n```\n'
+        )
+        cases = style_library.parse_cases(markdown, "https://example.test/gallery.md")
+        self.assertEqual(cases[0]["case_id"], 42)
+        self.assertEqual(cases[0]["title"], "水彩城市地图")
+        self.assertEqual(cases[0]["prompt"], "水彩插画风格的城市美食地图")
+        self.assertEqual(cases[0]["source"], "https://example.test/gallery.md#case-42")
 
     def test_approval_invalidates_when_package_changes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -202,18 +287,23 @@ class CodexFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "registry.json"
             skills_root = ROOT / "business-skills"
-            discovered, rejected = registry.discover(skills_root)
+            discovered, rejected, runtime = registry.discover(skills_root)
             self.assertEqual(rejected, [])
+            self.assertIn("reference-style-redraw", runtime)
             self.assertEqual({item["skill_id"] for item in discovered}, {
                 "architectural-assembly-reveal",
                 "city-real-estate-habitat-promo",
                 "dawn-mist-aerial-real-estate",
+                "generic-image",
                 "giant-ip-landmark-parade",
+                "reference-style-redraw",
                 "sci-fi-city-promo",
                 "scene-storyboard-grid",
             })
             compiled = registry.build(skills_root, output)
-            self.assertEqual(compiled["indexed"], 6)
+            self.assertEqual(compiled["indexed"], 8)
+            routed = registry.route("场景一致性九宫格分镜", output)
+            self.assertEqual(routed["decision"]["skill_id"], "scene-storyboard-grid")
 
     def test_cutover_check_blocks_unresolved_migration(self):
         with tempfile.TemporaryDirectory() as directory:

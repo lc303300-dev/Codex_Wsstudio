@@ -1,0 +1,21 @@
+schema: codex-flow-skill/v1
+name: generic-image
+version: 1.0.0
+display-name-zh: 通用图片编排
+source: codex-flow
+release-tier: stable
+primary-output: image
+intermediate-outputs:
+  - image-spec
+  - prompt
+workflow-profile: simple
+interaction-profile: conversation
+tags:
+  - generic
+  - image
+aliases:
+  - 通用生图
+  - 通用图片
+exclude-intents: []
+capabilities:
+  - image.generate

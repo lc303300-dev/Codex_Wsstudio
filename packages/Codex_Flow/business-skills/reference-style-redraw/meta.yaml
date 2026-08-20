@@ -1,0 +1,27 @@
+schema: codex-flow-skill/v1
+name: reference-style-redraw
+version: 1.0.0
+display-name-zh: 参考图风格重绘
+source: codex-flow
+release-tier: stable
+primary-output: image
+intermediate-outputs:
+  - image-spec
+  - prompt
+workflow-profile: simple
+interaction-profile: conversation
+tags:
+  - image
+  - reference
+  - style-transfer
+  - redraw
+  - 风格重绘
+  - 风格迁移
+aliases:
+  - 参考图风格重绘
+  - 参考图重绘
+  - 风格迁移
+  - 风格重绘
+  - 参考图风格
+capabilities:
+  - image.generate
