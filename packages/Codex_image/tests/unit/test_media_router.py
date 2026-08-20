@@ -37,7 +37,7 @@ from media_router.video_router import (
     select_video_command,
     VideoRouter,
 )
-from media_router.service import validate_prompt_completeness
+from media_router.service import dated_video_group, execute, normalize_video_duration, validate_prompt_completeness
 from media_router.providers import comfly_common
 from media_router.providers.command_adapter import DreaminaAdapter, PythonImageAdapter, _run
 from media_router.providers.comfly_adapter import ComflyAdapter
@@ -297,6 +297,20 @@ class ProviderImageInputTests(unittest.TestCase):
             self.assertEqual(prepared.images, (source.resolve(),))
             self.assertFalse((context.job_dir / "inputs" / "image-1.png").exists())
 
+    def test_image_under_1920_but_over_byte_limit_is_reencoded(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "large.png"
+            from PIL import Image
+
+            Image.effect_noise((1920, 1440), 100).convert("RGB").save(source, format="PNG")
+            store = TaskStore(root / "private")
+            request = MediaRequest("prompt", (source,), image_ratio="3:4")
+            context = store.create(request)
+            prepared = prepare_provider_images(request, context, 1920)
+            self.assertNotEqual(prepared.images[0], source.resolve())
+            self.assertLessEqual(prepared.images[0].stat().st_size, 4_500_000)
+
     def test_image_router_passes_only_normalized_images_to_provider(self):
         received = []
 
@@ -436,6 +450,35 @@ class ImageRatioAdapterTests(unittest.TestCase):
 
 
 class VideoRouterTests(unittest.TestCase):
+    def test_video_duration_normalizes_unit_bearing_values(self):
+        for value in (5, "5", "5s", "5 s", "5sec", "5seconds", "5秒"):
+            with self.subTest(value=value):
+                self.assertEqual(normalize_video_duration(value), "5")
+
+    def test_video_duration_rejects_non_seconds_or_out_of_range(self):
+        for value in (True, "5ms", "five", "3s", "31秒"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                normalize_video_duration(value)
+
+    def test_execute_normalizes_duration_and_confirmation_before_router(self):
+        with mock.patch("media_router.service.load_config", return_value={"providers": {}}), mock.patch("media_router.service.build_registry", return_value={"dreamina-video": object()}), mock.patch("media_router.service.VideoRouter") as router_type:
+            router_type.return_value.execute.return_value = type("Result", (), {"to_dict": lambda self: {"status": "failed"}})()
+            execute("generate_video", "motion", video_duration="5s", video_confirmation_duration="5秒")
+            request = router_type.return_value.execute.call_args.args[0]
+            self.assertEqual(request.video_duration, "5")
+            self.assertEqual(request.video_confirmation_duration, "5")
+
+    def test_video_group_gets_local_date_prefix_outside_base_limit(self):
+        from datetime import date
+
+        base = "华为 Mate 80_产品视频"
+        self.assertLessEqual(len(base), 20)
+        self.assertEqual(dated_video_group(base, date(2026, 8, 20)), "2026_08_20-华为 Mate 80_产品视频")
+
+    def test_video_group_rejects_base_over_twenty_characters(self):
+        with self.assertRaisesRegex(ValueError, "1-20"):
+            dated_video_group("一" * 21)
+
     def test_terminal_wrapped_prompt_is_rejected(self):
         prompt = "Exit code: 0\nWall time: 0.7 seconds\nOutput:\n画面比例：9:16，视频时长：20秒。"
         with self.assertRaisesRegex(ValueError, "terminal execution metadata"):
@@ -496,6 +539,17 @@ class VideoRouterTests(unittest.TestCase):
         self.assertEqual(args[args.index("--video_resolution") + 1], "480p")
         self.assertEqual(args[args.index("--poll") + 1], "180")
 
+    def test_video_session_is_forwarded_to_cli(self):
+        request = MediaRequest("motion", video_session_id="19641853702412")
+        args = build_video_arguments("text2video", request)
+        self.assertEqual(args[args.index("--session") + 1], "19641853702412")
+
+    def test_dreamina_session_parser_requires_exact_group_name(self):
+        table = "ID NAME PINNED UPDATED_AT\n19641853702412 项目A No 2026-08-18 20:56\n19625962609164 项目AB No 2026-08-18 17:27"
+        self.assertEqual(DreaminaAdapter._session_id(table, "项目A"), "19641853702412")
+        self.assertIsNone(DreaminaAdapter._session_id(table, "项目"))
+        self.assertEqual(DreaminaAdapter._session_id('{"session_id": "19641853702412"}'), "19641853702412")
+
     def test_prompt_resolution_words_do_not_override_default(self):
         request = MediaRequest("画面细节参考 4K，禁止 720p 输出")
         args = build_video_arguments("text2video", request)
@@ -508,9 +562,14 @@ class VideoRouterTests(unittest.TestCase):
         request = MediaRequest("motion", video_duration="5", video_confirmation_model="seedance2.5", video_confirmation_resolution="480p", video_confirmation_duration="5")
         self.assertEqual(router.validate(request), "text2video")
 
-    def test_seedance_25_rejects_unsupported_high_resolution(self):
+    def test_seedance_25_accepts_1080p(self):
         router = VideoRouter({}, type("Provider", (), {})())
         request = MediaRequest("motion", video_duration="5", video_resolution="1080p", video_confirmation_model="seedance2.5", video_confirmation_resolution="1080p", video_confirmation_duration="5")
+        self.assertEqual(router.validate(request), "text2video")
+
+    def test_seedance_25_rejects_4k(self):
+        router = VideoRouter({}, type("Provider", (), {})())
+        request = MediaRequest("motion", video_duration="5", video_resolution="4k", video_confirmation_model="seedance2.5", video_confirmation_resolution="4k", video_confirmation_duration="5")
         with self.assertRaisesRegex(ValueError, "unsupported"):
             router.validate(request)
 
@@ -540,6 +599,22 @@ class VideoRouterTests(unittest.TestCase):
         self.assertEqual(args[args.index("--video_resolution") + 1], "480p")
         self.assertEqual(args[args.index("--poll") + 1], "0")
 
+    def test_internal_batch_mode_submits_without_cli_polling(self):
+        request = MediaRequest(
+            "motion",
+            video_command="text2video",
+            video_model="seedance2.5",
+            video_resolution="480p",
+            video_execution_mode="production_batch",
+            video_duration="5",
+            video_confirmation_model="seedance2.5",
+            video_confirmation_resolution="480p",
+            video_confirmation_duration="5",
+        )
+        args = build_video_arguments("text2video", request)
+        self.assertEqual(args[args.index("--poll") + 1], "0")
+        self.assertEqual(VideoRouter({}, type("Provider", (), {})()).validate(request), "text2video")
+
     def test_test_channel_does_not_require_user_explicit_model_source(self):
         router = VideoRouter({}, type("Provider", (), {})())
         request = MediaRequest("motion", video_command="text2video", video_execution_mode="test_submit_only")
@@ -556,6 +631,14 @@ class VideoRouterTests(unittest.TestCase):
         request = MediaRequest("视频时长：20秒", video_command="text2video", video_execution_mode="test_submit_only")
         with self.assertRaisesRegex(ValueError, "4-15"):
             router.validate(request)
+
+    def test_test_channel_rejects_multiple_tasks(self):
+        with self.assertRaisesRegex(ValueError, "exactly one task"):
+            execute("generate_video", "motion", video_execution_mode="test_submit_only", video_count=2, video_group="纸飞机_功能测试")
+
+    def test_test_channel_requires_group_before_submission(self):
+        with self.assertRaisesRegex(ValueError, "requires video_group"):
+            execute("generate_video", "motion", video_execution_mode="test_submit_only")
 
     def test_test_adapter_returns_submitted_without_querying(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -579,6 +662,27 @@ class VideoRouterTests(unittest.TestCase):
             self.assertEqual(result.provider_status, "querying")
             self.assertFalse(result.polling_performed)
             query.assert_not_called()
+
+    def test_download_selection_is_bound_to_submit_id(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            job = root / "job"
+            output = job / "outputs"
+            target = output / "dreamina-video"
+            target.mkdir(parents=True)
+            (job / "logs").mkdir()
+            prompt = job / "prompt.txt"
+            prompt.write_text("motion", encoding="utf-8")
+            wrong = target / "other-task_video_1.mp4"
+            expected = target / "wanted-task_video_1.mp4"
+            wrong.write_bytes(b"video")
+            expected.write_bytes(b"video")
+            context = TaskContext("batch", "task", job, output, prompt, job / "cancel")
+            adapter = DreaminaAdapter("dreamina-video", "video", "seedance2.5")
+            completed = subprocess.CompletedProcess([], 0, 'submit_id=wanted-task\ngen_status=success', "")
+            with mock.patch("media_router.providers.command_adapter._run", return_value=completed), mock.patch("media_router.providers.command_adapter.is_valid_video", return_value=True):
+                selected = adapter._query_and_download("wanted-task", context, "video")
+            self.assertEqual(selected, expected)
 
     def test_production_submit_only_returns_submitted_without_querying(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -857,6 +961,20 @@ class SafetyTests(unittest.TestCase):
         self.assertNotIn(prompt, text)
         self.assertNotIn("secret", text)
         self.assertNotIn("private", record["error"].lower())
+
+    def test_safe_text_redacts_oauth_codes_and_tokens(self):
+        value = safe_text("access_token=secret refresh_token=private device_code=abc user_code=xyz ordinary failure")
+        for secret in ("secret", "private", "abc", "xyz"):
+            self.assertNotIn(secret, value)
+        self.assertIn("ordinary failure", value)
+
+    def test_failed_command_logs_safe_stderr_summary(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            log = Path(temporary) / "failed.json"
+            with self.assertRaisesRegex(MediaRouterError, "upload connection failed"):
+                _run([sys.executable, "-B", "-c", "import sys; sys.stderr.write('upload connection failed'); raise SystemExit(1)"], 5, log)
+            record = json.loads(log.read_text(encoding="utf-8"))
+            self.assertEqual(record["stderr_summary"], "upload connection failed")
 
     def test_atomic_failure_preserves_existing_output(self):
         with tempfile.TemporaryDirectory() as temporary:

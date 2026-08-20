@@ -9,6 +9,6 @@
     "apimart-gpt-image-2": { "enabled": true, "priority": 3, "max_concurrency": 6 },
     "google-gemini-image": { "enabled": true, "priority": 4, "max_concurrency": 6 },
     "dreamina-image": { "enabled": true, "priority": 5, "max_concurrency": 6, "capacity_key": "seedance-cli" },
-    "dreamina-video": { "enabled": true, "max_concurrency": 6, "capacity_key": "seedance-cli" }
+    "dreamina-video": { "enabled": true, "max_concurrency": 10, "capacity_key": "seedance-cli" }
   }
 }

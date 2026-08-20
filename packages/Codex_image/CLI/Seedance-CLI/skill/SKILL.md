@@ -105,7 +105,7 @@ For video generation in this Codex_image checkout:
 - the project wrapper injects these defaults for `text2video`, `image2video`, `frames2video`, and `multimodal2video` when the corresponding flags are absent
 - honor an explicitly requested supported video model after checking subcommand help
 - honor an explicitly requested supported video resolution after checking subcommand help
-- Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p`; if the provider rejects VIP access or requires web-side authorization, report the provider error and ask before changing models
+- Seedance 2.5 supports 4-30 second outputs and `480p`, `720p`, or `1080p`; if the provider rejects VIP access or requires web-side authorization, report the provider error and ask before changing models
 
 Apart from this project routing policy, do not hardcode model support from this skill.
 

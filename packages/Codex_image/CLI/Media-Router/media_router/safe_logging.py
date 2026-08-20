@@ -11,6 +11,7 @@ SECRET_PATTERNS = (
     re.compile(r"(?i)authorization\s*[:=]\s*(?:bearer\s+)?\S+"),
     re.compile(r"(?i)\bbearer\s+\S+"),
     re.compile(r"(?i)(?:api[_-]?key|cookie)\s*[:=]\s*\S+"),
+    re.compile(r"(?i)(?:access[_-]?token|refresh[_-]?token|session[_-]?token|device[_-]?code|user[_-]?code)\s*[:=]\s*\S+"),
 )
 
 

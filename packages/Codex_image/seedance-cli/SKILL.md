@@ -81,7 +81,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ../CLI/Seedance-CLI/run.ps1 
 - For video commands that support `--model_version`, use Seedance 2.5 by default: `--model_version=seedance2.5`. The project wrapper also injects this value when no video model flag is supplied.
 - This default applies to `text2video`, `image2video`, `frames2video`, and `multimodal2video`.
 - Unless the user explicitly requests another supported resolution, use `--video_resolution=480p`. The project wrapper injects this value when no video resolution flag is supplied.
-- Seedance 2.5 supports 4-30 second outputs and only `480p` or `720p` resolution.
+- Seedance 2.5 supports 4-30 second outputs and `480p`, `720p`, or `1080p` resolution.
 - Honor an explicitly requested supported video model after checking the current subcommand help.
 - Honor an explicitly requested supported video resolution after checking the current subcommand help.
 - Do not assume VIP availability from the project configuration alone. If the provider rejects the model or requires web-side authorization, report the provider error and ask before changing models.

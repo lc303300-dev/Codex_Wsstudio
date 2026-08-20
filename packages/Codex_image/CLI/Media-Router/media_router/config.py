@@ -40,8 +40,9 @@ def load_config(default_path: Path = DEFAULT_CONFIG, private_path: Path = PRIVAT
         raise ValueError("media_inputs.max_image_long_edge must be an integer from 1 to 1920")
     for provider_id, provider in config.get("providers", {}).items():
         limit = provider.get("max_concurrency", 6)
-        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 6:
-            raise ValueError(f"providers.{provider_id}.max_concurrency must be an integer from 1 to 6")
+        maximum = 10 if provider_id == "dreamina-video" else 6
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= maximum:
+            raise ValueError(f"providers.{provider_id}.max_concurrency must be an integer from 1 to {maximum}")
         provider["max_concurrency"] = limit
         provider.setdefault("capacity_key", provider_id)
         if provider_id.startswith("comfly-"):

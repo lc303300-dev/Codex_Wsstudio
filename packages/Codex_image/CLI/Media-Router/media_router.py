@@ -20,7 +20,7 @@ def parser() -> argparse.ArgumentParser:
     video.add_argument("--image", action="append", default=[])
     video.add_argument("--video", action="append", default=[])
     video.add_argument("--audio", action="append", default=[])
-    video.add_argument("--video-duration")
+    video.add_argument("--video-duration", help="Seconds; accepts 5, 5s, or 5秒 and normalizes before CLI submission")
     video.add_argument("--video-ratio")
     video.add_argument("--video-model")
     video.add_argument("--video-model-selection-source", choices=("user_explicit",))
@@ -28,7 +28,9 @@ def parser() -> argparse.ArgumentParser:
     video.add_argument("--video-resolution")
     video.add_argument("--video-confirmation-model")
     video.add_argument("--video-confirmation-resolution")
-    video.add_argument("--video-confirmation-duration")
+    video.add_argument("--video-confirmation-duration", help="Confirmed seconds; accepts the same forms as --video-duration")
+    video.add_argument("--video-count", type=int, choices=range(1, 11), default=1)
+    video.add_argument("--video-group")
     return root
 
 
@@ -50,6 +52,8 @@ def main() -> int:
             "video_confirmation_model": args.video_confirmation_model,
             "video_confirmation_resolution": args.video_confirmation_resolution,
             "video_confirmation_duration": args.video_confirmation_duration,
+            "video_count": args.video_count,
+            "video_group": args.video_group,
         }
     result = execute(args.command, args.prompt, args.image, getattr(args, "video", ()), getattr(args, "audio", ()), **options)
     print(json.dumps(result, ensure_ascii=False, indent=2))

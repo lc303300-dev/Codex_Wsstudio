@@ -14,6 +14,7 @@ from .schemas import MediaRequest, TaskContext
 RESIZE_SCRIPT = PROJECT_ROOT / "CLI" / "Media-Router" / "resize-provider-image.ps1"
 PILLOW_RESIZE_SCRIPT = PROJECT_ROOT / "CLI" / "Media-Router" / "resize_provider_image.py"
 MAX_PROVIDER_IMAGE_LONG_EDGE = 1920
+MAX_PROVIDER_IMAGE_BYTES = 4_500_000
 
 
 def _resize_command(source: Path, output: Path, metadata: Path, max_long_edge: int) -> list[str]:
@@ -22,7 +23,7 @@ def _resize_command(source: Path, output: Path, metadata: Path, max_long_edge: i
         return [
             str(bundled_python), "-B", str(PILLOW_RESIZE_SCRIPT),
             "--input", str(source), "--output", str(output), "--metadata", str(metadata),
-            "--max-long-edge", str(max_long_edge),
+            "--max-long-edge", str(max_long_edge), "--max-bytes", str(MAX_PROVIDER_IMAGE_BYTES),
         ]
     return [
         "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(RESIZE_SCRIPT),
@@ -66,6 +67,8 @@ def prepare_provider_images(
             raise ValueError(f"Invalid provider image metadata: {source}") from exc
         if not provider_path.is_file() or max(width, height) > max_long_edge:
             raise ValueError(f"Provider image exceeds the {max_long_edge}px limit: {source}")
+        if provider_path.stat().st_size > MAX_PROVIDER_IMAGE_BYTES:
+            raise ValueError(f"Provider image exceeds the {MAX_PROVIDER_IMAGE_BYTES}-byte limit after compression: {source}")
         provider_images.append(provider_path)
 
     return replace(request, images=tuple(provider_images))

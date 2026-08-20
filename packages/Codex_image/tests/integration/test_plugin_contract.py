@@ -35,7 +35,7 @@ class PluginContractTests(unittest.TestCase):
         self.assertEqual(tools["generate_image"]["properties"]["image_resolution"]["enum"], ["1K", "2K", "4K"])
         self.assertNotIn("default", tools["generate_image"]["properties"]["image_resolution"])
         self.assertEqual(tools["generate_image"]["properties"]["image_provider"]["enum"], ["comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"])
-        self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration"})
+        self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration", "video_count", "video_group"})
         self.assertFalse(tools["generate_image"]["additionalProperties"])
         self.assertFalse(tools["generate_video"]["additionalProperties"])
 
@@ -50,6 +50,25 @@ class PluginContractTests(unittest.TestCase):
         instruction = "不生成音乐，仅生成音效。"
         self.assertIn(instruction, skill)
         self.assertIn(instruction, agent)
+
+    def test_default_video_skill_derives_a_group_name(self):
+        skill = (PLUGIN / "skills" / "default-video-generation" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("never invent a brand", skill)
+        self.assertIn("distinctive subject and action or theme", skill)
+        self.assertIn("华为 Mate 80_产品视频", skill)
+        self.assertIn("do not use a bare `_视频` suffix", skill)
+        self.assertIn("no longer than 20 Unicode characters", skill)
+        self.assertIn("2026_08_20-华为 Mate 80_产品视频", skill)
+        self.assertIn("Omit `video_group` only when the user explicitly asks", skill)
+
+    def test_test_channel_is_documented_as_a_cancellable_submission_probe(self):
+        skill = (PLUGIN / "skills" / "default-video-generation" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("ten hours or longer", skill)
+        self.assertIn("real but reversible submission probe", skill)
+        self.assertIn("does not prove completion, output correctness, or visual quality", skill)
+        self.assertIn("supports exactly one task", skill)
+        self.assertIn("must never run concurrently", skill)
+        self.assertIn("consumed credits are returned", skill)
 
     def test_submitted_video_is_a_non_error_response(self):
         submitted = {"status": "submitted", "submit_id": "task-123", "model_id": "seedance2.0"}

@@ -72,7 +72,7 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
     resolution = request.video_resolution
     selected_model = request.video_model or DEFAULT_VIDEO_MODEL
     poll = "180"
-    if request.video_execution_mode in {"test_submit_only", "production_submit_only"}:
+    if request.video_execution_mode in {"test_submit_only", "production_submit_only", "production_batch"}:
         poll = "0"
     if request.video_execution_mode == "test_submit_only":
         selected_model = TEST_VIDEO_MODEL
@@ -97,6 +97,8 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
         args += ["--duration", duration]
     if ratio and command in ("text2video", "multimodal2video"):
         args += ["--ratio", ratio]
+    if request.video_session_id:
+        args += ["--session", request.video_session_id]
     args += ["--poll", poll]
     return args
 
@@ -108,7 +110,7 @@ class VideoRouter:
     def validate(self, request: MediaRequest) -> str:
         if not request.prompt.strip():
             raise ValueError("prompt must not be empty")
-        if request.video_execution_mode not in {"production", "production_submit_only", "test_submit_only"}:
+        if request.video_execution_mode not in {"production", "production_submit_only", "production_batch", "test_submit_only"}:
             raise ValueError(f"Unsupported video_execution_mode: {request.video_execution_mode}")
         selected_model = TEST_VIDEO_MODEL if request.video_execution_mode == "test_submit_only" else request.video_model or DEFAULT_VIDEO_MODEL
         if selected_model not in SUPPORTED_VIDEO_MODELS:
@@ -121,7 +123,7 @@ class VideoRouter:
         _, inferred_duration, _ = _prompt_preferences(request.prompt)
         selected_duration = request.video_duration or inferred_duration
         selected_resolution = request.video_resolution or DEFAULT_VIDEO_RESOLUTION
-        allowed_resolutions = {"480p", "720p"} if selected_model == DEFAULT_VIDEO_MODEL else {"480p", "720p", "1080p", "4k"}
+        allowed_resolutions = {"480p", "720p", "1080p"} if selected_model == DEFAULT_VIDEO_MODEL else {"480p", "720p", "1080p", "4k"}
         if selected_resolution not in allowed_resolutions:
             raise ValueError(f"Resolution {selected_resolution} is unsupported for {selected_model}")
         if request.video_execution_mode != "test_submit_only":
@@ -181,7 +183,10 @@ class VideoRouter:
         if not readiness.ready:
             final = MediaResult(context.task_id, "failed", failure_class=FailureClass.AUTH_UNAVAILABLE.value, safe_reason=readiness.reason)
         else:
-            lease = SlotLease(self.store.private_root / "locks" / "providers", self.provider.capacity_key, context.task_id, slots=self.provider.max_concurrency, cancel_path=context.cancelled_file)
+            capacity_key = "dreamina-video-test" if request.video_execution_mode == "test_submit_only" else self.provider.capacity_key
+            slots = 1 if request.video_execution_mode == "test_submit_only" else self.provider.max_concurrency
+            wait_timeout = 0.1 if request.video_execution_mode == "test_submit_only" else 180.0
+            lease = SlotLease(self.store.private_root / "locks" / "providers", capacity_key, context.task_id, slots=slots, wait_timeout=wait_timeout, cancel_path=context.cancelled_file)
             try:
                 with lease:
                     result = self.provider.execute_command(command, build_video_arguments(command, provider_request), provider_request, context)

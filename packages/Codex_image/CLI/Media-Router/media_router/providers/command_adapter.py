@@ -6,6 +6,7 @@ import re
 import signal
 import subprocess
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -63,11 +64,25 @@ def _run(command: list[str], timeout: float, log_path: Path, submitted_on_start:
         failure = timeout_failure or (FailureClass.INDETERMINATE_SUBMISSION if submitted_on_start else FailureClass.TIMEOUT_BEFORE_SUBMIT)
         raise MediaRouterError("Provider command timed out", failure, submitted=submitted_on_start) from exc
     completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
-    write_json(log_path, {"exit_code": completed.returncode, "transcript": "<redacted>", "output_characters": len(completed.stdout), "error_characters": len(completed.stderr)})
+    safe_stdout, safe_stderr = completed.stdout, completed.stderr
+    for index, argument in enumerate(command[:-1]):
+        if argument == "--prompt":
+            secret_prompt = command[index + 1]
+            safe_stdout = safe_stdout.replace(secret_prompt, "<redacted-prompt>")
+            safe_stderr = safe_stderr.replace(secret_prompt, "<redacted-prompt>")
+    write_json(log_path, {
+        "exit_code": completed.returncode,
+        "transcript": "<redacted>",
+        "stdout_summary": safe_text(safe_stdout) if completed.returncode else "<redacted>",
+        "stderr_summary": safe_text(safe_stderr),
+        "output_characters": len(completed.stdout),
+        "error_characters": len(completed.stderr),
+    })
     if completed.returncode:
         combined = (completed.stdout + "\n" + completed.stderr).lower()
-        failure = FailureClass.TIMEOUT_BEFORE_SUBMIT if not submitted_on_start and any(word in combined for word in ("timed out", "timeout", "did not complete")) else FailureClass.INDETERMINATE_SUBMISSION if any(word in combined for word in ("timed out", "timeout", "did not complete")) else FailureClass.AUTH_UNAVAILABLE if any(word in combined for word in ("login", "unauthorized", "api_key", "not configured")) else FailureClass.QUOTA_UNAVAILABLE if any(word in combined for word in ("quota", "credit", "insufficient")) else FailureClass.POLICY_REJECTION if any(word in combined for word in ("policy", "safety", "compliance")) else FailureClass.DEFINITE_PROVIDER_FAILURE if any(word in combined for word in ('"gen_status":"failed"', '"status":"failed"', "task ended with status failed", "http 5")) else FailureClass.INDETERMINATE_SUBMISSION
-        raise MediaRouterError("Provider command failed", failure, submitted=submitted_on_start)
+        failure = FailureClass.INPUT_ERROR if any(word in combined for word in ("5mb", "5 mb", "file size", "too large", "exceeds the size", "size limit")) else FailureClass.TIMEOUT_BEFORE_SUBMIT if not submitted_on_start and any(word in combined for word in ("timed out", "timeout", "did not complete")) else FailureClass.INDETERMINATE_SUBMISSION if any(word in combined for word in ("timed out", "timeout", "did not complete")) else FailureClass.AUTH_UNAVAILABLE if any(word in combined for word in ("login", "unauthorized", "api_key", "not configured")) else FailureClass.QUOTA_UNAVAILABLE if any(word in combined for word in ("quota", "credit", "insufficient")) else FailureClass.POLICY_REJECTION if any(word in combined for word in ("policy", "safety", "compliance")) else FailureClass.DEFINITE_PROVIDER_FAILURE if any(word in combined for word in ('"gen_status":"failed"', '"status":"failed"', "task ended with status failed", "http 5")) else FailureClass.INDETERMINATE_SUBMISSION
+        reason = safe_text(safe_stderr.strip()) or safe_text(safe_stdout.strip()) or "Provider command failed"
+        raise MediaRouterError(reason, failure, submitted=submitted_on_start)
     return completed
 
 
@@ -131,6 +146,50 @@ class DreaminaAdapter:
         executable = PRIVATE_ROOT / "bin" / "seedance-cli" / "dreamina.exe"
         return Readiness(executable.is_file(), None if executable.is_file() else "Dreamina CLI is not installed")
 
+    @staticmethod
+    def _session_id(text: str, exact_name: str | None = None) -> str | None:
+        if exact_name is not None:
+            pattern = re.compile(r"^\s*(\d+)\s+(.+?)\s+(?:Yes|No)\s+\d{4}-\d{2}-\d{2}", re.MULTILINE)
+            match = next((item for item in pattern.finditer(text) if item.group(2).strip() == exact_name), None)
+            return match.group(1) if match else None
+        labelled = re.search(r'(?i)["\']?(?:session[_ ]?id|id)["\']?\s*[:=]\s*["\']?(\d+)', text)
+        return labelled.group(1) if labelled else None
+
+    def resolve_session(self, name: str) -> str:
+        normalized = name.strip()
+        if not normalized or len(normalized) > 50 or any(character in normalized for character in "\r\n"):
+            raise ValueError("video_group must contain 1-50 characters on one line")
+        log_root = PRIVATE_ROOT / "logs" / "seedance-cli" / "sessions"
+        run_id = uuid.uuid4().hex
+        search = _run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "session", "search", normalized],
+            30,
+            log_root / f"{run_id}-search.json",
+            submitted_on_start=False,
+        )
+        existing = self._session_id(search.stdout + "\n" + search.stderr, normalized)
+        if existing:
+            return existing
+        created = _run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "session", "create", normalized],
+            30,
+            log_root / f"{run_id}-create.json",
+            submitted_on_start=False,
+        )
+        session_id = self._session_id(created.stdout + "\n" + created.stderr)
+        if session_id:
+            return session_id
+        verified = _run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "session", "search", normalized],
+            30,
+            log_root / f"{run_id}-verify.json",
+            submitted_on_start=False,
+        )
+        session_id = self._session_id(verified.stdout + "\n" + verified.stderr, normalized)
+        if not session_id:
+            raise MediaRouterError("Dreamina session was created but could not be resolved", FailureClass.INDETERMINATE_SUBMISSION, submitted=False)
+        return session_id
+
     def _query_and_download(self, submit_id: str, context: TaskContext, media_type: str) -> Path:
         target = context.output_dir / self.provider_id
         target.mkdir(parents=True, exist_ok=True)
@@ -138,7 +197,7 @@ class DreaminaAdapter:
         while time.monotonic() < deadline:
             timeout_failure = FailureClass.PROVIDER_TIMEOUT if context.provider_deadline is not None else None
             result = _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "query_result", "--submit_id", submit_id, "--download_dir", str(target)], _remaining_timeout(context, 90), context.job_dir / "logs" / f"{self.provider_id}-query.json", timeout_failure=timeout_failure)
-            candidates = [p for p in target.rglob("*") if p.is_file()]
+            candidates = [p for p in target.rglob("*") if p.is_file() and submit_id.lower() in p.name.lower()]
             validator = is_valid_image if media_type == "image" else is_valid_video
             valid = next((p for p in candidates if validator(p)), None)
             if valid:

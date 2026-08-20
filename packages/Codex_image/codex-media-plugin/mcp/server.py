@@ -44,7 +44,7 @@ TOOLS = [
     },
     {
         "name": "generate_video",
-        "description": "Generate one video with Seedance/Dreamina. This open-world operation may consume provider credits.",
+        "description": "Generate one or more independent videos concurrently with Seedance/Dreamina. This open-world operation may consume provider credits.",
         "inputSchema": VIDEO_SCHEMA,
         "annotations": {"openWorldHint": True, "readOnlyHint": False, "destructiveHint": False, "idempotentHint": False},
     },
@@ -171,7 +171,7 @@ def handle(message: dict) -> dict | None:
         if name not in {"generate_image", "generate_video"}:
             return response(identifier, error={"code": -32602, "message": "Unknown tool"})
         try:
-            options = {key: arguments[key] for key in ("image_ratio", "image_resolution", "image_provider", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration") if key in arguments}
+            options = {key: arguments[key] for key in ("image_ratio", "image_resolution", "image_provider", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration", "video_count", "video_group") if key in arguments}
             result = execute(name, arguments.get("prompt", ""), arguments.get("images", []), arguments.get("videos", []), arguments.get("audios", []), **options)
         except Exception as exc:
             result = {"status": "failed", "safe_reason": type(exc).__name__}
@@ -180,6 +180,17 @@ def handle(message: dict) -> dict | None:
                 content, result = _successful_image_content(result)
             elif name == "generate_video" and result.get("status") == "success" and result.get("output_path"):
                 content, result = _successful_video_content(result)
+            elif name == "generate_video" and result.get("results"):
+                content = [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}]
+                enriched_results = []
+                for item in result["results"]:
+                    if item.get("status") == "success" and item.get("output_path"):
+                        item_content, enriched = _successful_video_content(item)
+                        content.extend(item_content[1:])
+                        enriched_results.append(enriched)
+                    else:
+                        enriched_results.append(item)
+                result = {**result, "results": enriched_results}
             else:
                 content = [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}]
         except (OSError, ValueError, KeyError):
