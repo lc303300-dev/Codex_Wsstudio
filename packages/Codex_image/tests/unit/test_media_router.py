@@ -545,10 +545,43 @@ class VideoRouterTests(unittest.TestCase):
         self.assertEqual(args[args.index("--session") + 1], "19641853702412")
 
     def test_dreamina_session_parser_requires_exact_group_name(self):
-        table = "ID NAME PINNED UPDATED_AT\n19641853702412 项目A No 2026-08-18 20:56\n19625962609164 项目AB No 2026-08-18 17:27"
-        self.assertEqual(DreaminaAdapter._session_id(table, "项目A"), "19641853702412")
-        self.assertIsNone(DreaminaAdapter._session_id(table, "项目"))
+        list_table = "ID NAME PINNED UPDATED_AT\n19641853702412 项目 A No 2026-08-18 20:56\n19625962609164 项目 AB No 2026-08-18 17:27"
+        search_table = "ID NAME UPDATED_AT\n19759432331788 2026_08_20-纸飞机_功能测试 2026-08-20 11:15"
+        self.assertEqual(DreaminaAdapter._session_id(list_table, "项目 A"), "19641853702412")
+        self.assertIsNone(DreaminaAdapter._session_id(list_table, "项目"))
+        self.assertEqual(DreaminaAdapter._session_id(search_table, "2026_08_20-纸飞机_功能测试"), "19759432331788")
         self.assertEqual(DreaminaAdapter._session_id('{"session_id": "19641853702412"}'), "19641853702412")
+
+    def test_resolve_session_reuses_exact_search_match_without_creating_duplicate(self):
+        adapter = DreaminaAdapter("dreamina-video", "video", "seedance2.5")
+        search = subprocess.CompletedProcess(
+            [],
+            0,
+            "ID NAME UPDATED_AT\n19759432331788 2026_08_20-纸飞机_功能测试 2026-08-20 11:15\n",
+            "",
+        )
+        with mock.patch("media_router.providers.command_adapter._run", return_value=search) as run:
+            self.assertEqual(adapter.resolve_session("2026_08_20-纸飞机_功能测试"), "19759432331788")
+        self.assertEqual(run.call_count, 1)
+        self.assertIn("search", run.call_args.args[0])
+
+    def test_resolve_session_creates_when_search_returns_not_found_exit_one(self):
+        adapter = DreaminaAdapter("dreamina-video", "video", "seedance2.5")
+        with tempfile.TemporaryDirectory() as temporary:
+            log_root = Path(temporary)
+            search_error = MediaRouterError('No sessions found matching "测试组"', FailureClass.INDETERMINATE_SUBMISSION)
+            created = subprocess.CompletedProcess([], 0, 'Created session "测试组" (ID: 123456789)', "")
+
+            def fake_run(command, timeout, log_path, **kwargs):
+                if command[-2:] == ["session", "search"]:
+                    raise AssertionError("unexpected command shape")
+                if "search" in command:
+                    write_json(log_path, {"stderr_summary": 'No sessions found matching "测试组"'})
+                    raise search_error
+                return created
+
+            with mock.patch("media_router.providers.command_adapter.PRIVATE_ROOT", log_root), mock.patch("media_router.providers.command_adapter._run", side_effect=fake_run):
+                self.assertEqual(adapter.resolve_session("测试组"), "123456789")
 
     def test_prompt_resolution_words_do_not_override_default(self):
         request = MediaRequest("画面细节参考 4K，禁止 720p 输出")

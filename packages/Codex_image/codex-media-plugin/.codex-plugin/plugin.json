@@ -1,6 +1,6 @@
 {
   "name": "codex-media-plugin",
-  "version": "0.1.0+codex.20260817105328",
+  "version": "0.1.0+codex.20260820042455",
   "description": "Unified default image and Seedance video generation tools for Codex.",
   "author": {
     "name": "Codex_image"

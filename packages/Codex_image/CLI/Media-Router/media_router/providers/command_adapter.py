@@ -149,7 +149,13 @@ class DreaminaAdapter:
     @staticmethod
     def _session_id(text: str, exact_name: str | None = None) -> str | None:
         if exact_name is not None:
-            pattern = re.compile(r"^\s*(\d+)\s+(.+?)\s+(?:Yes|No)\s+\d{4}-\d{2}-\d{2}", re.MULTILINE)
+            # `session list` includes a PINNED column, while `session search`
+            # omits it. Anchor the timestamp at the end of each row so names
+            # containing spaces are still compared exactly in both formats.
+            pattern = re.compile(
+                r"^\s*(\d+)\s+(.+?)\s+(?:(?:Yes|No)\s+)?\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?\s*$",
+                re.MULTILINE,
+            )
             match = next((item for item in pattern.finditer(text) if item.group(2).strip() == exact_name), None)
             return match.group(1) if match else None
         labelled = re.search(r'(?i)["\']?(?:session[_ ]?id|id)["\']?\s*[:=]\s*["\']?(\d+)', text)
@@ -161,12 +167,14 @@ class DreaminaAdapter:
             raise ValueError("video_group must contain 1-50 characters on one line")
         log_root = PRIVATE_ROOT / "logs" / "seedance-cli" / "sessions"
         run_id = uuid.uuid4().hex
-        search = _run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "session", "search", normalized],
-            30,
-            log_root / f"{run_id}-search.json",
-            submitted_on_start=False,
-        )
+        search_command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self.runner), "session", "search", normalized]
+        try:
+            search = _run(search_command, 30, log_root / f"{run_id}-search.json", submitted_on_start=False)
+        except MediaRouterError as exc:
+            search_log = json.loads((log_root / f"{run_id}-search.json").read_text(encoding="utf-8"))
+            if "no sessions found matching" not in str(search_log.get("stderr_summary", "")).lower():
+                raise
+            search = subprocess.CompletedProcess(search_command, 1, "", str(search_log.get("stderr_summary", "")))
         existing = self._session_id(search.stdout + "\n" + search.stderr, normalized)
         if existing:
             return existing
