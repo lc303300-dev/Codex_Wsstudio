@@ -9,6 +9,7 @@ personality = "pragmatic"
 name = "codex"
 base_url = "https://relay.nf.video/v1"
 wire_api = "responses"
+requires_openai_auth = true
 
 [desktop]
 followUpQueueMode = "queue"
