@@ -46,7 +46,7 @@ If the user asks for image-to-video generation in text first, for example `帮�
 python scripts/start_text_batch.py --name <short-description> --duration <seconds> --request "<original-user-request>"
 ```
 
-Then show the created `inputs/<batch>/` folder as a clickable local path and ask the user to put source images there. Use the printed `image_drop_dir_link_target` verbatim as the Markdown link target; never insert the raw `image_drop_dir` Windows path. The target uses an absolute path with forward slashes, not a `file://` URI. Stop until the user confirms the images are in that folder. After that, run preview preparation, manifest initialization, subagent task creation, delegation, and review finalization for the same batch. `init_manifests.py --batch <batch>` automatically reads `.codex-image-private/batches/<batch>/request.json`, so the original Chinese request, duration, optional ratio, and auto-generation flag stay attached to every image manifest.
+Then show the created `inputs/<batch>/` folder as a clickable local path and ask the user to put source images there. Use the printed `image_drop_dir_link_target` verbatim as the Markdown link target; never insert the raw `image_drop_dir` Windows path. The target uses an absolute path with forward slashes, not a `file://` URI. Stop until the user confirms the images are in that folder. After that, run preview preparation, manifest initialization, prompt authoring, and review finalization in the main Agent. `init_manifests.py --batch <batch>` automatically reads `.codex-image-private/batches/<batch>/request.json`, so the original Chinese request, duration, optional ratio, and auto-generation flag stay attached to every image manifest.
 
 If the user provides one or more images and asks for any of the following:
 
@@ -68,7 +68,7 @@ If the user uses explicit auto-generation wording such as `自动生成视频`, 
 
 ## Opening-dialog multi-image bootstrap
 
-When a brand-new Codex task starts with multiple image attachments in the user's opening message, do not visually inspect those attachments in the main Agent and do not immediately spawn subagents or submit Dreamina generation in the same first response. The first response must be a lightweight bootstrap:
+When a brand-new Codex task starts with multiple image attachments in the user's opening message, do not visually inspect those attachments or submit Dreamina generation in the same first response. The first response must be a lightweight bootstrap:
 
 1. Treat attachment paths as files only.
 2. Import them with:
@@ -101,7 +101,7 @@ This bootstrap rule applies even when the opening message says `全自动生成�
    Show the printed `image_drop_dir_link_target` to the user as the hyperlink target and wait for them to place images there before continuing. Do not reconstruct the link from `image_drop_dir`; Windows Markdown targets must use forward slashes and must not use `file://`. If the request uses explicit auto-generation wording, add `--auto-generate`.
 
    For requests where image paths are already available, prefer `--name <short-description>` so `new_batch.py` creates `YYYYMMDD-HHMM-<name>` automatically.
-   If the images were dropped directly into the opening Codex dialog, first import them with the dialog-safe wrapper. This waits for each attachment path to become readable and size-stable before copying, which avoids starting preview/subagent work while the desktop app is still landing multiple files:
+   If the images were dropped directly into the opening Codex dialog, first import them with the dialog-safe wrapper. This waits for each attachment path to become readable and size-stable before copying, which avoids starting preview work while the desktop app is still landing multiple files:
 
    ```powershell
    python scripts/import_dialog_images.py --name <short-description> --images <image1> [<image2> ...]
@@ -138,27 +138,14 @@ This bootstrap rule applies even when the opening message says `全自动生成�
 
    For text-first batches, omit `--duration` and `--ratio` unless overriding `.codex-image-private/batches/<batch>/request.json`.
 
-6. Generate subagent task prompts:
+6. Draft and review all prompts in the main Agent. Do not create subagent task files, spawn subagents, or record subagent dispatches.
 
-   ```powershell
-   python scripts/make_subagent_tasks.py --batch <batch> --status draft
-   ```
-
-7. Actually delegate one image per subagent when available; generating task prompt files is not sufficient. Spawn one subagent per `.codex-image-private/batches/<batch>/subagent-tasks/*.task.txt`, wait for completion, then build the review page directly from the modified manifests and prompts. The main Agent should not inspect the images or re-review every prompt by default; the user judges correctness from the review page. Each subagent must follow:
-   - `docs/subagent_image_worker.md`
-   - `docs/codex_authoring_workflow.md`
-   Optional: for large batches that need progress tracking, record dispatches with:
-   ```powershell
-   python scripts/make_subagent_tasks.py --batch <batch> --status draft --write-jobs
-   python scripts/record_image_dispatch.py --batch <batch> --image-id <id> --agent-id <codex-task-id>
-   ```
-
-8. After subagents complete, run:
+7. Run:
 
    ```powershell
    python scripts/finalize_review.py --batch <batch>
    ```
-   `finalize_review.py` builds `review/<batch>/index.html` by default. Validation, subagent-output review, and result recording are optional diagnostic/bookkeeping steps, not required for the normal review-page path.
+   `finalize_review.py` builds `review/<batch>/index.html` by default. Validation and result recording are optional diagnostic/bookkeeping steps, not required for the normal review-page path.
    For explicit auto-generation requests, run instead:
    ```powershell
    python scripts/finalize_review.py --batch <batch> --auto-generate

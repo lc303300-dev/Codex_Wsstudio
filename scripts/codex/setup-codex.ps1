@@ -107,6 +107,27 @@ function Set-TomlAssignment {
     $Lines.Insert($tableEnd, "$Key = $Value")
 }
 
+function Remove-TomlAssignment {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [AllowEmptyString()][string]$Table,
+        [string]$Key
+    )
+
+    $currentTable = ""
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        $header = Get-HeaderName $Lines[$i]
+        if ($null -ne $header) {
+            $currentTable = $header
+            continue
+        }
+        if ($currentTable -eq $Table -and $Lines[$i] -match ('^\s*' + [regex]::Escape($Key) + '\s*=') ) {
+            $Lines.RemoveAt($i)
+            $i--
+        }
+    }
+}
+
 function ConvertTo-TomlLiteralString {
     param([string]$Value)
 
@@ -150,7 +171,6 @@ $managedSettings = @(
     @{ Table = ""; Key = "model" },
     @{ Table = ""; Key = "model_reasoning_effort" },
     @{ Table = ""; Key = "disable_response_storage" },
-    @{ Table = ""; Key = "personality" },
     @{ Table = "model_providers.codex"; Key = "name" },
     @{ Table = "model_providers.codex"; Key = "base_url" },
     @{ Table = "model_providers.codex"; Key = "wire_api" },
@@ -174,6 +194,10 @@ foreach ($setting in $managedSettings) {
     $value = Get-TemplateAssignment -Lines $templateLines -Table $setting.Table -Key $setting.Key
     Set-TomlAssignment -Lines $targetLines -Table $setting.Table -Key $setting.Key -Value $value
 }
+
+# The repository no longer manages Codex personalization. Remove the legacy
+# value that older versions of this script injected into the global config.
+Remove-TomlAssignment -Lines $targetLines -Table "" -Key "personality"
 
 if (-not $SkipProjectTrust) {
     foreach ($projectPath in @($repositoryRoot, (Join-Path $repositoryRoot "packages\Codex_DT"), (Join-Path $repositoryRoot "packages\Codex_image"), (Join-Path $repositoryRoot "packages\Codex_Github"), (Join-Path $repositoryRoot "packages\Codex_Flow"), (Join-Path $repositoryRoot "packages\Codex_Batch_Image"))) {

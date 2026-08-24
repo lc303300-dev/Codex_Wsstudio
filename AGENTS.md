@@ -1,9 +1,5 @@
 # Workspace Deployment Triggers
 
-## Proactive Sub-Agent Delegation
-
-When a task contains two or more concrete, bounded, and substantially independent workstreams, proactively prefer sub-agent delegation to reduce wall-clock completion time. Delegate only when the main agent can continue useful work concurrently, scopes are clear, synchronization is limited, and agents will not edit the same files or shared state. Keep the main agent responsible for integration, verification, safety checks, and the final answer. Do not delegate small or inherently sequential tasks, or when coordination overhead, file conflicts, authorization, or skill instructions outweigh the parallel benefit. Use only as many agents as provide meaningful parallelism.
-
 ## Windows Local Markdown Resources
 
 Treat Windows local Markdown links and embedded local media as a hard output contract. Never place a raw backslash path such as `D:\workspace\file.png` inside a Markdown link or image target. Use an absolute path with forward slashes such as `D:/workspace/file.png`, never a `file://` URI; when the target contains spaces, wrap the entire target in angle brackets. When a tool returns a renderable image, file resource, or dedicated Markdown link target, forward that returned resource or target directly and never reconstruct it from `output_path`, a display path, or another raw Windows path. Before sending a final response containing a local Markdown link or image, verify that every local target is absolute, uses forward slashes, and refers to the intended existing file or directory. If any local target contains a backslash, do not send the response until it is corrected.

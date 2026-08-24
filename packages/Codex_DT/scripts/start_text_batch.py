@@ -103,7 +103,7 @@ def main() -> int:
     if args.model_version:
         init_command += f" --model-version {model}"
     print(init_command)
-    print(f"  python scripts/make_subagent_tasks.py --batch {batch} --status draft")
+    print(f"  continue prompt drafting in the main Agent for {batch}")
     return 0
 
 

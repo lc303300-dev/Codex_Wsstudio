@@ -102,7 +102,7 @@ def main() -> int:
         print(f"next: provide duration, then run previews/manifests for {batch}")
     else:
         print(f"next: continue generation from batch {batch}")
-        print(f"command: python scripts/make_subagent_tasks.py --batch {batch} --status draft")
+        print(f"command: continue prompt drafting in the main Agent for {batch}")
     return 0
 
 

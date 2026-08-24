@@ -24,7 +24,7 @@ The command is repeatable. It:
 - registers the unified image/video tools and plugin;
 - registers the video-to-GIF, Tool Scout, Codex_DT, batch-image-generation, and Codex Flow global skills;
 - deploys `Codex_DT` using the sibling `Codex_image` CLI.
-- runs a post-deployment verification that checks required paths, installed global guidance, the sub-agent delegation rule, and project structure.
+- runs a post-deployment verification that checks required paths, installed global guidance, absence of managed personalization and proactive sub-agent guidance, and project structure.
 
 API keys are intentionally excluded from Git. Configure only the providers you use:
 

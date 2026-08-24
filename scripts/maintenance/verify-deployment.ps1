@@ -85,12 +85,20 @@ if ((Test-Path -LiteralPath $source -PathType Leaf) -and (Test-Path -LiteralPath
     }
 }
 
-$ruleText = "proactively prefer sub-agent delegation"
-if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not ((Get-Content -LiteralPath $source -Raw -Encoding UTF8) -like "*$ruleText*")) {
-    $errors.Add("Sub-agent delegation rule is absent from the repository global guidance source.")
+$removedSubagentRule = "proactively prefer sub-agent delegation"
+if ((Test-Path -LiteralPath $source -PathType Leaf) -and ((Get-Content -LiteralPath $source -Raw -Encoding UTF8) -like "*$removedSubagentRule*")) {
+    $errors.Add("Removed sub-agent delegation rule is still present in the repository global guidance source.")
 }
-if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not ((Get-Content -LiteralPath $target -Raw -Encoding UTF8) -like "*$ruleText*")) {
-    $errors.Add("Sub-agent delegation rule is absent from the installed global guidance.")
+if ((Test-Path -LiteralPath $target -PathType Leaf) -and ((Get-Content -LiteralPath $target -Raw -Encoding UTF8) -like "*$removedSubagentRule*")) {
+    $errors.Add("Removed sub-agent delegation rule is still present in the installed global guidance.")
+}
+
+$globalConfig = Join-Path $CodexHome "config.toml"
+if (Test-Path -LiteralPath $globalConfig -PathType Leaf) {
+    $configText = Get-Content -LiteralPath $globalConfig -Raw -Encoding UTF8
+    if ($configText -match '(?m)^\s*personality\s*=') {
+        $errors.Add("Global Codex config still manages a personality setting: $globalConfig")
+    }
 }
 
 $localMarkdownRuleMarkers = @(
