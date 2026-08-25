@@ -6,9 +6,7 @@
   "providers": {
     "comfly-gemini-lite": { "enabled": true, "priority": 1, "max_concurrency": 6, "model": "gemini-3.1-flash-image-preview", "models_by_resolution": { "1K": "gemini-3.1-flash-image-preview", "2K": "gemini-3.1-flash-image-preview-2k", "4K": "gemini-3.1-flash-image-preview-4k" }, "size_profile": "gemini-resolution" },
     "comfly-gpt-image-2": { "enabled": true, "priority": 2, "max_concurrency": 6, "model": "gpt-image-2" },
-    "apimart-gpt-image-2": { "enabled": true, "priority": 3, "max_concurrency": 6 },
-    "google-gemini-image": { "enabled": true, "priority": 4, "max_concurrency": 6 },
-    "dreamina-image": { "enabled": true, "priority": 5, "max_concurrency": 6, "capacity_key": "seedance-cli" },
+    "dreamina-image": { "enabled": true, "priority": 3, "max_concurrency": 6, "model": "5.0Pro", "capacity_key": "seedance-cli" },
     "dreamina-video": { "enabled": true, "max_concurrency": 10, "capacity_key": "seedance-cli" }
   }
 }

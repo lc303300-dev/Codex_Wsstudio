@@ -30,7 +30,8 @@ class TaskStore:
             "task_id": task_id, "batch_id": batch_id, "prompt": prompt_metadata(request.prompt),
             "images": [str(p) for p in request.images], "videos": [str(p) for p in request.videos],
             "audios": [str(p) for p in request.audios], "image_ratio": request.image_ratio,
-            "image_resolution": request.image_resolution, "created_at": now(),
+            "image_resolution": request.image_resolution, "image_provider": request.image_provider,
+            "created_at": now(),
         })
         self.set_state(context, "pending")
         return context

@@ -277,8 +277,8 @@ class DreaminaAdapter:
     def execute(self, request: MediaRequest, context: TaskContext) -> ProviderResult:
         if self.capability == "image":
             command = "image2image" if request.images else "text2image"
-            model = request.image_model or "4.0"
-            resolution = (request.image_resolution or "1K").lower()
+            model = request.image_model or self.model_id
+            resolution = (request.image_resolution or ("4K" if model == "5.0Pro" else "1K")).lower()
             args = ["--prompt", request.prompt, "--model_version", model, "--resolution_type", resolution, "--ratio", request.image_ratio, "--generate_num", "1", "--poll", "180"]
             if request.images:
                 args += ["--images", ",".join(str(p) for p in request.images)]

@@ -122,6 +122,51 @@ class ImageRouterTests(unittest.TestCase):
         self.assertEqual(result.status, "success")
         self.assertEqual(calls, ["p2"])
 
+    def test_geometry_preserving_image_redraw_prefers_gemini(self):
+        calls = []
+        registry = {
+            "comfly-gemini-lite": FakeProvider("comfly-gemini-lite", "gemini", "success", calls),
+            "comfly-gpt-image-2": FakeProvider("comfly-gpt-image-2", "gpt", "success", calls),
+            "dreamina-image": FakeProvider("dreamina-image", "5.0Pro", "success", calls),
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source.png"
+            write_solid_png(source, 32, 32)
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary) / "private")).execute(
+                MediaRequest("请原位重绘，保持构图和几何结构不变", (source,), image_ratio="1:1")
+            )
+        self.assertEqual(calls, ["comfly-gemini-lite"])
+        self.assertEqual(result.routing_reason, "geometry_preserving_redraw")
+
+    def test_style_redraw_prefers_gpt(self):
+        calls = []
+        registry = {
+            "comfly-gemini-lite": FakeProvider("comfly-gemini-lite", "gemini", "success", calls),
+            "comfly-gpt-image-2": FakeProvider("comfly-gpt-image-2", "gpt", "success", calls),
+            "dreamina-image": FakeProvider("dreamina-image", "5.0Pro", "success", calls),
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary) / "private")).execute(
+                MediaRequest("按参考图风格进行整体风格重绘", image_ratio="1:1")
+            )
+        self.assertEqual(calls, ["comfly-gpt-image-2"])
+        self.assertEqual(result.routing_reason, "style_redraw")
+
+    def test_geometry_preservation_takes_precedence_over_style_redraw(self):
+        calls = []
+        registry = {
+            "comfly-gemini-lite": FakeProvider("comfly-gemini-lite", "gemini", "success", calls),
+            "comfly-gpt-image-2": FakeProvider("comfly-gpt-image-2", "gpt", "success", calls),
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source.png"
+            write_solid_png(source, 32, 32)
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary) / "private")).execute(
+                MediaRequest("原位重绘且整体风格重绘，保持构图", (source,), image_ratio="1:1")
+            )
+        self.assertEqual(calls, ["comfly-gemini-lite"])
+        self.assertEqual(result.routing_reason, "geometry_preserving_redraw")
+
     def test_unknown_image_provider_is_input_error(self):
         calls = []
         registry = {"p1": FakeProvider("p1", "m1", "success", calls)}

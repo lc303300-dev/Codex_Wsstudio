@@ -19,11 +19,9 @@ When the user does not explicitly select a route, route each image task strictly
 
 1. `comfly-gemini-lite` -> the model declared in `config/media-router.defaults.json` (currently `gemini-3.1-flash-image-preview`)
 2. `comfly-gpt-image-2` -> `gpt-image-2`
-3. `apimart-gpt-image-2` -> APIMart `gpt-image-2`
-4. `google-gemini-image` -> official Gemini image API
-5. `dreamina-image` -> Dreamina Image 4.0 by default
+3. `dreamina-image` -> Dreamina Image 5.0Pro at 4K by default
 
-The list above is a default order, not a mandatory path. When the current user explicitly requests one supported route, pass its exact adapter ID through `generate_image.image_provider`, skip every other route, and do not fall back elsewhere if it fails. Supported public route IDs are the six IDs listed above. Do not guess ambiguous names: for example, plain `Gemini` is ambiguous between the Comfly Gemini and official Google Gemini routes. Unsupported, non-image, or config-disabled routes fail as `input_error` before any paid provider call.
+The list above is a default order, not a mandatory path. When the current user explicitly requests one supported route, pass its exact adapter ID through `generate_image.image_provider`, skip every other route, and do not fall back elsewhere if it fails. Supported public route IDs are the three IDs listed above. Do not guess ambiguous names: for example, plain `Gemini` is ambiguous between the two Comfly image routes. Unsupported, non-image, or config-disabled routes fail as `input_error` before any paid provider call.
 
 Never race, hedge, or parallelize adapters within one image task. Comfly models are separate logical adapters with independent concurrency, health, metrics, logs, and circuit state. The Comfly common layer performs exactly one fixed-model request and never loops over models.
 
@@ -31,7 +29,11 @@ Fallback only for `auth_unavailable`, `quota_unavailable`, `definite_provider_fa
 
 An image task has a 300-second overall deadline starting when routing begins. Cap each provider budget by the remaining task time. On expiry, stop routing, persist terminal `failed` state with `task_timeout`, return immediately, and do not invoke another provider.
 
-For Dreamina images, use Image 4.0 by default. Use Image 5.0Pro at 4K only when the user explicitly asks for best possible, highest, maximum, top-tier, or extreme image quality, unless another supported setting is explicit.
+For Dreamina images, use Image 5.0Pro at 4K by default.
+
+## Image Intent Routing
+
+When the user does not explicitly select an image provider, apply this lightweight intent routing before the normal fallback order. For an image-guided request that explicitly asks for original-position redraw, preserved composition, unchanged geometry, or unchanged positional relationships, try `comfly-gemini-lite` first because it is preferred for preserving the source geometry. For an explicit overall style redraw, reference-style redraw, or style transfer request, try `comfly-gpt-image-2` first because it is preferred for style transformation. If both intents are explicit on an image-guided request, geometry preservation takes precedence. Otherwise retain the default `comfly-gemini-lite` -> `comfly-gpt-image-2` -> `dreamina-image` order. Explicit user provider selection always overrides intent routing. The selected first provider still follows the normal serial fallback policy if it returns a fallback-eligible failure.
 
 ## Video Routing
 

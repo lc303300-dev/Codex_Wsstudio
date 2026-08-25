@@ -14,7 +14,7 @@ def parser() -> argparse.ArgumentParser:
     image.add_argument("--image", action="append", default=[])
     image.add_argument("--image-ratio", required=True, choices=("21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"))
     image.add_argument("--image-resolution", choices=("1K", "2K", "4K"))
-    image.add_argument("--image-provider", choices=("comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"))
+    image.add_argument("--image-provider", choices=("comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image"))
     video = commands.add_parser("generate_video")
     video.add_argument("--prompt", required=True)
     video.add_argument("--image", action="append", default=[])

@@ -13,6 +13,8 @@ from .task_store import TaskStore
 
 SUPPORTED_IMAGE_RATIOS = {"21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"}
 SUPPORTED_IMAGE_RESOLUTIONS = {"1K", "2K", "4K"}
+GEOMETRY_PRESERVING_PHRASES = ("原图原位", "原位重绘", "保持构图", "构图不变", "几何结构", "结构不变", "位置关系不变", "保持位置", "不改主体形态", "保留原图结构", "严格保持")
+STYLE_REDRAW_PHRASES = ("风格重绘", "整体风格", "风格迁移", "参考图风格", "按参考风格", "换画风", "换风格", "油画风", "动漫风", "插画风", "水彩风", "像素风")
 
 
 class ImageRouter:
@@ -20,13 +22,28 @@ class ImageRouter:
         self.config, self.registry = config, registry
         self.store = store or TaskStore()
 
-    def ordered_providers(self, request: MediaRequest) -> list:
+    def route_selection(self, request: MediaRequest) -> tuple[list, str]:
         configured = self.config["providers"]
         requested = request.image_provider
         image_ids = [provider_id for provider_id, provider in self.registry.items() if provider.capability == "image" and configured[provider_id].get("enabled", True)]
         if requested:
             image_ids = [item for item in image_ids if item == requested]
-        return [self.registry[provider_id] for provider_id in sorted(image_ids, key=lambda item: configured[item]["priority"])]
+            return [self.registry[provider_id] for provider_id in image_ids], "user_explicit_provider"
+        ordered_ids = sorted(image_ids, key=lambda item: configured[item]["priority"])
+        prompt = request.prompt.casefold()
+        if request.images and any(phrase in prompt for phrase in GEOMETRY_PRESERVING_PHRASES):
+            preferred, reason = "comfly-gemini-lite", "geometry_preserving_redraw"
+        elif any(phrase in prompt for phrase in STYLE_REDRAW_PHRASES):
+            preferred, reason = "comfly-gpt-image-2", "style_redraw"
+        else:
+            preferred, reason = None, "default_fallback"
+        if preferred in ordered_ids:
+            ordered_ids.remove(preferred)
+            ordered_ids.insert(0, preferred)
+        return [self.registry[provider_id] for provider_id in ordered_ids], reason
+
+    def ordered_providers(self, request: MediaRequest) -> list:
+        return self.route_selection(request)[0]
 
     def validate(self, request: MediaRequest) -> None:
         if not request.prompt.strip():
@@ -60,7 +77,8 @@ class ImageRouter:
         task_seconds = float(timeout_config.get("task_seconds", 300))
         task_deadline = time.monotonic() + task_seconds
         context = context or self.store.create(request)
-        self.store.set_state(context, "running")
+        providers, routing_reason = self.route_selection(request)
+        self.store.set_state(context, "running", routing_reason=routing_reason)
         attempts: list[dict] = []
 
         def task_timeout() -> MediaResult:
@@ -70,6 +88,7 @@ class ImageRouter:
                 attempts=attempts,
                 failure_class=FailureClass.TASK_TIMEOUT.value,
                 safe_reason=f"Image task exceeded {task_seconds:g} seconds",
+                routing_reason=routing_reason,
             )
             self.store.set_state(context, "failed", failure_class=final.failure_class)
             self.store.write_result(context, final.to_dict())
@@ -89,7 +108,7 @@ class ImageRouter:
             self.store.write_result(context, final.to_dict())
             return final
 
-        for provider in self.ordered_providers(request):
+        for provider in providers:
             if time.monotonic() >= task_deadline:
                 return task_timeout()
             readiness = provider.check_readiness()
@@ -154,18 +173,18 @@ class ImageRouter:
                 })
             attempts.append(attempt)
             if result and result.status == "success" and result.output_path and is_valid_image(Path(result.output_path)):
-                final = MediaResult(context.task_id, "success", result.output_path, result.provider_id, result.model_id, attempts)
+                final = MediaResult(context.task_id, "success", result.output_path, result.provider_id, result.model_id, attempts, routing_reason=routing_reason)
                 self.store.set_state(context, "success")
                 self.store.write_result(context, final.to_dict())
                 return final
             failure = FailureClass(attempt.get("failure_class", FailureClass.DEFINITE_PROVIDER_FAILURE.value))
             if failure not in FALLBACK_FAILURES:
                 status = "needs_review" if failure == FailureClass.INDETERMINATE_SUBMISSION else "cancelled" if failure == FailureClass.CANCELLED else "failed"
-                final = MediaResult(context.task_id, status, attempts=attempts, failure_class=failure.value, safe_reason=attempt.get("safe_reason"))
+                final = MediaResult(context.task_id, status, attempts=attempts, failure_class=failure.value, safe_reason=attempt.get("safe_reason"), routing_reason=routing_reason)
                 self.store.set_state(context, status, failure_class=failure.value)
                 self.store.write_result(context, final.to_dict())
                 return final
-        final = MediaResult(context.task_id, "failed", attempts=attempts, failure_class=FailureClass.DEFINITE_PROVIDER_FAILURE.value, safe_reason="All configured image adapters failed")
+        final = MediaResult(context.task_id, "failed", attempts=attempts, failure_class=FailureClass.DEFINITE_PROVIDER_FAILURE.value, safe_reason="All configured image adapters failed", routing_reason=routing_reason)
         self.store.set_state(context, "failed", failure_class=final.failure_class)
         self.store.write_result(context, final.to_dict())
         return final

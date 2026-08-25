@@ -12,7 +12,7 @@ IMAGE_SCHEMA = {
         "image_provider": {
             "type": "string",
             "description": "Optional user-explicit image route. Omit to use the default serial fallback order.",
-            "enum": ["comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"],
+            "enum": ["comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image"],
         },
     },
     "required": ["prompt", "image_ratio"],

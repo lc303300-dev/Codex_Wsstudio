@@ -85,6 +85,7 @@ class MediaResult:
     submit_id: str | None = None
     next_action: str | None = None
     user_message: str | None = None
+    routing_reason: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
