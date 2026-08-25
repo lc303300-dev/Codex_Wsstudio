@@ -81,10 +81,10 @@ Machine-readable output:
 python3 scripts/tool_scout.py "USER_TOOL_NEED" --json
 ```
 
-Limit to explicit sources:
+Limit to explicit sources (the aliases `skillsmp.com`, `clawhub.ai`, and `skills.sh` are accepted):
 
 ```bash
-python3 scripts/tool_scout.py "USER_TOOL_NEED" --sources github,npm,vscode,openvsx,mcp,glama,agentskill,web
+python3 scripts/tool_scout.py "USER_TOOL_NEED" --sources github,npm,vscode,openvsx,mcp,glama,agentskill,skillsmp,clawhub,skillssh,web
 ```
 
 ## Searchers
@@ -97,6 +97,9 @@ First-version searchers:
 - Glama MCP directory
 - OpenAgentSkill API
 - agentskill.sh API
+- SkillsMP API
+- ClawHub API
+- skills.sh API, with a public-search-page fallback when the API requires authorization
 - VS Code Marketplace
 - Open VSX Registry
 - Brave Search if `BRAVE_API_KEY` is configured

@@ -26,6 +26,9 @@ DEFAULT_SOURCES = (
     "mcp",
     "glama",
     "agentskill",
+    "skillsmp",
+    "clawhub",
+    "skillssh",
     "vscode",
     "openvsx",
     "web",
@@ -68,6 +71,9 @@ SOURCE_LABELS = {
     "mcp": "MCP server",
     "glama": "MCP server",
     "agentskill": "Agent Skill",
+    "skillsmp": "Agent Skill marketplace",
+    "clawhub": "Community Agent Skill marketplace",
+    "skillssh": "skills.sh Agent Skill",
     "vscode": "VS Code extension",
     "openvsx": "Open VSX extension",
     "web": "web result",
@@ -830,6 +836,124 @@ async def search_agentskill(plan: QueryPlan, max_results: int, timeout: float) -
     return list(candidates.values())
 
 
+async def search_skillsmp(plan: QueryPlan, max_results: int, timeout: float) -> list[Candidate]:
+    """Search SkillsMP's anonymous JSON API (rate-limited upstream)."""
+    candidates: dict[str, Candidate] = {}
+    for query in source_queries(plan, 4):
+        url = "https://skillsmp.com/api/v1/skills/search?" + urllib.parse.urlencode(
+            {"q": strip_search_operators(query), "page": 1, "limit": max_results}
+        )
+        try:
+            data = await asyncio.to_thread(http_get_json, url, timeout=timeout)
+            for item in (data.get("data") or {}).get("skills", []):
+                name = item.get("name") or item.get("id")
+                if not name:
+                    continue
+                repo = item.get("githubUrl") or item.get("skillUrl") or ""
+                candidate = Candidate(
+                    name=name,
+                    kind="Agent Skill",
+                    source="skillsmp",
+                    url=repo,
+                    description=item.get("description") or "",
+                    stars=item.get("stars"),
+                    updated_at=str(item.get("updatedAt") or ""),
+                    raw={"author": item.get("author"), "id": item.get("id")},
+                )
+                candidates.setdefault(f"skillsmp:{item.get('id') or repo or name}".lower(), candidate)
+        except Exception:
+            continue
+    return list(candidates.values())
+
+
+async def search_clawhub(plan: QueryPlan, max_results: int, timeout: float) -> list[Candidate]:
+    """Search ClawHub's public community skill index."""
+    candidates: dict[str, Candidate] = {}
+    for query in source_queries(plan, 4):
+        url = "https://clawhub.ai/api/v1/search?" + urllib.parse.urlencode(
+            {"q": strip_search_operators(query), "limit": max_results}
+        )
+        try:
+            data = await asyncio.to_thread(http_get_json, url, timeout=timeout)
+            for item in data.get("results", []):
+                name = item.get("displayName") or item.get("name") or item.get("slug")
+                if not name:
+                    continue
+                links = item.get("links") or {}
+                url_value = (
+                    item.get("canonicalUrl")
+                    or links.get("homepage")
+                    or links.get("source")
+                    or "https://clawhub.ai"
+                )
+                metrics = item.get("metrics") or {}
+                candidate = Candidate(
+                    name=name,
+                    kind="Agent Skill",
+                    source="clawhub",
+                    url=url_value,
+                    description=item.get("summary") or item.get("description") or "",
+                    downloads=metrics.get("downloads") or metrics.get("installs"),
+                    stars=metrics.get("stars"),
+                    raw={
+                        "trust": item.get("trust"),
+                        "official": item.get("official"),
+                        "install": item.get("install"),
+                    },
+                )
+                candidates.setdefault(f"clawhub:{item.get('slug') or url_value or name}".lower(), candidate)
+        except Exception:
+            continue
+    return list(candidates.values())
+
+
+async def search_skillssh(plan: QueryPlan, max_results: int, timeout: float) -> list[Candidate]:
+    """Search skills.sh API when authorized, with a conservative HTML fallback."""
+    candidates: dict[str, Candidate] = {}
+    for query in source_queries(plan, 3):
+        q = strip_search_operators(query)
+        api = "https://skills.sh/api/v1/skills/search?" + urllib.parse.urlencode(
+            {"q": q, "limit": max_results}
+        )
+        try:
+            data = await asyncio.to_thread(http_get_json, api, timeout=timeout)
+            items = data.get("skills") or data.get("results") or []
+        except Exception:
+            items = []
+            try:
+                search_url = "https://www.skills.sh/search?" + urllib.parse.urlencode({"q": q})
+                html = await asyncio.to_thread(http_get_text, search_url, timeout=timeout)
+                links = re.findall(
+                    r"https://www\.skills\.sh/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)",
+                    html,
+                )
+                items = [
+                    {"slug": link, "name": link.rsplit("/", 1)[-1], "url": "https://www.skills.sh/" + link}
+                    for link in unique_keep_order(links, max_results)
+                ]
+            except Exception:
+                pass
+        for item in items[:max_results]:
+            name = item.get("name") or item.get("slug")
+            if not name:
+                continue
+            url_value = item.get("url") or item.get("skillUrl") or (
+                "https://www.skills.sh/" + item["slug"] if item.get("slug") else "https://www.skills.sh"
+            )
+            candidate = Candidate(
+                name=name,
+                kind="Agent Skill",
+                source="skillssh",
+                url=url_value,
+                description=item.get("description") or item.get("summary") or "",
+                stars=item.get("stars"),
+                downloads=item.get("installs") or item.get("installCount"),
+                raw={"slug": item.get("slug")},
+            )
+            candidates.setdefault(f"skillssh:{url_value}".lower(), candidate)
+    return list(candidates.values())
+
+
 async def search_vscode_marketplace(
     plan: QueryPlan, max_results: int, timeout: float
 ) -> list[Candidate]:
@@ -1282,6 +1406,12 @@ async def run_search(plan: QueryPlan, sources: list[str], max_per_source: int, t
         tasks.append(safe_call("glama", search_glama(plan, max_per_source, timeout)))
     if "agentskill" in sources:
         tasks.append(safe_call("agentskill", search_agentskill(plan, max_per_source, timeout)))
+    if "skillsmp" in sources:
+        tasks.append(safe_call("skillsmp", search_skillsmp(plan, max_per_source, timeout)))
+    if "clawhub" in sources:
+        tasks.append(safe_call("clawhub", search_clawhub(plan, max_per_source, timeout)))
+    if "skillssh" in sources:
+        tasks.append(safe_call("skillssh", search_skillssh(plan, max_per_source, timeout)))
     if "vscode" in sources:
         tasks.append(safe_call("vscode", search_vscode_marketplace(plan, max_per_source, timeout)))
     if "openvsx" in sources:
@@ -1386,7 +1516,8 @@ def print_text_report(plan: QueryPlan, candidates: list[Candidate], limit: int, 
 def parse_sources(raw: str) -> list[str]:
     if raw == "all":
         return list(DEFAULT_SOURCES)
-    sources = [source.strip().lower() for source in raw.split(",") if source.strip()]
+    aliases = {"skills.sh": "skillssh", "skillsmp.com": "skillsmp", "clawhub.ai": "clawhub"}
+    sources = [aliases.get(source.strip().lower(), source.strip().lower()) for source in raw.split(",") if source.strip()]
     unknown = [source for source in sources if source not in DEFAULT_SOURCES]
     if unknown:
         raise SystemExit(f"Unknown sources: {', '.join(unknown)}")
@@ -1400,7 +1531,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--sources",
         default="all",
-        help="Comma-separated sources: github,npm,mcp,glama,agentskill,vscode,openvsx,web,smithery,pulsemcp",
+        help="Comma-separated sources: github,npm,mcp,glama,agentskill,skillsmp,clawhub,skillssh,vscode,openvsx,web,smithery,pulsemcp",
     )
     parser.add_argument("--max-per-source", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=8.0)

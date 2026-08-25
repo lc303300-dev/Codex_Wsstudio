@@ -79,6 +79,9 @@ Sources:
 
 - OpenAgentSkill
 - agentskill.sh
+- SkillsMP: anonymous JSON search API; apply its upstream rate limit.
+- ClawHub: public community index; retain trust and official metadata as ranking context.
+- skills.sh: use the API when authorized, otherwise use the public search-page fallback.
 
 Purpose:
 
