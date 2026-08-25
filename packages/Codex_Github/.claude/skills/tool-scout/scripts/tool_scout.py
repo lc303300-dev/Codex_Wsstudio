@@ -880,21 +880,23 @@ async def search_clawhub(plan: QueryPlan, max_results: int, timeout: float) -> l
                 if not name:
                     continue
                 links = item.get("links") or {}
-                url_value = (
+                canonical = (
                     item.get("canonicalUrl")
                     or links.get("homepage")
                     or links.get("source")
-                    or "https://clawhub.ai"
+                    or ""
                 )
+                url_value = ("https://clawhub.ai" + canonical) if canonical.startswith("/") else (canonical or "https://clawhub.ai")
                 metrics = item.get("metrics") or {}
+                downloads = item.get("downloads") or metrics.get("downloads") or metrics.get("rolling60DayInstalls") or metrics.get("installs")
                 candidate = Candidate(
                     name=name,
                     kind="Agent Skill",
                     source="clawhub",
                     url=url_value,
                     description=item.get("summary") or item.get("description") or "",
-                    downloads=metrics.get("downloads") or metrics.get("installs"),
-                    stars=metrics.get("stars"),
+                    downloads=downloads,
+                    stars=item.get("stars"),
                     raw={
                         "trust": item.get("trust"),
                         "official": item.get("official"),
@@ -912,7 +914,7 @@ async def search_skillssh(plan: QueryPlan, max_results: int, timeout: float) -> 
     candidates: dict[str, Candidate] = {}
     for query in source_queries(plan, 3):
         q = strip_search_operators(query)
-        api = "https://skills.sh/api/v1/skills/search?" + urllib.parse.urlencode(
+        api = "https://skills.sh/api/search?" + urllib.parse.urlencode(
             {"q": q, "limit": max_results}
         )
         try:

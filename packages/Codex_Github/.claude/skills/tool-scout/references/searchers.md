@@ -81,7 +81,7 @@ Sources:
 - agentskill.sh
 - SkillsMP: anonymous JSON search API; apply its upstream rate limit.
 - ClawHub: public community index; retain trust and official metadata as ranking context.
-- skills.sh: use the API when authorized, otherwise use the public search-page fallback.
+- skills.sh: public `/api/search` (anonymous) is the primary path; the v1 `/api/v1/skills/search` needs a Vercel OIDC token; page-scrape is the fallback.
 
 Purpose:
 

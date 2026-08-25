@@ -1,6 +1,6 @@
 ---
 name: tool-scout
-description: Find existing software tools across GitHub, npm, MCP, Agent Skills, VS Code Marketplace, Open VSX, and web search before building from scratch.
+description: Find existing software tools across GitHub, npm, MCP, Agent Skills, VS Code Marketplace, Open VSX, skillsmp, clawhub, skills.sh, and web search before building from scratch.
 ---
 
 # Tool Scout
