@@ -176,6 +176,8 @@ $managedSettings = @(
     @{ Table = "model_providers.codex"; Key = "wire_api" },
     @{ Table = "desktop"; Key = "followUpQueueMode" },
     @{ Table = "desktop"; Key = "conversationDetailMode" },
+    @{ Table = "marketplaces.personal"; Key = "source_type" },
+    @{ Table = "marketplaces.personal"; Key = "source" },
     @{ Table = 'plugins."computer-use@openai-bundled"'; Key = "enabled" },
     @{ Table = 'plugins."documents@openai-primary-runtime"'; Key = "enabled" },
     @{ Table = 'plugins."pdf@openai-primary-runtime"'; Key = "enabled" },
@@ -192,6 +194,11 @@ $managedSettings = @(
 
 foreach ($setting in $managedSettings) {
     $value = Get-TemplateAssignment -Lines $templateLines -Table $setting.Table -Key $setting.Key
+    if ($setting.Table -eq "marketplaces.personal" -and $setting.Key -eq "source") {
+        # Resolve this machine-local path here rather than copying a path from
+        # the portable template. The plugin is installed under %USERPROFILE%\plugins.
+        $value = ConvertTo-TomlLiteralString $env:USERPROFILE
+    }
     Set-TomlAssignment -Lines $targetLines -Table $setting.Table -Key $setting.Key -Value $value
 }
 

@@ -25,7 +25,7 @@ $allowedRootFiles = @(
     "start-task.ps1",
     "new-machine-deploy.ps1"
 )
-$allowedRootDirectories = @(".git", ".github", ".vscode", "config", "docs", "packages", "scripts")
+$allowedRootDirectories = @(".codex-image-private", ".git", ".github", ".vscode", "config", "docs", "packages", "scripts")
 $requiredPackagePaths = @(
     "packages\Codex_Batch_Image",
     "packages\Codex_Batch_Image\register-global-skill.ps1",

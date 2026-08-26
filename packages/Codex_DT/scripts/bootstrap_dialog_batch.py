@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from path_utils import normalize_windows_path
+
 from model_policy import DEFAULT_MODEL, normalize_model, validate_settings
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,7 +36,7 @@ def main() -> int:
         )
     )
     parser.add_argument("--name", required=True, help="Descriptive suffix for YYYYMMDD-HHMM-<name>.")
-    parser.add_argument("--images", nargs="+", type=Path, required=True, help="Image paths provided by Codex attachments.")
+    parser.add_argument("--images", nargs="+", required=True, help="Image paths provided by Codex attachments.")
     parser.add_argument("--duration", type=int, help="Optional known duration in seconds, 4 through 30.")
     parser.add_argument("--ratio", help="Optional target ratio: 21:9, 16:9, 4:3, 1:1, 3:4, or 9:16.")
     parser.add_argument("--model-version", help=f"Explicit user-selected video model. Default: {DEFAULT_MODEL}.")
@@ -61,7 +63,7 @@ def main() -> int:
         "--stable-seconds",
         str(args.stable_seconds),
         "--images",
-        *[str(path) for path in args.images],
+        *[str(normalize_windows_path(path)) for path in args.images],
     ]
     output = run_capture(import_command)
     match = BATCH_RE.search(output)

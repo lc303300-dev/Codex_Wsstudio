@@ -10,6 +10,7 @@ from typing import Any
 
 from runtime_paths import existing_runtime_path
 from model_policy import DEFAULT_MODEL, build_model_selection, normalize_model, validate_settings
+from path_utils import normalize_windows_path
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "templates" / "image-manifest.template.json"
@@ -25,7 +26,7 @@ RATIO_VALUES = {
 
 
 def workspace_rel(path_value: str) -> str:
-    path = Path(path_value)
+    path = normalize_windows_path(path_value)
     try:
         return path.resolve().relative_to(ROOT).as_posix()
     except ValueError:
@@ -66,9 +67,9 @@ def validate_preview_record(record: dict[str, Any]) -> None:
     max_long_edge = int(record["max_long_edge"])
     if width < 1 or height < 1 or max(width, height) > 1024 or max_long_edge > 1024:
         raise SystemExit(f"Preview exceeds the 1024px inspection limit: {record['preview_path']}")
-    if Path(record["input_path"]).resolve() == Path(record["preview_path"]).resolve():
+    if normalize_windows_path(record["input_path"]).resolve() == normalize_windows_path(record["preview_path"]).resolve():
         raise SystemExit("Preview path must not point to the original raster image.")
-    metadata_path = Path(record["preview_path"]).with_suffix(".json")
+    metadata_path = normalize_windows_path(record["preview_path"]).with_suffix(".json")
     if not metadata_path.is_file():
         raise SystemExit(f"Preview metadata file is missing: {metadata_path}")
 

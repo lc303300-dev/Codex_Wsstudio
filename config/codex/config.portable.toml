@@ -14,6 +14,12 @@ requires_openai_auth = true
 followUpQueueMode = "queue"
 conversationDetailMode = "STEPS_COMMANDS"
 
+# Keep the personal plugin marketplace discoverable by the session loader.
+# setup-codex.ps1 resolves this portable source to the current user's profile.
+[marketplaces.personal]
+source_type = "local"
+source = "."
+
 [plugins."computer-use@openai-bundled"]
 enabled = true
 

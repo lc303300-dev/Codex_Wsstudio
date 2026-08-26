@@ -10,6 +10,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from path_utils import normalize_windows_path
+
 ROOT = Path(__file__).resolve().parents[1]
 PRIVATE_RUNTIME_ROOT = ROOT / ".codex-image-private" / "batches"
 BATCH_ROOTS = ("inputs", "previews", "manifests", "prompts", "review", "outputs")
@@ -91,7 +93,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Create per-task pipeline folders under inputs/previews/manifests/prompts/review/outputs.")
     parser.add_argument("--batch", help="Batch/task id. Defaults to timestamp with current hour and minute.")
     parser.add_argument("--name", help="Descriptive suffix. The final batch id is YYYYMMDD-HHMM-<name>.")
-    parser.add_argument("--images", nargs="*", type=Path, default=[], help="Optional source images to copy into inputs/<batch>/ as image1.ext, image2.ext, ...")
+    parser.add_argument("--images", nargs="*", default=[], help="Optional source images to copy into inputs/<batch>/ as image1.ext, image2.ext, ...")
     parser.add_argument("--force", action="store_true", help="Allow copying over an existing image name in inputs/<batch>.")
     parser.add_argument(
         "--no-wait",
@@ -124,7 +126,8 @@ def main() -> int:
     (PRIVATE_RUNTIME_ROOT / batch).mkdir(parents=True, exist_ok=True)
 
     copied = 0
-    for index, source in enumerate(args.images, start=1):
+    for index, raw_source in enumerate(args.images, start=1):
+        source = normalize_windows_path(raw_source)
         if args.no_wait:
             resolved = source.expanduser().resolve()
             if not resolved.is_file():
