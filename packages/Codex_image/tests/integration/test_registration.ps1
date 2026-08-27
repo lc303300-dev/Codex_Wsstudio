@@ -53,6 +53,12 @@ if ($state.schema_version -ne 2) { throw "State did not migrate to schema v2." }
 $personalMarker = Join-Path $PersonalPluginsRoot "codex-media-plugin\.codex-image-registration.json"
 $personalRecord = Get-Content -LiteralPath $personalMarker -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($personalRecord.source_root -ne $ProjectRoot) { throw "Personal marketplace plugin did not refresh to the active project root." }
+$marketplaceManifest = Join-Path (Split-Path -Parent $PersonalPluginsRoot) ".agents\plugins\marketplace.json"
+if (-not (Test-Path -LiteralPath $marketplaceManifest -PathType Leaf)) { throw "Personal marketplace manifest was not created." }
+$marketplace = Get-Content -LiteralPath $marketplaceManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+$mediaEntry = @($marketplace.plugins | Where-Object { $_.name -eq "codex-media-plugin" })
+if ($mediaEntry.Count -ne 1) { throw "Managed media plugin was not added exactly once to the personal marketplace." }
+if ($mediaEntry[0].source.path -ne "./personal-marketplace/codex-media-plugin") { throw "Personal marketplace media plugin path is incorrect: $($mediaEntry[0].source.path)" }
 if (-not (Test-Path -LiteralPath (Join-Path $PersonalPluginsRoot "codex-media-plugin\skills\default-video-generation\SKILL.md") -PathType Leaf)) {
     throw "Personal marketplace plugin was not fully refreshed."
 }

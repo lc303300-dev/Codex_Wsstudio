@@ -32,7 +32,11 @@ function Test-CodexImageSourceRoot {
     } catch {
         return $false
     }
-    return (Test-Path -LiteralPath (Join-Path $candidate "CLI\Media-Router") -PathType Container)
+    try {
+        return (Test-Path -LiteralPath (Join-Path $candidate "CLI\Media-Router") -PathType Container)
+    } catch {
+        return $false
+    }
 }
 
 function Install-ManagedDirectory {
@@ -116,6 +120,84 @@ function Refresh-ManagedPluginCaches {
     }
 }
 
+function Update-PersonalMarketplaceManifest {
+    param([string]$PluginPath)
+
+    # Codex discovers personal plugins from the marketplace manifest, not from
+    # the loose %USERPROFILE%\plugins directory alone. Keep this manifest in
+    # sync whenever the managed media plugin is registered.
+    $marketplaceRoot = Split-Path -Parent $PersonalPluginsRoot
+    $marketplaceDir = Join-Path $marketplaceRoot ".agents\plugins"
+    $marketplacePath = Join-Path $marketplaceDir "marketplace.json"
+    New-Item -ItemType Directory -Path $marketplaceDir -Force | Out-Null
+
+    $manifest = [ordered]@{
+        name = "personal"
+        interface = [ordered]@{ displayName = "Personal" }
+        plugins = @()
+    }
+    if (Test-Path -LiteralPath $marketplacePath -PathType Leaf) {
+        try {
+            $existing = Get-Content -LiteralPath $marketplacePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        } catch {
+            throw "Personal marketplace manifest is invalid and was not overwritten: $marketplacePath"
+        }
+        if ($existing.name) { $manifest.name = [string]$existing.name }
+        if ($existing.interface) { $manifest.interface = $existing.interface }
+        if ($null -ne $existing.plugins) { $manifest.plugins = @($existing.plugins) }
+    }
+
+    $baseUri = [Uri]((([System.IO.Path]::GetFullPath($marketplaceRoot)).TrimEnd("\") + "\"))
+    $pluginUri = [Uri]([System.IO.Path]::GetFullPath($PluginPath))
+    $relative = [Uri]::UnescapeDataString($baseUri.MakeRelativeUri($pluginUri).ToString()).Replace("\", "/")
+    if (-not $relative.StartsWith("./")) { $relative = "./" + $relative }
+    $entry = @($manifest.plugins | Where-Object { $_.name -eq "codex-media-plugin" } | Select-Object -First 1)
+    if ($entry.Count -eq 0) {
+        $manifest.plugins += [ordered]@{
+            name = "codex-media-plugin"
+            source = [ordered]@{ source = "local"; path = $relative }
+            policy = [ordered]@{ installation = "AVAILABLE"; authentication = "ON_INSTALL" }
+            category = "Creative"
+        }
+    } else {
+        $entry[0].source = [ordered]@{ source = "local"; path = $relative }
+        if (-not $entry[0].policy) {
+            $entry[0].policy = [ordered]@{ installation = "AVAILABLE"; authentication = "ON_INSTALL" }
+        }
+        if (-not $entry[0].category) { $entry[0].category = "Creative" }
+    }
+
+    $temporary = "$marketplacePath.tmp-$PID"
+    $json = $manifest | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($temporary, $json + [Environment]::NewLine, [System.Text.UTF8Encoding]::new($false))
+    Move-Item -LiteralPath $temporary -Destination $marketplacePath -Force
+    Write-Host "Registered codex-media-plugin in personal marketplace: $marketplacePath"
+}
+
+function Install-CodexMediaPlugin {
+    $defaultHome = if ($env:CODEX_HOME) { [System.IO.Path]::GetFullPath($env:CODEX_HOME) } else { [System.IO.Path]::GetFullPath((Join-Path $HOME ".codex")) }
+    $defaultPersonalRoot = [System.IO.Path]::GetFullPath((Join-Path $HOME "plugins"))
+    if ($CodexHome -ne $defaultHome -or $PersonalPluginsRoot -ne $defaultPersonalRoot) {
+        return
+    }
+    $codex = $null
+    if ($env:CODEX_CLI_PATH -and (Test-Path -LiteralPath $env:CODEX_CLI_PATH -PathType Leaf)) {
+        $codex = $env:CODEX_CLI_PATH
+    } else {
+        $command = Get-Command codex.exe -ErrorAction SilentlyContinue
+        if ($command) { $codex = $command.Source }
+    }
+    if (-not $codex) {
+        Write-Warning "Codex CLI was not found; marketplace entry is ready, but plugin installation will occur when Codex refreshes or codex plugin add is run."
+        return
+    }
+    $result = & $codex plugin add "codex-media-plugin@personal" --json 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Codex could not install codex-media-plugin from the personal marketplace: $($result -join ' ')"
+    }
+    Write-Host "Codex installed codex-media-plugin into its managed plugin cache."
+}
+
 Install-ManagedDirectory `
     -Source (Join-Path $ProjectRoot "codex-media-plugin") `
     -Destination (Join-Path $PluginsRoot "codex-media-plugin") `
@@ -137,6 +219,8 @@ Install-ManagedDirectory `
     -Destination $PersonalPlugin `
     -Kind "personal plugin" `
     -Name "codex-media-plugin"
+Update-PersonalMarketplaceManifest -PluginPath $PersonalPlugin
+Install-CodexMediaPlugin
 Refresh-ManagedPluginCaches
 
 if ($ProviderSkills) {
