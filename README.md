@@ -1,6 +1,6 @@
 # Codex_Wsstudio
 
-A Windows-first monorepo for Codex media tooling, image-to-video workflows, and reusable Codex configuration.
+A Windows-first monorepo for Codex media tooling, creative workflows, and reusable Codex configuration. Its personal `codex-media-plugin` exposes image/video generation plus GIF conversion, batch image orchestration, Codex_DT batch and preview operations, Codex Flow routing, and Tool Scout discovery as Codex tools.
 
 ## Repository layout
 

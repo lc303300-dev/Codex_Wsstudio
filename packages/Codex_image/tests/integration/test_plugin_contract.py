@@ -21,11 +21,14 @@ SPEC.loader.exec_module(server)
 
 
 class PluginContractTests(unittest.TestCase):
-    def test_only_two_tools_are_public(self):
+    def test_workspace_tools_are_public(self):
         reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
         tools = reply["result"]["tools"]
-        self.assertEqual([tool["name"] for tool in tools], ["generate_image", "generate_video"])
-        self.assertTrue(all(tool["annotations"]["openWorldHint"] for tool in tools))
+        self.assertEqual(
+            [tool["name"] for tool in tools],
+            ["generate_image", "generate_video", "convert_video_to_gif", "batch_generate_images", "prepare_video_previews", "start_video_batch", "validate_video_batch", "route_creative_skill", "scout_tools"],
+        )
+        self.assertTrue(all("openWorldHint" in tool["annotations"] for tool in tools))
 
     def test_exact_public_schemas(self):
         tools = {tool["name"]: tool["inputSchema"] for tool in server.TOOLS}
@@ -35,9 +38,23 @@ class PluginContractTests(unittest.TestCase):
         self.assertEqual(tools["generate_image"]["properties"]["image_resolution"]["enum"], ["1K", "2K", "4K"])
         self.assertNotIn("default", tools["generate_image"]["properties"]["image_resolution"])
         self.assertEqual(tools["generate_image"]["properties"]["image_provider"]["enum"], ["comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image"])
-        self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration", "video_count", "video_group"})
+        self.assertEqual(set(tools["generate_video"]["properties"]), {"prompt", "images", "videos", "audios", "video_duration", "video_ratio", "video_model", "video_model_selection_source", "video_execution_mode", "video_resolution", "video_confirmation_model", "video_confirmation_resolution", "video_confirmation_duration", "video_prompt_sha256", "video_test_confirmation", "video_count", "video_group"})
         self.assertFalse(tools["generate_image"]["additionalProperties"])
         self.assertFalse(tools["generate_video"]["additionalProperties"])
+        self.assertEqual(set(tools["convert_video_to_gif"]["required"]), {"input_dir"})
+        self.assertEqual(set(tools["batch_generate_images"]["required"]), {"manifest"})
+
+    def test_batch_generation_requires_paid_confirmation(self):
+        reply = server.handle({"jsonrpc": "2.0", "id": 20, "method": "tools/call", "params": {"name": "batch_generate_images", "arguments": {"manifest": "x.json"}}})
+        result = reply["result"]
+        self.assertTrue(result["isError"])
+        self.assertEqual(result["structuredContent"]["failure_class"], "confirmation_required")
+
+    def test_auxiliary_tools_dispatch_without_provider_calls(self):
+        with mock.patch.object(server, "_run_process", return_value={"status": "success", "exit_code": 0}) as run:
+            reply = server.handle({"jsonrpc": "2.0", "id": 21, "method": "tools/call", "params": {"name": "route_creative_skill", "arguments": {"query": "楼盘宣传片"}}})
+        self.assertFalse(reply["result"]["isError"])
+        run.assert_called_once()
 
     def test_provider_skills_are_not_implicit(self):
         for name in ("gemini-api", "seedance-cli", "gpt-api", "comfly-api"):
@@ -73,10 +90,26 @@ class PluginContractTests(unittest.TestCase):
     def test_submitted_video_is_a_non_error_response(self):
         submitted = {"status": "submitted", "submit_id": "task-123", "model_id": "seedance2.0"}
         with mock.patch.object(server, "execute", return_value=submitted):
-            reply = server.handle({"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "generate_video", "arguments": {"prompt": "test", "video_execution_mode": "test_submit_only"}}})
+            reply = server.handle({"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "generate_video", "arguments": {"prompt": "test", "video_execution_mode": "test_submit_only", "video_test_confirmation": "confirmed"}}})
         result = reply["result"]
         self.assertFalse(result["isError"])
         self.assertEqual(result["structuredContent"], submitted)
+
+    def test_public_mcp_rejects_reserved_production_submit_only(self):
+        with mock.patch.object(server, "execute") as execute:
+            reply = server.handle({"jsonrpc": "2.0", "id": 71, "method": "tools/call", "params": {"name": "generate_video", "arguments": {"prompt": "reviewed prompt", "video_execution_mode": "production_submit_only"}}})
+        result = reply["result"]
+        self.assertTrue(result["isError"])
+        self.assertIn("reserved", result["structuredContent"]["safe_reason"])
+        execute.assert_not_called()
+
+    def test_public_mcp_requires_explicit_test_confirmation(self):
+        with mock.patch.object(server, "execute") as execute:
+            reply = server.handle({"jsonrpc": "2.0", "id": 72, "method": "tools/call", "params": {"name": "generate_video", "arguments": {"prompt": "test", "video_execution_mode": "test_submit_only"}}})
+        result = reply["result"]
+        self.assertTrue(result["isError"])
+        self.assertIn("video_test_confirmation", result["structuredContent"]["safe_reason"])
+        execute.assert_not_called()
 
     def test_successful_image_returns_renderable_content_and_file_uri(self):
         png = b"\x89PNG\r\n\x1a\n" + b"offline-image"

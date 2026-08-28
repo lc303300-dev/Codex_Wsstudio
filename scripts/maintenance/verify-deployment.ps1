@@ -244,6 +244,37 @@ if (Test-Path -LiteralPath $installedMediaMcp -PathType Leaf) {
     $errors.Add("Missing installed codex-media MCP runner: $installedMediaMcp")
 }
 
+# The unified Wsstudio plugin also exposes local workflow tools. Keep this
+# contract in deployment verification so a partial/old cache cannot silently
+# reintroduce the "tool unavailable" failure mode.
+$expectedWorkspaceTools = @(
+    "generate_image",
+    "generate_video",
+    "convert_video_to_gif",
+    "batch_generate_images",
+    "prepare_video_previews",
+    "start_video_batch",
+    "validate_video_batch",
+    "route_creative_skill",
+    "scout_tools"
+)
+if (Test-Path -LiteralPath $installedMediaMcp -PathType Leaf) {
+    try {
+        $toolListRequest = '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+        $toolListOutput = $toolListRequest | powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installedMediaMcp
+        $toolListJson = @($toolListOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })[-1]
+        $toolList = $toolListJson | ConvertFrom-Json
+        $mediaToolNames = @($toolList.result.tools | ForEach-Object { [string]$_.name })
+        foreach ($expectedTool in $expectedWorkspaceTools) {
+            if ($expectedTool -notin $mediaToolNames) {
+                $errors.Add("codex-media MCP tools/list does not expose $expectedTool. Returned: $($mediaToolNames -join ', ')")
+            }
+        }
+    } catch {
+        $errors.Add("Unable to verify complete Wsstudio tool list from installed plugin: $installedMediaMcp ($($_.Exception.Message))")
+    }
+}
+
 $batchMarker = Join-Path $CodexHome "skills\batch-image-generation\.codex-batch-image-registration.json"
 if (Test-Path -LiteralPath $batchMarker -PathType Leaf) {
     try {
@@ -267,7 +298,13 @@ if (-not (Test-Path -LiteralPath $expectedPreview -PathType Leaf)) {
 
 $cacheRoot = Join-Path $CodexHome "plugins\cache\personal\codex-media-plugin"
 if (Test-Path -LiteralPath $cacheRoot -PathType Container) {
-    Get-ChildItem -LiteralPath $cacheRoot -Directory | ForEach-Object {
+    $sourceManifest = Join-Path $RepositoryRoot "packages\Codex_image\codex-media-plugin\.codex-plugin\plugin.json"
+    $sourceVersion = if (Test-Path -LiteralPath $sourceManifest -PathType Leaf) { [string](Get-Content -LiteralPath $sourceManifest -Raw -Encoding UTF8 | ConvertFrom-Json).version } else { "" }
+    $currentCaches = @(Get-ChildItem -LiteralPath $cacheRoot -Directory | Where-Object { $_.Name -eq $sourceVersion })
+    if ($currentCaches.Count -ne 1) {
+        $errors.Add("Current versioned media plugin cache is missing: $cacheRoot\$sourceVersion")
+    }
+    $currentCaches | ForEach-Object {
         $requiredCachePaths = @(
             ".codex-plugin\plugin.json",
             ".mcp.json",

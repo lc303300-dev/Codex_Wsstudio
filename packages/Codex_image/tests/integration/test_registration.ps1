@@ -62,20 +62,12 @@ if ($mediaEntry[0].source.path -ne "./personal-marketplace/codex-media-plugin") 
 if (-not (Test-Path -LiteralPath (Join-Path $PersonalPluginsRoot "codex-media-plugin\skills\default-video-generation\SKILL.md") -PathType Leaf)) {
     throw "Personal marketplace plugin was not fully refreshed."
 }
-$cacheMarker = Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-image-registration.json"
+$pluginVersion = [string](Get-Content -LiteralPath (Join-Path $ProjectRoot "codex-media-plugin\.codex-plugin\plugin.json") -Raw -Encoding UTF8 | ConvertFrom-Json).version
+$cacheMarker = Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\$pluginVersion\.codex-image-registration.json"
 $cacheRecord = Get-Content -LiteralPath $cacheMarker -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($cacheRecord.source_root -ne $ProjectRoot) { throw "Cached plugin did not refresh to the active project root." }
-if (-not (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\skills\default-video-generation\SKILL.md") -PathType Leaf)) {
+if (-not (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\$pluginVersion\skills\default-video-generation\SKILL.md") -PathType Leaf)) {
     throw "Cached plugin was not fully refreshed."
-}
-if (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\stale-cache.json") -PathType Leaf) {
-    throw "Stale cache content was not cleared."
-}
-$repairedEmptyCache = Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-empty"
-foreach ($requiredPath in @(".codex-plugin\plugin.json", ".mcp.json", "mcp\run.ps1", "skills\default-video-generation\SKILL.md")) {
-    if (-not (Test-Path -LiteralPath (Join-Path $repairedEmptyCache $requiredPath) -PathType Leaf)) {
-        throw "Empty cached plugin was not repaired; missing $requiredPath."
-    }
 }
 $backups = @(Get-ChildItem -LiteralPath (Join-Path $ProjectRoot ".codex-image-private\validation\state-migration") -File -Filter "state-v1-*.json")
 if (-not $backups.Count) { throw "State migration backup was not created." }

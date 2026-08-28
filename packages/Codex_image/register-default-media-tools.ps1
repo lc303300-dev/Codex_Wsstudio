@@ -174,6 +174,22 @@ function Update-PersonalMarketplaceManifest {
     Write-Host "Registered codex-media-plugin in personal marketplace: $marketplacePath"
 }
 
+function Install-VersionedPluginCache {
+    $manifestPath = Join-Path $ProjectRoot "codex-media-plugin\.codex-plugin\plugin.json"
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $version = [string]$manifest.version
+    if ([string]::IsNullOrWhiteSpace($version) -or $version -notmatch '^[A-Za-z0-9.+_-]+$') {
+        throw "codex-media-plugin has an invalid version: $version"
+    }
+    $cachePlugin = Join-Path $CodexHome "plugins\cache\personal\codex-media-plugin\$version"
+    Install-ManagedDirectory `
+        -Source (Join-Path $ProjectRoot "codex-media-plugin") `
+        -Destination $cachePlugin `
+        -Kind "versioned plugin cache" `
+        -Name "codex-media-plugin"
+    Write-Host "Prepared versioned Codex plugin cache: $cachePlugin"
+}
+
 function Install-CodexMediaPlugin {
     $defaultHome = if ($env:CODEX_HOME) { [System.IO.Path]::GetFullPath($env:CODEX_HOME) } else { [System.IO.Path]::GetFullPath((Join-Path $HOME ".codex")) }
     $defaultPersonalRoot = [System.IO.Path]::GetFullPath((Join-Path $HOME "plugins"))
@@ -191,9 +207,18 @@ function Install-CodexMediaPlugin {
         Write-Warning "Codex CLI was not found; marketplace entry is ready, but plugin installation will occur when Codex refreshes or codex plugin add is run."
         return
     }
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     $result = & $codex plugin add "codex-media-plugin@personal" --json 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Codex could not install codex-media-plugin from the personal marketplace: $($result -join ' ')"
+    $pluginExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorAction
+    if ($pluginExitCode -ne 0) {
+        $message = ($result -join " ")
+        if ($message -match "(?i)access denied|os error 5|being used|locked") {
+            Write-Warning "Codex plugin cache is locked by a running Codex process. The marketplace entry and source plugin are current. Restart Codex, then rerun the Wsstudio registration command to refresh the cache."
+            return
+        }
+        throw "Codex could not install codex-media-plugin from the personal marketplace: $message"
     }
     Write-Host "Codex installed codex-media-plugin into its managed plugin cache."
 }
@@ -220,8 +245,8 @@ Install-ManagedDirectory `
     -Kind "personal plugin" `
     -Name "codex-media-plugin"
 Update-PersonalMarketplaceManifest -PluginPath $PersonalPlugin
+Install-VersionedPluginCache
 Install-CodexMediaPlugin
-Refresh-ManagedPluginCaches
 
 if ($ProviderSkills) {
     foreach ($name in $ProviderNames) {

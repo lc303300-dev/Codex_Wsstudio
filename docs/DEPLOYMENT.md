@@ -21,7 +21,9 @@ The command is repeatable. It:
 - migrates legacy credentials and binaries into `packages/Codex_image/.codex-image-private/`;
 - installs Dreamina CLI when it is missing and starts login when required;
 - installs the bundled 1024 px preview converter into `CODEX_HOME/tools/`;
-- registers the unified image/video tools and plugin;
+- registers the unified Wsstudio plugin with image/video generation, GIF conversion,
+  confirmed batch-image execution, Codex_DT batch creation/validation and preview preparation, Codex Flow routing,
+  and Tool Scout discovery tools;
 - registers the video-to-GIF, Tool Scout, Codex_DT, batch-image-generation, and Codex Flow global skills;
 - deploys `Codex_DT` using the sibling `Codex_image` CLI.
 - runs a post-deployment verification that checks required paths, installed global guidance, absence of managed personalization and proactive sub-agent guidance, and project structure.
@@ -122,6 +124,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex\remove-legac
 ```
 
 The verification probes the installed `codex-media-plugin` MCP server and requires
-`tools/list` to expose both `generate_image` and `generate_video`. If verification
+`tools/list` to expose `generate_image`, `generate_video`, `convert_video_to_gif`,
+`batch_generate_images`, `prepare_video_previews`, `start_video_batch`,
+`validate_video_batch`, `route_creative_skill`, and `scout_tools`. Real batch-image execution requires an explicit paid confirmation;
+the other added workflow tools retain their package-level safety rules. If verification
 passes but an already-open Codex task still cannot call those tools, restart Codex or
 start a new task so the app reloads personal plugin tools.
