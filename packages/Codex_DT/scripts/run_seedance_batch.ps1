@@ -88,6 +88,7 @@ if (-not $Yes) {
 }
 
 $tasksPath = Join-Path $runtimeRoot "tasks.jsonl"
+$pending = @()
 
 foreach ($item in $confirmed) {
     $manifest = $item.Manifest
@@ -152,7 +153,7 @@ foreach ($item in $confirmed) {
     $ratio = [string]$manifest.mqrox_compile.ratio
     $resolution = [string]$modelPolicy.resolution
     $modelVersion = [string]$modelPolicy.model_version
-    Write-Host "Submitting $($manifest.id)..."
+    Write-Host "Queueing $($manifest.id)..."
     $logPath = Join-Path $logsRoot ("{0}.submit.log" -f $manifest.id)
     $commandArgs = @("generate_video")
     foreach ($asset in $imageAssets) {
@@ -182,33 +183,81 @@ foreach ($item in $confirmed) {
     if ($modelVersion -ne "seedance2.5") {
         $commandArgs += @("--video-model-selection-source", "user_explicit")
     }
-    $output = powershell -NoProfile -ExecutionPolicy Bypass -File $MediaRouter @commandArgs 2>&1
-    $output | Set-Content -LiteralPath $logPath -Encoding UTF8
-
-    $submitId = $null
-    $joined = ($output -join "`n")
-    $routerResult = $joined | ConvertFrom-Json
-    if ([string]$routerResult.status -ne "submitted") {
-        throw "Media Router did not accept $($manifest.id): $([string]$routerResult.safe_reason)"
+    $pending += [pscustomobject]@{
+        Item = $item
+        Manifest = $manifest
+        SourceImage = $sourceImage
+        PromptFile = $promptFile
+        LogPath = $logPath
+        CommandArgs = $commandArgs
     }
-    $submitId = [string]$routerResult.submit_id
-    if ([string]::IsNullOrWhiteSpace($submitId)) { throw "Media Router returned submitted without submit_id for $($manifest.id)." }
+}
 
-    $record = [ordered]@{
-        id = $manifest.id
-        source_image = $sourceImage
-        prompt_file = $promptFile
-        submit_id = $submitId
-        log = $logPath
-        submitted_at = (Get-Date).ToString("o")
+if ($pending.Count -gt 0) {
+    $queueLimit = 6
+    $nextIndex = 0
+    $active = @()
+    $submitScript = {
+        param($router, $arguments)
+        & powershell -NoProfile -ExecutionPolicy Bypass -File $router @($arguments) 2>&1
+        exit $LASTEXITCODE
     }
-    ($record | ConvertTo-Json -Compress -Depth 6) | Add-Content -LiteralPath $tasksPath -Encoding UTF8
 
-    $manifest.generation.status = "submitted"
-    $manifest.generation.submit_id = $submitId
-    $manifest.generation.output_dir = $outputsRoot
-    $manifest.generation.error = $null
-    $manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $item.File.FullName -Encoding UTF8
+    while ($nextIndex -lt $pending.Count -or $active.Count -gt 0) {
+        while ($nextIndex -lt $pending.Count -and $active.Count -lt $queueLimit) {
+            $task = $pending[$nextIndex]
+            $nextIndex++
+            Write-Host "Submitting $($task.Manifest.id) (in flight: $($active.Count + 1)/$queueLimit)..."
+            # Unary comma preserves the complete argument array as one job
+            # parameter; without it PowerShell may flatten --image/--prompt
+            # arguments while serializing Start-Job inputs.
+            $job = Start-Job -ScriptBlock $submitScript -ArgumentList @($MediaRouter, (,$task.CommandArgs))
+            $active += [pscustomobject]@{ Job = $job; Task = $task }
+        }
+
+        $finished = @($active | Where-Object { $_.Job.State -in @("Completed", "Failed", "Stopped") })
+        if ($finished.Count -eq 0) {
+            Wait-Job -Job ($active | ForEach-Object { $_.Job }) -Any | Out-Null
+            $finished = @($active | Where-Object { $_.Job.State -in @("Completed", "Failed", "Stopped") })
+        }
+
+        foreach ($entry in $finished) {
+            $task = $entry.Task
+            $jobState = [string]$entry.Job.State
+            $output = @(Receive-Job -Job $entry.Job -ErrorAction SilentlyContinue)
+            $output | Set-Content -LiteralPath $task.LogPath -Encoding UTF8
+            $joined = ($output -join "`n")
+            Remove-Job -Job $entry.Job -Force -ErrorAction SilentlyContinue
+            $active = @($active | Where-Object { $_ -ne $entry })
+
+            if ($jobState -ne "Completed" -or [string]::IsNullOrWhiteSpace($joined)) {
+                throw "Media Router process failed for $($task.Manifest.id). See $($task.LogPath)"
+            }
+            try { $routerResult = $joined | ConvertFrom-Json }
+            catch { throw "Media Router returned invalid JSON for $($task.Manifest.id). See $($task.LogPath)" }
+            if ([string]$routerResult.status -ne "submitted") {
+                throw "Media Router did not accept $($task.Manifest.id): $([string]$routerResult.safe_reason)"
+            }
+            $submitId = [string]$routerResult.submit_id
+            if ([string]::IsNullOrWhiteSpace($submitId)) { throw "Media Router returned submitted without submit_id for $($task.Manifest.id)." }
+
+            $record = [ordered]@{
+                id = $task.Manifest.id
+                source_image = $task.SourceImage
+                prompt_file = $task.PromptFile
+                submit_id = $submitId
+                log = $task.LogPath
+                submitted_at = (Get-Date).ToString("o")
+            }
+            ($record | ConvertTo-Json -Compress -Depth 6) | Add-Content -LiteralPath $tasksPath -Encoding UTF8
+            $task.Manifest.generation.status = "submitted"
+            $task.Manifest.generation.submit_id = $submitId
+            $task.Manifest.generation.output_dir = $outputsRoot
+            $task.Manifest.generation.error = $null
+            $task.Manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $task.Item.File.FullName -Encoding UTF8
+            Write-Host "Accepted $($task.Manifest.id): $submitId"
+        }
+    }
 }
 
 Write-Host "Submitted $($confirmed.Count) confirmed item(s)."
