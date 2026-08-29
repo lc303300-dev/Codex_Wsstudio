@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import date
 
@@ -36,6 +35,7 @@ def normalize_video_duration(value: object | None) -> str | None:
 from .config import load_config
 from .image_router import ImageRouter
 from .providers.registry import build_registry
+from .scheduler import rolling_map
 from .schemas import MediaRequest
 from .video_router import VideoRouter
 
@@ -72,6 +72,8 @@ def execute(command: str, prompt: str, images=(), videos=(), audios=(), **video_
         video_confirmation_model=video_options.get("video_confirmation_model"),
         video_confirmation_resolution=video_options.get("video_confirmation_resolution"),
         video_confirmation_duration=normalized_confirmation_duration,
+        video_prompt_sha256=video_options.get("video_prompt_sha256"),
+        video_test_confirmation=video_options.get("video_test_confirmation"),
         image_provider=video_options.get("image_provider"),
         image_model=video_options.get("image_model"),
         image_ratio=video_options.get("image_ratio"),
@@ -98,9 +100,18 @@ def execute(command: str, prompt: str, images=(), videos=(), audios=(), **video_
             if resolved_group_name:
                 result.update({"video_group": resolved_group_name, "video_session_id": request.video_session_id})
             return result
+        # Use a bounded rolling queue: keep at most six router submissions in
+        # flight, and replenish a slot as soon as one returns submit_id.  The
+        # router's production_batch mode is submit-only, so this never waits
+        # for rendering while the queue is being filled. The DT batch entry
+        # performs the single polling/download phase after this returns.
         batch_request = replace(request, video_execution_mode="production_batch")
-        with ThreadPoolExecutor(max_workers=count, thread_name_prefix="video-batch") as pool:
-            results = [result.to_dict() for result in pool.map(router.execute, (batch_request,) * count)]
+        results = [item.to_dict() for item in rolling_map(
+            (batch_request,) * count,
+            router.execute,
+            runtime_slots=router.provider.max_concurrency,
+            configured_limit=6,
+        )]
         statuses = {item.get("status") for item in results}
         aggregate_status = next(iter(statuses)) if len(statuses) == 1 and statuses <= {"success", "submitted"} else "partial"
         result = {

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -45,9 +46,11 @@ def confirm_reviewable_manifests(batch: str) -> int:
             prompt_file = ROOT / prompt_file
         if not prompt_file.is_file() or not prompt_file.read_text(encoding="utf-8").strip():
             raise SystemExit(f"Cannot auto-confirm {path.name}: missing or empty prompt file.")
+        prompt_text = prompt_file.read_text(encoding="utf-8").strip()
         prompt["status"] = "confirmed"
         prompt["confirmed_at"] = now
         prompt["confirmation_mode"] = "auto_generate"
+        prompt["confirmed_sha256"] = hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
         write_json(path, manifest)
         confirmed += 1
     if confirmed == 0:
@@ -179,7 +182,6 @@ def main() -> int:
             "-Yes",
         ]
         run_step(command)
-        run_step([sys.executable, "scripts/wait_seedance_batch.py", "--batch", args.batch])
     return 0
 
 

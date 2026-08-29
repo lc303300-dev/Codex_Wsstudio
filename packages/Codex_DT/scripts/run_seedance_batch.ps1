@@ -113,6 +113,11 @@ foreach ($item in $confirmed) {
     }
 
     $prompt = Get-Content -LiteralPath $promptFile -Encoding UTF8 -Raw
+    $promptHash = ([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes($prompt.Trim()))).Replace('-', '').ToLowerInvariant())
+    $confirmedHash = [string]$manifest.prompt.confirmed_sha256
+    if ([string]::IsNullOrWhiteSpace($confirmedHash) -or $confirmedHash -ne $promptHash) {
+        throw "Prompt for $($manifest.id) changed after review or has no confirmed hash. Rebuild review and confirm the exact prompt before submission."
+    }
     $atSign = [string][char]64
     $zhImageLabel = ([string][char]0x56FE) + ([string][char]0x7247)
     if ($prompt.Contains($atSign + "Image") -or $prompt.Contains($atSign + $zhImageLabel)) {
@@ -164,10 +169,14 @@ foreach ($item in $confirmed) {
     }
     $commandArgs += @(
         "--prompt", $prompt,
+        "--video-prompt-sha256", $promptHash,
         "--video-duration", [string]$duration,
         "--video-ratio", $ratio,
         "--video-resolution", $resolution,
         "--video-model", $modelVersion,
+        "--video-confirmation-model", $modelVersion,
+        "--video-confirmation-resolution", $resolution,
+        "--video-confirmation-duration", [string]$duration,
         "--video-execution-mode", "production_submit_only"
     )
     if ($modelVersion -ne "seedance2.5") {
@@ -204,3 +213,9 @@ foreach ($item in $confirmed) {
 
 Write-Host "Submitted $($confirmed.Count) confirmed item(s)."
 Write-Host "Task log: $tasksPath"
+Write-Host "All submissions accepted; starting one unified polling/download phase..."
+$waitScript = Join-Path $PSScriptRoot "wait_seedance_batch.py"
+$waitArgs = @("--batch", $Batch)
+if ($SeedanceCli) { $waitArgs += @("--seedance-cli", $SeedanceCli) }
+& python $waitScript @waitArgs
+if ($LASTEXITCODE -ne 0) { throw "Polling/download phase failed for batch $Batch." }

@@ -640,6 +640,23 @@ class VideoRouterTests(unittest.TestCase):
         request = MediaRequest("motion", video_duration="5", video_confirmation_model="seedance2.5", video_confirmation_resolution="480p", video_confirmation_duration="5")
         self.assertEqual(router.validate(request), "text2video")
 
+    def test_production_rejects_obvious_placeholder_prompt(self):
+        router = VideoRouter({}, type("Provider", (), {})())
+        request = MediaRequest("测试", video_duration="5", video_confirmation_model="seedance2.5", video_confirmation_resolution="480p", video_confirmation_duration="5", video_execution_mode="production_submit_only", video_prompt_sha256="0" * 64)
+        with self.assertRaisesRegex(ValueError, "obvious placeholder"):
+            router.validate(request)
+
+    def test_production_submit_only_requires_exact_prompt_hash(self):
+        import hashlib
+
+        router = VideoRouter({}, type("Provider", (), {})())
+        prompt = "完整的已审核提示词"
+        base = dict(video_duration="5", video_confirmation_model="seedance2.5", video_confirmation_resolution="480p", video_confirmation_duration="5", video_execution_mode="production_submit_only")
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            router.validate(MediaRequest(prompt, **base))
+        request = MediaRequest(prompt, video_prompt_sha256=hashlib.sha256(prompt.encode("utf-8")).hexdigest(), **base)
+        self.assertEqual(router.validate(request), "text2video")
+
     def test_seedance_25_accepts_1080p(self):
         router = VideoRouter({}, type("Provider", (), {})())
         request = MediaRequest("motion", video_duration="5", video_resolution="1080p", video_confirmation_model="seedance2.5", video_confirmation_resolution="1080p", video_confirmation_duration="5")
@@ -692,6 +709,30 @@ class VideoRouterTests(unittest.TestCase):
         args = build_video_arguments("text2video", request)
         self.assertEqual(args[args.index("--poll") + 1], "0")
         self.assertEqual(VideoRouter({}, type("Provider", (), {})()).validate(request), "text2video")
+
+    def test_video_count_batch_uses_bounded_rolling_queue(self):
+        import media_router.service as service_module
+
+        class StubRouter:
+            def __init__(self):
+                self.calls = 0
+                self.active = 0
+                self.max_active = 0
+                self.provider = type("Provider", (), {"resolve_session": lambda self, name: "7", "max_concurrency": 6})()
+
+            def execute(self, request):
+                self.calls += 1
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+                self.active -= 1
+                return type("Result", (), {"to_dict": lambda self: {"status": "submitted"}})()
+
+        stub = StubRouter()
+        with mock.patch.object(service_module, "VideoRouter", return_value=stub), mock.patch.object(service_module, "load_config", return_value={}), mock.patch.object(service_module, "build_registry", return_value={"dreamina-video": stub.provider}), mock.patch.object(service_module, "validate_prompt_completeness"):
+            result = service_module.execute("generate_video", "reviewed", video_count=3)
+        self.assertEqual(result["status"], "submitted")
+        self.assertEqual(stub.calls, 3)
+        self.assertLessEqual(stub.max_active, 6)
 
     def test_test_channel_does_not_require_user_explicit_model_source(self):
         router = VideoRouter({}, type("Provider", (), {})())

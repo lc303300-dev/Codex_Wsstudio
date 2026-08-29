@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import subprocess
 import wave
@@ -19,6 +20,7 @@ DEFAULT_VIDEO_RESOLUTION = "480p"
 TEST_VIDEO_MODEL = "seedance2.0"
 TEST_VIDEO_RESOLUTION = "720p"
 SUPPORTED_VIDEO_MODELS = {"seedance2.0", "seedance2.0mini", "seedance2.0fast_vip", "seedance2.0_vip", DEFAULT_VIDEO_MODEL}
+PLACEHOLDER_PROMPTS = {"test", "测试", "motion", "正式版", "prompt"}
 
 
 def audio_duration(path: Path) -> float:
@@ -108,11 +110,18 @@ class VideoRouter:
         self.config, self.provider, self.store, self.duration_probe = config, provider, store or TaskStore(), duration_probe
 
     def validate(self, request: MediaRequest) -> str:
-        if not request.prompt.strip():
+        prompt = request.prompt.strip()
+        if not prompt:
             raise ValueError("prompt must not be empty")
         if request.video_execution_mode not in {"production", "production_submit_only", "production_batch", "test_submit_only"}:
             raise ValueError(f"Unsupported video_execution_mode: {request.video_execution_mode}")
         selected_model = TEST_VIDEO_MODEL if request.video_execution_mode == "test_submit_only" else request.video_model or DEFAULT_VIDEO_MODEL
+        if request.video_execution_mode == "production_submit_only" and prompt.casefold() in PLACEHOLDER_PROMPTS:
+            raise ValueError("Production video prompt is an obvious placeholder; submit the reviewed prompt text")
+        if request.video_execution_mode == "production_submit_only":
+            expected_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+            if request.video_prompt_sha256 != expected_hash:
+                raise ValueError("production_submit_only requires the SHA-256 of the exact reviewed prompt")
         if selected_model not in SUPPORTED_VIDEO_MODELS:
             raise ValueError(f"Unsupported video model: {selected_model}")
         if request.video_execution_mode != "test_submit_only" and selected_model != DEFAULT_VIDEO_MODEL and request.video_model_selection_source != "user_explicit":

@@ -29,6 +29,8 @@ def parser() -> argparse.ArgumentParser:
     video.add_argument("--video-confirmation-model")
     video.add_argument("--video-confirmation-resolution")
     video.add_argument("--video-confirmation-duration", help="Confirmed seconds; accepts the same forms as --video-duration")
+    video.add_argument("--video-prompt-sha256")
+    video.add_argument("--video-test-confirmation", choices=("confirmed",))
     video.add_argument("--video-count", type=int, choices=range(1, 11), default=1)
     video.add_argument("--video-group")
     return root
@@ -52,6 +54,8 @@ def main() -> int:
             "video_confirmation_model": args.video_confirmation_model,
             "video_confirmation_resolution": args.video_confirmation_resolution,
             "video_confirmation_duration": args.video_confirmation_duration,
+            "video_prompt_sha256": args.video_prompt_sha256,
+            "video_test_confirmation": args.video_test_confirmation,
             "video_count": args.video_count,
             "video_group": args.video_group,
         }

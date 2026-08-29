@@ -31,6 +31,9 @@ class TaskStore:
             "images": [str(p) for p in request.images], "videos": [str(p) for p in request.videos],
             "audios": [str(p) for p in request.audios], "image_ratio": request.image_ratio,
             "image_resolution": request.image_resolution, "image_provider": request.image_provider,
+            "video_execution_mode": request.video_execution_mode, "video_model": request.video_model,
+            "video_ratio": request.video_ratio, "video_duration": request.video_duration,
+            "video_resolution": request.video_resolution, "video_prompt_sha256": request.video_prompt_sha256,
             "created_at": now(),
         })
         self.set_state(context, "pending")

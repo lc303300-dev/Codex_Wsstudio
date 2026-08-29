@@ -64,7 +64,7 @@ If the user provides one or more images and asks for any of the following:
 
 then use this repository pipeline first. Do not jump directly to the global `seedance-cli` skill unless the current manifest is already `confirmed` and the user is explicitly asking to submit generation.
 
-If the user uses explicit auto-generation wording such as `自动生成视频`, `全自动生成视频`, `自动生成`, or `全自动生成`, skip the user confirmation wait after the review page is built. In that mode, run `scripts/finalize_review.py --batch <batch> --auto-generate`; it auto-confirms reviewable prompts and immediately submits confirmed items to Dreamina CLI.
+If the user uses explicit auto-generation wording such as `自动生成视频`, `全自动生成视频`, `自动生成`, or `全自动生成`, skip the user confirmation wait after the review page is built. In that mode, run `scripts/finalize_review.py --batch <batch> --auto-generate`; it auto-confirms reviewable prompts and uses the single batch entrypoint. The entrypoint keeps at most six submissions in flight, starts the next item whenever one returns `submitted`/`submit_id`, and begins one polling/download phase only after all submissions are accepted.
 
 ## Opening-dialog multi-image bootstrap
 
