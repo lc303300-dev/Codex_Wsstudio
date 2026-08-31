@@ -66,10 +66,11 @@ New-Item -ItemType Directory -Force -Path $logsRoot | Out-Null
 if (-not $SkipCreditCheck) { Write-Host "Media Router will check Dreamina credit before each paid submit." }
 
 $manifestFiles = Get-ChildItem -LiteralPath $manifestRoot -Filter *.json -File
+$tasksPath = Join-Path $runtimeRoot "tasks.jsonl"
 $confirmed = @()
 foreach ($file in $manifestFiles) {
     $manifest = Get-Content -LiteralPath $file.FullName -Encoding UTF8 | ConvertFrom-Json
-    if ($manifest.prompt.status -eq "confirmed") {
+    if ($manifest.prompt.status -eq "confirmed" -and $manifest.generation.status -notin @("submitted", "downloaded", "success")) {
         $confirmed += [pscustomobject]@{
             File = $file
             Manifest = $manifest
@@ -78,7 +79,16 @@ foreach ($file in $manifestFiles) {
 }
 
 if ($confirmed.Count -eq 0) {
-    Write-Host "No confirmed manifest found. Set prompt.status to confirmed after user approval."
+    if (Test-Path -LiteralPath $tasksPath) {
+        Write-Host "No new confirmed item needs submission; resuming polling/download for existing submit IDs."
+        $waitScript = Join-Path $PSScriptRoot "wait_seedance_batch.py"
+        $waitArgs = @("--batch", $Batch)
+        if ($SeedanceCli) { $waitArgs += @("--seedance-cli", $SeedanceCli) }
+        & python $waitScript @waitArgs
+        if ($LASTEXITCODE -ne 0) { throw "Polling/download phase failed for batch $Batch." }
+        exit 0
+    }
+    Write-Host "No confirmed manifest found and no submitted task log is available."
     exit 0
 }
 
@@ -87,7 +97,6 @@ if (-not $Yes) {
     exit 0
 }
 
-$tasksPath = Join-Path $runtimeRoot "tasks.jsonl"
 $pending = @()
 
 foreach ($item in $confirmed) {
@@ -197,40 +206,36 @@ if ($pending.Count -gt 0) {
     $queueLimit = 6
     $nextIndex = 0
     $active = @()
-    $submitScript = {
-        param($router, $arguments)
-        & powershell -NoProfile -ExecutionPolicy Bypass -File $router @($arguments) 2>&1
-        exit $LASTEXITCODE
-    }
-
+    $childScript = Join-Path $PSScriptRoot "run_media_router_child.ps1"
     while ($nextIndex -lt $pending.Count -or $active.Count -gt 0) {
         while ($nextIndex -lt $pending.Count -and $active.Count -lt $queueLimit) {
             $task = $pending[$nextIndex]
             $nextIndex++
+            $argumentsPath = Join-Path $runtimeRoot ("{0}.args.json" -f $task.Manifest.id)
+            $resultPath = Join-Path $runtimeRoot ("{0}.result.txt" -f $task.Manifest.id)
+            ConvertTo-Json -InputObject @($task.CommandArgs) -Compress | Set-Content -LiteralPath $argumentsPath -Encoding UTF8
             Write-Host "Submitting $($task.Manifest.id) (in flight: $($active.Count + 1)/$queueLimit)..."
-            # Unary comma preserves the complete argument array as one job
-            # parameter; without it PowerShell may flatten --image/--prompt
-            # arguments while serializing Start-Job inputs.
-            $job = Start-Job -ScriptBlock $submitScript -ArgumentList @($MediaRouter, (,$task.CommandArgs))
-            $active += [pscustomobject]@{ Job = $job; Task = $task }
+            $childArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $childScript, "-Router", $MediaRouter, "-ArgumentsJson", $argumentsPath, "-OutputPath", $resultPath)
+            $process = Start-Process -FilePath "powershell.exe" -ArgumentList $childArgs -WindowStyle Hidden -PassThru
+            $active += [pscustomobject]@{ Process = $process; Task = $task; ResultPath = $resultPath; ArgumentsPath = $argumentsPath }
         }
 
-        $finished = @($active | Where-Object { $_.Job.State -in @("Completed", "Failed", "Stopped") })
+        $finished = @($active | Where-Object { $_.Process.HasExited })
         if ($finished.Count -eq 0) {
-            Wait-Job -Job ($active | ForEach-Object { $_.Job }) -Any | Out-Null
-            $finished = @($active | Where-Object { $_.Job.State -in @("Completed", "Failed", "Stopped") })
+            Start-Sleep -Milliseconds 250
+            continue
         }
 
         foreach ($entry in $finished) {
             $task = $entry.Task
-            $jobState = [string]$entry.Job.State
-            $output = @(Receive-Job -Job $entry.Job -ErrorAction SilentlyContinue)
+            $output = @()
+            if (Test-Path -LiteralPath $entry.ResultPath) {
+                $output = @(Get-Content -LiteralPath $entry.ResultPath -Encoding UTF8)
+            }
             $output | Set-Content -LiteralPath $task.LogPath -Encoding UTF8
             $joined = ($output -join "`n")
-            Remove-Job -Job $entry.Job -Force -ErrorAction SilentlyContinue
             $active = @($active | Where-Object { $_ -ne $entry })
-
-            if ($jobState -ne "Completed" -or [string]::IsNullOrWhiteSpace($joined)) {
+            if ($entry.Process.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($joined)) {
                 throw "Media Router process failed for $($task.Manifest.id). See $($task.LogPath)"
             }
             try { $routerResult = $joined | ConvertFrom-Json }
@@ -256,6 +261,7 @@ if ($pending.Count -gt 0) {
             $task.Manifest.generation.error = $null
             $task.Manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $task.Item.File.FullName -Encoding UTF8
             Write-Host "Accepted $($task.Manifest.id): $submitId"
+            Remove-Item -LiteralPath $entry.ResultPath, $entry.ArgumentsPath -Force -ErrorAction SilentlyContinue
         }
     }
 }

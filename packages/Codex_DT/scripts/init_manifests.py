@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,11 @@ def workspace_rel(path_value: str) -> str:
 
 def read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def natural_source_key(record: dict[str, Any]) -> list[int | str]:
+    name = normalize_windows_path(str(record.get("input_path", ""))).name.casefold()
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", name)]
 
 
 def write_json(path: Path, data: dict[str, Any]) -> None:
@@ -185,6 +191,7 @@ def main() -> int:
         raise SystemExit(f"Expected a list or object in {args.previews}")
     if not records:
         raise SystemExit(f"No preview records found in {args.previews}. Put images in inputs/<batch>/ and run prepare_previews.ps1 first.")
+    records.sort(key=natural_source_key)
     template = read_json(TEMPLATE)
     created = 0
     skipped = 0

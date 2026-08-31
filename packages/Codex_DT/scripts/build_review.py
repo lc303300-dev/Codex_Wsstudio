@@ -52,14 +52,36 @@ def asset_prefix(out: Path) -> str:
 
 def render_card(path: Path, manifest: dict[str, Any], prefix: str) -> str:
     prompt_text = read_prompt(manifest)
-    preview_src = rel(manifest.get("preview_image"))
     item_id = html.escape(str(manifest.get("id", path.stem)))
+
+    # Render every ordered reference asset, not only the manifest's primary
+    # preview. Multi-image video tasks rely on this order for CLI binding.
+    media_blocks: list[str] = []
+    assets = manifest.get("mqrox_compile", {}).get("asset_manifest", {}).get("assets", [])
+    if isinstance(assets, list) and assets:
+        for index, asset in enumerate(assets, start=1):
+            source = str(asset.get("source", "")) if isinstance(asset, dict) else ""
+            source_stem = Path(source).stem
+            preview_candidates = sorted(ROOT.glob(f"previews/*/{source_stem}.*.preview.png"))
+            preview_src = ""
+            if preview_candidates:
+                preview_src = rel(str(preview_candidates[0]))
+            elif index == 1:
+                preview_src = rel(manifest.get("preview_image"))
+            label = html.escape(str(asset.get("tag") or f"图片{index}")) if isinstance(asset, dict) else f"图片{index}"
+            if preview_src:
+                media_blocks.append(
+                    f'<div class="ref"><div class="ref-label">{label}</div>'
+                    f'<img src="{html.escape(prefix + preview_src)}" alt="{item_id} {label}"></div>'
+                )
+    if not media_blocks:
+        preview_src = rel(manifest.get("preview_image"))
+        if preview_src:
+            media_blocks.append(f'<div class="ref"><img src="{html.escape(prefix + preview_src)}" alt="{item_id}"></div>')
 
     return f"""
     <section class="card">
-      <div class="media">
-        <img src="{html.escape(prefix + preview_src)}" alt="{item_id}">
-      </div>
+      <div class="media">{''.join(media_blocks)}</div>
       <div class="content">
         <h3>给即梦 AI 的中文提示词</h3>
         <pre>{html.escape(prompt_text or "提示词文件不存在或为空")}</pre>
@@ -99,7 +121,9 @@ def main() -> int:
     h3 {{ font-size: 15px; margin: 0 0 8px; }}
     p {{ line-height: 1.65; margin: 0; }}
     .card {{ display: grid; grid-template-columns: minmax(260px, 40%) 1fr; gap: 20px; background: white; border: 1px solid #dfe3ea; border-radius: 8px; padding: 16px; margin-bottom: 18px; }}
+    .media {{ display: grid; gap: 12px; align-content: start; }}
     .media img {{ width: 100%; height: auto; border-radius: 6px; border: 1px solid #e1e5ec; display: block; }}
+    .ref-label {{ font-size: 12px; color: #4b5563; margin-bottom: 4px; }}
     .content {{ min-width: 0; }}
     pre {{ white-space: pre-wrap; line-height: 1.65; background: #111827; color: #f9fafb; padding: 14px; border-radius: 6px; overflow-x: auto; }}
     @media (max-width: 860px) {{

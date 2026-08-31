@@ -59,6 +59,7 @@ foreach ($image in $images) {
         throw "Preview converter returned an image larger than the permitted 1024px long edge: $($record.preview_path)"
     }
     $records += $record
+    $record | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath ([IO.Path]::ChangeExtension([string]$record.preview_path, ".json")) -Encoding UTF8
 }
 
 $manifestPath = Join-Path $outputRoot "_previews.json"
