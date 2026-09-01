@@ -106,6 +106,14 @@ if (Test-Path -LiteralPath $previewSource -PathType Leaf) {
     Write-Host "Updated preview converter: $previewTarget"
 }
 
+$chatPathResolverSource = Join-Path $RepositoryRoot "scripts\codex\Resolve-CodexChatPath.ps1"
+$chatPathResolverTarget = Join-Path $previewTargetRoot "Resolve-CodexChatPath.ps1"
+if (Test-Path -LiteralPath $chatPathResolverSource -PathType Leaf) {
+    New-Item -ItemType Directory -Path $previewTargetRoot -Force | Out-Null
+    Copy-Item -LiteralPath $chatPathResolverSource -Destination $chatPathResolverTarget -Force
+    Write-Host "Updated chat path resolver: $chatPathResolverTarget"
+}
+
 $githubRegistration = Join-Path $RepositoryRoot "packages\Codex_Github\register-global-skill.ps1"
 if (Test-Path -LiteralPath $githubRegistration -PathType Leaf) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $githubRegistration -CodexHome $CodexHome

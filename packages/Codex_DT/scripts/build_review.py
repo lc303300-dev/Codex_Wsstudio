@@ -62,7 +62,9 @@ def render_card(path: Path, manifest: dict[str, Any], prefix: str) -> str:
         for index, asset in enumerate(assets, start=1):
             source = str(asset.get("source", "")) if isinstance(asset, dict) else ""
             source_stem = Path(source).stem
-            preview_candidates = sorted(ROOT.glob(f"previews/*/{source_stem}.*.preview.png"))
+            manifest_preview = Path(str(manifest.get("preview_image", "")))
+            batch_preview_dir = (ROOT / manifest_preview.parent) if not manifest_preview.is_absolute() else manifest_preview.parent
+            preview_candidates = sorted(batch_preview_dir.glob(f"{source_stem}.*.preview.png"))
             preview_src = ""
             if preview_candidates:
                 preview_src = rel(str(preview_candidates[0]))

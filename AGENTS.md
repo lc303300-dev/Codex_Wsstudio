@@ -1,5 +1,9 @@
 # Workspace Deployment Triggers
 
+## Chat-Escaped Windows Paths
+
+Treat underscores in user-provided names and paths as literal filename characters. For example, `JY_003` is one complete name and must never be split into `JY` plus `_003` or interpreted as a directory boundary. Chat copy/paste may recursively Markdown-escape it as `JY\_003` or `JY\\\_003`, and may add HTML entities such as `&#x20;`. Before using any user-provided local path in a file, preview, upload, media, API, CLI, or tool call, run `${CODEX_HOME}/tools/Resolve-CodexChatPath.ps1` on the exact chat text. Continue only when it returns `status=resolved` with exactly one existing candidate. Otherwise stop and ask; never guess or reconstruct the path. Preserve the verified basename character-for-character.
+
 ## Windows Local Markdown Resources
 
 Treat Windows local Markdown links and embedded local media as a hard output contract. Never place a raw backslash path such as `D:\workspace\file.png` inside a Markdown link or image target. Use an absolute path with forward slashes such as `D:/workspace/file.png`, never a `file://` URI; when the target contains spaces, wrap the entire target in angle brackets. When a tool returns a renderable image, file resource, or dedicated Markdown link target, forward that returned resource or target directly and never reconstruct it from `output_path`, a display path, or another raw Windows path. Before sending a final response containing a local Markdown link or image, verify that every local target is absolute, uses forward slashes, and refers to the intended existing file or directory. If any local target contains a backslash, do not send the response until it is corrected.

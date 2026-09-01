@@ -122,7 +122,7 @@ foreach ($item in $confirmed) {
         throw "Prompt file missing for $($manifest.id): $promptFile"
     }
 
-    $prompt = Get-Content -LiteralPath $promptFile -Encoding UTF8 -Raw
+    $prompt = [System.IO.File]::ReadAllText($promptFile, [System.Text.UTF8Encoding]::new($false))
     $promptHash = ([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes($prompt.Trim()))).Replace('-', '').ToLowerInvariant())
     $confirmedHash = [string]$manifest.prompt.confirmed_sha256
     if ([string]::IsNullOrWhiteSpace($confirmedHash) -or $confirmedHash -ne $promptHash) {
