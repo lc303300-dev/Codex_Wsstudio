@@ -185,7 +185,7 @@ All classes preserve content the user did not ask to change. Workflow rules and 
 
 This pipeline must combine:
 
-- `third_party/seedance-forge` for corpus search and structure inspiration.
+- `third_party/seedance-forge` for mandatory per-shot/per-video-unit corpus search and structure inspiration. Search may be skipped only when that unit's query returns no matches, with the no-hit result recorded.
 - `third_party/seedance-2.0-prompt-skill` for Seedance/Dreamina first-frame prompting rules and validation concepts.
 
 Do not modify either third-party repository for local behavior. Add wrappers under `scripts/`.

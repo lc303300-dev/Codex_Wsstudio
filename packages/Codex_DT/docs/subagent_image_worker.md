@@ -63,8 +63,8 @@ The subagent must not modify either `third_party` project.
    - Preserve every concrete user motion/camera requirement from `manifest.user_requirements.motion_zh`.
    - If that field is empty but the task prompt says the original user request included per-image actions, stop and ask the main agent to populate it.
 6. Build a platform-neutral directing plan before writing platform syntax. Preserve useful professional English terms with Chinese explanations.
-7. Add Chinese and English forge search queries. Treat corpus version fields as source metadata, never as a model-selection signal.
-8. Run corpus search only when the brief needs structural inspiration or a comparable example:
+7. Add Chinese and English forge search queries for this shot/video unit. Treat corpus version fields as source metadata, never as a model-selection signal.
+8. Run corpus search for every shot/video unit:
 
    ```powershell
    python scripts/update_forge_matches.py --manifests <temp-dir-or-single-manifest-workaround>
@@ -78,7 +78,7 @@ The subagent must not modify either `third_party` project.
 
    Then write the returned matches into `forge.matches`.
 
-9. Extract patterns from the matches as inspiration. Do not copy full corpus prompts.
+9. If the unit has one or more matches, extraction is mandatory and the matches plus extracted patterns must be written to that unit's `forge` record. Only a confirmed zero-result search permits skipping corpus-derived patterns; record the no-hit status and query in the same record. Do not copy full corpus prompts.
 10. Write a Chinese Dreamina CLI image-to-video prompt to `prompts/<id>.prompt.txt`.
 11. Compile using the local multimodal reference rules:
     - `surface = "dreamina-cli"` for this local pipeline
