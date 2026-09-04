@@ -64,7 +64,7 @@ If the user provides one or more images and asks for any of the following:
 
 then use this repository pipeline first. Do not jump directly to the global `seedance-cli` skill unless the current manifest is already `confirmed` and the user is explicitly asking to submit generation.
 
-If the user uses explicit auto-generation wording such as `自动生成视频`, `全自动生成视频`, `自动生成`, or `全自动生成`, skip the user confirmation wait after the review page is built. In that mode, run `scripts/finalize_review.py --batch <batch> --auto-generate`; it auto-confirms reviewable prompts and uses the single batch entrypoint. The entrypoint keeps at most ten submissions in flight, starts the next item whenever one returns `submitted`/`submit_id`, and begins one polling/download phase only after all submissions are accepted. This is the unified route for different video units; do not create child agents or issue repeated top-level `generate_video` calls.
+If the user uses explicit auto-generation wording such as `自动生成视频`, `全自动生成视频`, `自动生成`, or `全自动生成`, skip the user confirmation wait after the review page is built. In that mode, run `scripts/finalize_review.py --batch <batch> --auto-generate`; it auto-confirms reviewable prompts and uses the single batch entrypoint. The entrypoint runs six end-to-end workers: each worker submits, polls, and downloads one video, then immediately admits the next pending item when that worker completes. This is the unified route for different video units; do not create child agents or issue repeated top-level `generate_video` calls.
 
 ## Opening-dialog multi-image bootstrap
 

@@ -78,7 +78,7 @@ Then continue from the printed `bootstrap_batch=...` value in a follow-up turn. 
 4. Draft and review all prompts in the main Codex agent.
 5. Run `scripts/finalize_review.py --batch <batch>` to build the review page and print final status.
 6. Show `review/<batch>/index.html` for user confirmation. The page only shows each image and its Chinese Dreamina/Jimeng prompt.
-7. After user confirmation, run `scripts/run_seedance_batch.ps1 -Batch <batch> -Yes` as the single batch entrypoint. Codex_DT must not submit directly to Dreamina CLI. It keeps at most ten submissions in flight, starts the next item whenever one returns `submitted`/`submit_id`, and starts polling/downloading only after all items have been accepted. If the user explicitly asks for auto-generation, for example `自动生成视频` or `全自动生成视频`, skip the confirmation wait and use `scripts/finalize_review.py --batch <batch> --auto-generate`, which invokes the same entrypoint.
+7. After user confirmation, run `scripts/run_seedance_batch.ps1 -Batch <batch> -Yes` as the single batch entrypoint. Codex_DT must not submit directly to Dreamina CLI. It runs a six-slot rolling queue: each worker submits one item and polls/downloads it to completion; only then is the next pending item admitted. If the user explicitly asks for auto-generation, for example `自动生成视频` or `全自动生成视频`, skip the confirmation wait and use `scripts/finalize_review.py --batch <batch> --auto-generate`, which invokes the same entrypoint.
 
 The main Codex agent drafts each manifest directly. Use these batch-isolated commands:
 

@@ -80,7 +80,20 @@ foreach ($file in $manifestFiles) {
 
 if ($confirmed.Count -eq 0) {
     if (Test-Path -LiteralPath $tasksPath) {
-        Write-Host "No new confirmed item needs submission; resuming polling/download for existing submit IDs."
+        $existingTasks = @(
+            Get-Content -LiteralPath $tasksPath -Encoding UTF8 |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                ForEach-Object { $_ | ConvertFrom-Json }
+        )
+        $legacyPending = @($existingTasks | Where-Object {
+            [string]::IsNullOrWhiteSpace([string]$_.output_path) -or
+            -not (Test-Path -LiteralPath ([string]$_.output_path))
+        })
+        if ($legacyPending.Count -eq 0) {
+            Write-Host "No new confirmed item needs submission; all recorded videos are already downloaded."
+            exit 0
+        }
+        Write-Host "No new confirmed item needs submission; resuming legacy polling/download for existing submit IDs."
         $waitScript = Join-Path $PSScriptRoot "wait_seedance_batch.py"
         $waitArgs = @("--batch", $Batch)
         if ($SeedanceCli) { $waitArgs += @("--seedance-cli", $SeedanceCli) }
@@ -187,7 +200,9 @@ foreach ($item in $confirmed) {
         "--video-confirmation-model", $modelVersion,
         "--video-confirmation-resolution", $resolution,
         "--video-confirmation-duration", [string]$duration,
-        "--video-execution-mode", "production_submit_only"
+        # Each rolling-queue worker owns one complete provider lifecycle:
+        # submit, poll, and download. A slot is released only after success.
+        "--video-execution-mode", "production"
     )
     if ($modelVersion -ne "seedance2.5") {
         $commandArgs += @("--video-model-selection-source", "user_explicit")
@@ -203,9 +218,10 @@ foreach ($item in $confirmed) {
 }
 
 if ($pending.Count -gt 0) {
-    # Keep the DT batch entrypoint aligned with the unified Media Router's
-    # dreamina-video capacity (ten concurrent submissions).
-    $queueLimit = 10
+    # The DT batch workflow intentionally uses six end-to-end workers. Each
+    # worker submits one task and polls it to completion before the next
+    # pending manifest enters the queue.
+    $queueLimit = 6
     $nextIndex = 0
     $active = @()
     $childScript = Join-Path $PSScriptRoot "run_media_router_child.ps1"
@@ -242,37 +258,42 @@ if ($pending.Count -gt 0) {
             }
             try { $routerResult = $joined | ConvertFrom-Json }
             catch { throw "Media Router returned invalid JSON for $($task.Manifest.id). See $($task.LogPath)" }
-            if ([string]$routerResult.status -ne "submitted") {
-                throw "Media Router did not accept $($task.Manifest.id): $([string]$routerResult.safe_reason)"
+            if ([string]$routerResult.status -ne "success") {
+                throw "Media Router did not complete $($task.Manifest.id): $([string]$routerResult.safe_reason)"
             }
             $submitId = [string]$routerResult.submit_id
-            if ([string]::IsNullOrWhiteSpace($submitId)) { throw "Media Router returned submitted without submit_id for $($task.Manifest.id)." }
+            if ([string]::IsNullOrWhiteSpace($submitId)) { throw "Media Router returned success without submit_id for $($task.Manifest.id)." }
+
+            $providerOutput = [string]$routerResult.output_path
+            if ([string]::IsNullOrWhiteSpace($providerOutput) -or -not (Test-Path -LiteralPath $providerOutput)) {
+                throw "Media Router returned success without a downloadable output for $($task.Manifest.id)."
+            }
+            $finalOutput = Join-Path $outputsRoot "videos"
+            New-Item -ItemType Directory -Force -Path $finalOutput | Out-Null
+            $destination = Join-Path $finalOutput ("{0}.mp4" -f $task.Manifest.id)
+            Copy-Item -LiteralPath $providerOutput -Destination $destination -Force
 
             $record = [ordered]@{
                 id = $task.Manifest.id
                 source_image = $task.SourceImage
                 prompt_file = $task.PromptFile
                 submit_id = $submitId
+                output_path = $destination
                 log = $task.LogPath
                 submitted_at = (Get-Date).ToString("o")
             }
             ($record | ConvertTo-Json -Compress -Depth 6) | Add-Content -LiteralPath $tasksPath -Encoding UTF8
-            $task.Manifest.generation.status = "submitted"
+            $task.Manifest.generation.status = "downloaded"
             $task.Manifest.generation.submit_id = $submitId
             $task.Manifest.generation.output_dir = $outputsRoot
+            $task.Manifest.generation.downloaded_files = @($destination)
             $task.Manifest.generation.error = $null
             $task.Manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $task.Item.File.FullName -Encoding UTF8
-            Write-Host "Accepted $($task.Manifest.id): $submitId"
+            Write-Host "Completed $($task.Manifest.id): $submitId"
             Remove-Item -LiteralPath $entry.ResultPath, $entry.ArgumentsPath -Force -ErrorAction SilentlyContinue
         }
     }
 }
 
-Write-Host "Submitted $($confirmed.Count) confirmed item(s)."
+Write-Host "Completed $($confirmed.Count) confirmed item(s) through the six-slot rolling queue."
 Write-Host "Task log: $tasksPath"
-Write-Host "All submissions accepted; starting one unified polling/download phase..."
-$waitScript = Join-Path $PSScriptRoot "wait_seedance_batch.py"
-$waitArgs = @("--batch", $Batch)
-if ($SeedanceCli) { $waitArgs += @("--seedance-cli", $SeedanceCli) }
-& python $waitScript @waitArgs
-if ($LASTEXITCODE -ne 0) { throw "Polling/download phase failed for batch $Batch." }
