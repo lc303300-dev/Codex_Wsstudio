@@ -59,9 +59,9 @@ For an explicit Codex video-function test, use the existing `generate_video` too
 
 ## Concurrency and Multi-Task Scheduling
 
-Image adapters default to `max_concurrency: 6`; `dreamina-video` supports up to 10 concurrent submissions. `dreamina-image` and `dreamina-video` share the `seedance-cli` capacity key, so their combined concurrency never exceeds 10, while image work alone remains capped at 6. Use project-private cross-process slot leases under `.codex-image-private/locks/providers/<capacity-key>/`.
+Image and video adapters default to `max_concurrency: 6`. `dreamina-image` and `dreamina-video` share the `seedance-cli` capacity key, so their combined concurrency never exceeds 6. Use project-private cross-process slot leases under `.codex-image-private/locks/providers/<capacity-key>/`.
 
-For multiple independent videos from the same prompt and references, pass `video_count` from 1 through 10 in one unified `generate_video` call. The Media Router submits these tasks concurrently; do not serialize repeated tool calls.
+For multiple independent videos from the same prompt and references, pass `video_count` from 1 through 6 in one unified `generate_video` call. The Media Router submits these tasks concurrently; do not serialize repeated tool calls.
 
 Normalize structured video durations before CLI submission. Accept integer seconds or common unit-bearing forms such as `5`, `"5"`, `"5s"`, and `"5秒"`; convert both requested and confirmed duration to the same plain integer string, such as `"5"`. Never pass `5s` or another unit-bearing value directly to Dreamina CLI.
 

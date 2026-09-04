@@ -9,7 +9,7 @@ Call `generate_video` with the user's non-empty `prompt`, ordered local `images`
 
 Pass duration as a structured seconds value. The router accepts common forms such as `5`, `"5"`, `"5s"`, and `"5秒"`, then normalizes both `video_duration` and `video_confirmation_duration` to the plain CLI integer `5`. Never forward a unit-bearing duration string directly to Dreamina CLI.
 
-When the user requests multiple independent outputs from the same prompt and references, pass their requested count as `video_count` from 1 through 10. This submits the tasks concurrently through the unified router; do not issue sequential `generate_video` calls. Treat the requested count as authorization for that many credit-consuming generations.
+When the user requests multiple independent outputs from the same prompt and references, pass their requested count as `video_count` from 1 through 6. This submits the tasks concurrently through the unified router; do not issue sequential `generate_video` calls. Treat the requested count as authorization for that many credit-consuming generations.
 
 Pass a concise Dreamina group name as `video_group` for ordinary production generation. If the user explicitly names a group, preserve that exact name. Otherwise derive one from the current task using this priority:
 
@@ -40,4 +40,4 @@ Treat every call as an external operation that may consume provider credits. Pre
 
 The router normalizes every local image input and proportionally resizes any image whose longest edge exceeds 1920 px before provider submission. This applies to first/last frames, multiframe inputs, and multimodal images without overwriting originals.
 
-Use the unified concurrent route for every multi-video request. When the prompt and ordered references are identical, make one `generate_video` call and pass the requested number through `video_count` (1-10); never split that request into repeated tool calls or child-agent tasks. When videos have different prompts or reference sets, use the Codex_DT batch entrypoint, which submits all confirmed manifests through the same Media Router rolling queue and performs one shared polling/download phase. Do not create child agents for ordinary video generation.
+Use the unified concurrent route for every multi-video request. When the prompt and ordered references are identical, make one `generate_video` call and pass the requested number through `video_count` (1-6); never split that request into repeated tool calls or child-agent tasks. When videos have different prompts or reference sets, use the Codex_DT batch entrypoint, which submits all confirmed manifests through the same Media Router rolling queue and performs one shared polling/download phase. Do not create child agents for ordinary video generation.

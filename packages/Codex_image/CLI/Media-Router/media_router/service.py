@@ -84,7 +84,7 @@ def execute(command: str, prompt: str, images=(), videos=(), audios=(), **video_
     if command == "generate_video":
         count = int(video_options.get("video_count") or 1)
         if not 1 <= count <= 10:
-            raise ValueError("video_count must be between 1 and 10")
+            raise ValueError("video_count must be between 1 and 6")
         if request.video_execution_mode == "test_submit_only" and count != 1:
             raise ValueError("test_submit_only supports exactly one task")
         router = VideoRouter(config, registry["dreamina-video"])
@@ -110,7 +110,7 @@ def execute(command: str, prompt: str, images=(), videos=(), audios=(), **video_
             (batch_request,) * count,
             router.execute,
             runtime_slots=router.provider.max_concurrency,
-            configured_limit=10,
+            configured_limit=6,
         )]
         statuses = {item.get("status") for item in results}
         aggregate_status = next(iter(statuses)) if len(statuses) == 1 and statuses <= {"success", "submitted"} else "partial"

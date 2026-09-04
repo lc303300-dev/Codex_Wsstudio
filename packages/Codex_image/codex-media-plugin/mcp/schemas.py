@@ -37,7 +37,7 @@ VIDEO_SCHEMA = {
         "video_confirmation_duration": {"type": ["string", "integer"], "description": "Confirmed duration in seconds; accepts the same normalized forms as video_duration."},
         "video_prompt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the exact reviewed prompt; required for production_submit_only."},
         "video_test_confirmation": {"type": "string", "enum": ["confirmed"], "description": "Explicit authorization for the internal reversible test submission channel."},
-        "video_count": {"type": "integer", "minimum": 1, "maximum": 10, "default": 1, "description": "Number of independent videos to submit concurrently; each consumes credits."},
+        "video_count": {"type": "integer", "minimum": 1, "maximum": 6, "default": 1, "description": "Number of independent videos to submit concurrently; each consumes credits."},
         "video_group": {"type": "string", "minLength": 1, "maxLength": 20, "description": "Dreamina group base name. The router prepends the local submission date as YYYY_MM_DD-; the date prefix does not count toward this 20-character limit."},
     },
     "required": ["prompt"],

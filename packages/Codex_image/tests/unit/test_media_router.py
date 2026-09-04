@@ -773,24 +773,24 @@ class VideoRouterTests(unittest.TestCase):
         self.assertEqual(stub.calls, 3)
         self.assertLessEqual(stub.max_active, 6)
 
-    def test_video_count_batch_uses_configured_ten_slot_ceiling(self):
+    def test_video_count_batch_uses_configured_six_slot_ceiling(self):
         import media_router.service as service_module
 
         observed = []
 
         class StubRouter:
-            provider = type("Provider", (), {"resolve_session": lambda self, name: "7", "max_concurrency": 10})()
+            provider = type("Provider", (), {"resolve_session": lambda self, name: "7", "max_concurrency": 6})()
 
             def execute(self, request):
                 observed.append(request.video_execution_mode)
                 return type("Result", (), {"to_dict": lambda self: {"status": "submitted"}})()
 
         with mock.patch.object(service_module, "VideoRouter", return_value=StubRouter()), mock.patch.object(service_module, "load_config", return_value={}), mock.patch.object(service_module, "build_registry", return_value={"dreamina-video": StubRouter.provider}), mock.patch.object(service_module, "validate_prompt_completeness"):
-            result = service_module.execute("generate_video", "reviewed", video_count=10)
-        self.assertEqual(result["count"], 10)
-        self.assertEqual(len(observed), 10)
+            result = service_module.execute("generate_video", "reviewed", video_count=6)
+        self.assertEqual(result["count"], 6)
+        self.assertEqual(len(observed), 6)
 
-    def test_rolling_scheduler_can_use_ten_video_slots(self):
+    def test_rolling_scheduler_uses_six_video_slots(self):
         from media_router.scheduler import rolling_map
 
         active = 0
@@ -807,10 +807,10 @@ class VideoRouterTests(unittest.TestCase):
                 active -= 1
             return value
 
-        values = rolling_map(range(10), runner, runtime_slots=10, configured_limit=10)
-        self.assertEqual(values, list(range(10)))
+        values = rolling_map(range(6), runner, runtime_slots=6, configured_limit=6)
+        self.assertEqual(values, list(range(6)))
         self.assertGreaterEqual(maximum, 2)
-        self.assertLessEqual(maximum, 10)
+        self.assertLessEqual(maximum, 6)
 
     def test_test_channel_does_not_require_user_explicit_model_source(self):
         router = VideoRouter({}, type("Provider", (), {})())
