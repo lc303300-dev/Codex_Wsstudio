@@ -33,12 +33,12 @@ class BatchTests(unittest.TestCase):
             result = self.invoke(manifest, folder, dry_run=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             plan = json.loads(result.stdout)
-            self.assertEqual(plan["seconds_per_image"], 60)
-            self.assertEqual(plan["deadline_multiplier"], 1.5)
-            self.assertEqual(plan["expected_seconds"], 240)
-            self.assertEqual(plan["deadline_seconds"], 360)
+            self.assertEqual(plan["seconds_per_image"], 120)
+            self.assertEqual(plan["deadline_multiplier"], 1.0)
+            self.assertEqual(plan["expected_seconds"], 480)
+            self.assertEqual(plan["deadline_seconds"], 480)
             self.assertEqual(plan["completion_grace_seconds"], 120)
-            self.assertEqual(plan["max_runtime_seconds"], 480)
+            self.assertEqual(plan["max_runtime_seconds"], 600)
 
     def test_explicit_deadline_overrides_per_image_default(self):
         with tempfile.TemporaryDirectory() as value:
@@ -48,7 +48,7 @@ class BatchTests(unittest.TestCase):
             result = self.invoke(manifest, folder, dry_run=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             plan = json.loads(result.stdout)
-            self.assertEqual(plan["expected_seconds"], 60)
+            self.assertEqual(plan["expected_seconds"], 120)
             self.assertEqual(plan["deadline_seconds"], 75)
             self.assertIsNone(plan["image_provider"])
 
@@ -79,8 +79,8 @@ class BatchTests(unittest.TestCase):
             result = self.invoke(manifest, folder, dry_run=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             plan = json.loads(result.stdout)
-            self.assertEqual(plan["expected_seconds"], 120)
-            self.assertEqual(plan["deadline_seconds"], 180)
+            self.assertEqual(plan["expected_seconds"], 240)
+            self.assertEqual(plan["deadline_seconds"], 240)
 
     def test_ratio_rejected_before_spawn(self):
         with tempfile.TemporaryDirectory() as value:

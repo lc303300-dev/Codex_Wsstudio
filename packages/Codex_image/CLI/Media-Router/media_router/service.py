@@ -100,8 +100,8 @@ def execute(command: str, prompt: str, images=(), videos=(), audios=(), **video_
             if resolved_group_name:
                 result.update({"video_group": resolved_group_name, "video_session_id": request.video_session_id})
             return result
-        # Use a bounded rolling queue: keep at most six router submissions in
-        # flight, and replenish a slot as soon as one returns submit_id.  The
+        # Use a bounded rolling queue: keep at most the configured provider
+        # capacity (capped at ten), and replenish a slot as soon as one returns submit_id.  The
         # router's production_batch mode is submit-only, so this never waits
         # for rendering while the queue is being filled. The DT batch entry
         # performs the single polling/download phase after this returns.
@@ -110,7 +110,7 @@ def execute(command: str, prompt: str, images=(), videos=(), audios=(), **video_
             (batch_request,) * count,
             router.execute,
             runtime_slots=router.provider.max_concurrency,
-            configured_limit=6,
+            configured_limit=10,
         )]
         statuses = {item.get("status") for item in results}
         aggregate_status = next(iter(statuses)) if len(statuses) == 1 and statuses <= {"success", "submitted"} else "partial"

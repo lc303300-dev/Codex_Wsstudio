@@ -10,6 +10,13 @@ Set-Content -LiteralPath (Join-Path $PersonalPluginsRoot "codex-media-plugin\.co
 New-Item -ItemType Directory -Path (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-plugin") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\.codex-plugin\plugin.json") -Value "{}" -Encoding UTF8
 New-Item -ItemType Directory -Path (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-empty") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $PrivateRoot "plugins\codex-media-plugin.backup-20260803-115107") -Force | Out-Null
+[ordered]@{
+    name = "codex-media-plugin"
+    kind = "plugin"
+    source_root = "Z:\missing\OlderCodex_image"
+    registered_at = (Get-Date).ToString("o")
+} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\codex-media-plugin.backup-20260803-115107\.codex-image-registration.json") -Encoding UTF8
 [ordered]@{
     stale = $true
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test\stale-cache.json") -Encoding UTF8
@@ -68,6 +75,15 @@ $cacheRecord = Get-Content -LiteralPath $cacheMarker -Raw -Encoding UTF8 | Conve
 if ($cacheRecord.source_root -ne $ProjectRoot) { throw "Cached plugin did not refresh to the active project root." }
 if (-not (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\$pluginVersion\skills\default-video-generation\SKILL.md") -PathType Leaf)) {
     throw "Cached plugin was not fully refreshed."
+}
+if (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-test")) {
+    throw "Stale versioned media cache was not removed."
+}
+if (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\cache\personal\codex-media-plugin\0.1.0-empty")) {
+    throw "Empty legacy media cache was not removed."
+}
+if (Test-Path -LiteralPath (Join-Path $PrivateRoot "plugins\codex-media-plugin.backup-20260803-115107")) {
+    throw "Stale global media backup was not removed."
 }
 $backups = @(Get-ChildItem -LiteralPath (Join-Path $ProjectRoot ".codex-image-private\validation\state-migration") -File -Filter "state-v1-*.json")
 if (-not $backups.Count) { throw "State migration backup was not created." }

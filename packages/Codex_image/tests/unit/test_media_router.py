@@ -152,6 +152,45 @@ class ImageRouterTests(unittest.TestCase):
         self.assertEqual(calls, ["comfly-gpt-image-2"])
         self.assertEqual(result.routing_reason, "style_redraw")
 
+    def test_local_edit_and_real_person_prompts_prefer_gemini(self):
+        calls = []
+        registry = {pid: FakeProvider(pid, pid, "success", calls) for pid in ("comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image")}
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source.png"
+            write_solid_png(source, 32, 32)
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary) / "private")).execute(
+                MediaRequest("替换元素并保留真人角色", (source,), image_ratio="1:1")
+            )
+        self.assertEqual(calls, ["comfly-gemini-lite"])
+        self.assertEqual(result.routing_reason, "geometry_preserving_redraw")
+
+    def test_ordinary_single_image_prefers_gpt(self):
+        calls = []
+        registry = {pid: FakeProvider(pid, pid, "success", calls) for pid in ("comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image")}
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source.png"
+            write_solid_png(source, 32, 32)
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary) / "private")).execute(
+                MediaRequest("普通图片", (source,), image_ratio="1:1")
+            )
+        self.assertEqual(calls, ["comfly-gpt-image-2"])
+        self.assertEqual(result.routing_reason, "default_single_image")
+
+    def test_ordinary_multi_image_balances_deterministically(self):
+        calls = []
+        registry = {pid: FakeProvider(pid, pid, "success", calls) for pid in ("comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image")}
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = []
+            for index in range(2):
+                path = Path(temporary) / f"source{index}.png"
+                write_solid_png(path, 32, 32)
+                paths.append(path)
+            result = ImageRouter(router_config(registry), registry, TaskStore(Path(temporary) / "private")).execute(
+                MediaRequest("普通多图", tuple(paths), image_ratio="1:1")
+            )
+        self.assertIn(calls, (["comfly-gemini-lite"], ["comfly-gpt-image-2"]))
+        self.assertEqual(result.routing_reason, "default_multi_image_balanced")
+
     def test_geometry_preservation_takes_precedence_over_style_redraw(self):
         calls = []
         registry = {
@@ -733,6 +772,45 @@ class VideoRouterTests(unittest.TestCase):
         self.assertEqual(result["status"], "submitted")
         self.assertEqual(stub.calls, 3)
         self.assertLessEqual(stub.max_active, 6)
+
+    def test_video_count_batch_uses_configured_ten_slot_ceiling(self):
+        import media_router.service as service_module
+
+        observed = []
+
+        class StubRouter:
+            provider = type("Provider", (), {"resolve_session": lambda self, name: "7", "max_concurrency": 10})()
+
+            def execute(self, request):
+                observed.append(request.video_execution_mode)
+                return type("Result", (), {"to_dict": lambda self: {"status": "submitted"}})()
+
+        with mock.patch.object(service_module, "VideoRouter", return_value=StubRouter()), mock.patch.object(service_module, "load_config", return_value={}), mock.patch.object(service_module, "build_registry", return_value={"dreamina-video": StubRouter.provider}), mock.patch.object(service_module, "validate_prompt_completeness"):
+            result = service_module.execute("generate_video", "reviewed", video_count=10)
+        self.assertEqual(result["count"], 10)
+        self.assertEqual(len(observed), 10)
+
+    def test_rolling_scheduler_can_use_ten_video_slots(self):
+        from media_router.scheduler import rolling_map
+
+        active = 0
+        maximum = 0
+        gate = threading.Lock()
+
+        def runner(value):
+            nonlocal active, maximum
+            with gate:
+                active += 1
+                maximum = max(maximum, active)
+            time.sleep(0.02)
+            with gate:
+                active -= 1
+            return value
+
+        values = rolling_map(range(10), runner, runtime_slots=10, configured_limit=10)
+        self.assertEqual(values, list(range(10)))
+        self.assertGreaterEqual(maximum, 2)
+        self.assertLessEqual(maximum, 10)
 
     def test_test_channel_does_not_require_user_explicit_model_source(self):
         router = VideoRouter({}, type("Provider", (), {})())

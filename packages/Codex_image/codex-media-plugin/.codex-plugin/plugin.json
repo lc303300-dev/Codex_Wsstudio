@@ -1,6 +1,6 @@
 {
   "name": "codex-media-plugin",
-  "version": "0.1.0+codex.20260828061702",
+  "version": "0.1.0+codex.20260904145301",
   "description": "Unified Wsstudio media generation, conversion, workflow routing, and tool-discovery tools for Codex.",
   "author": {
     "name": "Codex_image"

@@ -49,7 +49,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\new-machine-deploy.ps1
 4. 同步 Codex 配置
 5. 安装媒体工具和 Dreamina/Seedance 依赖
 6. 注册 Codex Flow 和批量图片等全局业务 Skills
-7. 输出部署结果
+7. 清理 Wsstudio 遗留的媒体插件缓存、技能备份/禁用目录，并重新应用当前全局 Skills
+8. 输出部署结果
 
 同步 Codex 配置时，脚本会把仓库维护的 `config/codex/AGENTS.md` 安装为当前用户的全局
 Codex 指令，其中包括 Windows 本地资源硬约束：Markdown 本地链接和图片必须使用绝对

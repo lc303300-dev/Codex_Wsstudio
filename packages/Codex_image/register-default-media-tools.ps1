@@ -120,6 +120,72 @@ function Refresh-ManagedPluginCaches {
     }
 }
 
+function Remove-StaleManagedMediaCaches {
+    param([string]$CurrentVersion)
+
+    # Clean only Wsstudio-managed legacy media registrations. Unmarked
+    # directories are treated as user-owned and are deliberately preserved.
+    $cacheRoot = Join-Path $CodexHome "plugins\cache\personal\codex-media-plugin"
+    if (Test-Path -LiteralPath $cacheRoot -PathType Container) {
+        foreach ($candidate in @(Get-ChildItem -LiteralPath $cacheRoot -Directory -Force -ErrorAction SilentlyContinue)) {
+            if ($candidate.Name -eq $CurrentVersion) { continue }
+            $marker = Join-Path $candidate.FullName $MarkerName
+            $manifest = Join-Path $candidate.FullName ".codex-plugin\plugin.json"
+            $managed = $false
+            if (Test-Path -LiteralPath $marker -PathType Leaf) {
+                try {
+                    $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+                    $managed = ([string]$record.name -eq "codex-media-plugin")
+                } catch {
+                    $managed = $false
+                }
+            } elseif (Test-Path -LiteralPath $manifest -PathType Leaf) {
+                try {
+                    $record = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
+                    $managed = ([string]$record.name -eq "codex-media-plugin")
+                } catch {
+                    $managed = $false
+                }
+            } elseif (@(Get-ChildItem -LiteralPath $candidate.FullName -Force -ErrorAction SilentlyContinue).Count -eq 0) {
+                # Empty version directories are generated cache debris.
+                $managed = $true
+            }
+            if ($managed) {
+                try {
+                    [System.IO.Directory]::Delete($candidate.FullName, $true)
+                    Write-Host "Removed stale media plugin cache: $($candidate.FullName)"
+                } catch {
+                    Write-Warning "Could not remove stale media plugin cache (it may be locked): $($candidate.FullName)"
+                }
+            }
+        }
+    }
+
+    $legacyRoots = @(
+        (Join-Path $CodexHome "plugins"),
+        (Join-Path $CodexHome "skill-backups"),
+        (Join-Path $CodexHome "skills")
+    )
+    foreach ($root in $legacyRoots) {
+        if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+        foreach ($candidate in @(Get-ChildItem -LiteralPath $root -Directory -Force -ErrorAction SilentlyContinue)) {
+            $isLegacyName = $candidate.Name -match '^(?:codex-media-plugin|default-(?:image|video)-generation)(?:\.backup-|\.disabled-)'
+            if (-not $isLegacyName) { continue }
+            $marker = Join-Path $candidate.FullName $MarkerName
+            if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) { continue }
+            try {
+                $record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+                if ([string]$record.name -in @("codex-media-plugin", "default-image-generation", "default-video-generation")) {
+                    [System.IO.Directory]::Delete($candidate.FullName, $true)
+                    Write-Host "Removed stale global media registration: $($candidate.FullName)"
+                }
+            } catch {
+                Write-Warning "Could not remove stale global media registration: $($candidate.FullName)"
+            }
+        }
+    }
+}
+
 function Update-PersonalMarketplaceManifest {
     param([string]$PluginPath)
 
@@ -181,6 +247,7 @@ function Install-VersionedPluginCache {
     if ([string]::IsNullOrWhiteSpace($version) -or $version -notmatch '^[A-Za-z0-9.+_-]+$') {
         throw "codex-media-plugin has an invalid version: $version"
     }
+    Remove-StaleManagedMediaCaches -CurrentVersion $version
     $cachePlugin = Join-Path $CodexHome "plugins\cache\personal\codex-media-plugin\$version"
     Install-ManagedDirectory `
         -Source (Join-Path $ProjectRoot "codex-media-plugin") `

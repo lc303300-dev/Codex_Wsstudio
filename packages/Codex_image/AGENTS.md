@@ -17,6 +17,7 @@ Every image generation or edit requires an explicit user-selected ratio before a
 
 When the user does not explicitly select a route, route each image task strictly serially in this default order and stop after the first validated non-empty local image:
 
+Default image routing is intent-aware: local edits, element replacement, or real-person prompts prefer `comfly-gemini-lite`; style conversion/redraw/stylization prefers `comfly-gpt-image-2`; an ordinary single-reference (or text-only) request prefers GPT; an ordinary multi-reference request balances first attempts 50/50 between Gemini and GPT. The other Comfly channel is the immediate fallback, followed by `dreamina-image` (Dreamina Image 5.0Pro at 4K by default).
 1. `comfly-gemini-lite` -> the model declared in `config/media-router.defaults.json` (currently `gemini-3.1-flash-image-preview`)
 2. `comfly-gpt-image-2` -> `gpt-image-2`
 3. `dreamina-image` -> Dreamina Image 5.0Pro at 4K by default
@@ -33,7 +34,7 @@ For Dreamina images, use Image 5.0Pro at 4K by default.
 
 ## Image Intent Routing
 
-When the user does not explicitly select an image provider, apply this lightweight intent routing before the normal fallback order. For an image-guided request that explicitly asks for original-position redraw, preserved composition, unchanged geometry, or unchanged positional relationships, try `comfly-gemini-lite` first because it is preferred for preserving the source geometry. For an explicit overall style redraw, reference-style redraw, or style transfer request, try `comfly-gpt-image-2` first because it is preferred for style transformation. If both intents are explicit on an image-guided request, geometry preservation takes precedence. Otherwise retain the default `comfly-gemini-lite` -> `comfly-gpt-image-2` -> `dreamina-image` order. Explicit user provider selection always overrides intent routing. The selected first provider still follows the normal serial fallback policy if it returns a fallback-eligible failure.
+When the user does not explicitly select an image provider, apply intent routing before fallback. Local edits/element replacement/real-person prompts prefer Gemini; style conversion/redraw/stylization prefers GPT; otherwise text-only or single-reference requests prefer GPT, while multi-reference requests split first attempts between Gemini and GPT. The opposite Comfly channel is the fallback, then Dreamina. Geometry intent takes precedence if it conflicts with style intent. Explicit user provider selection always overrides intent routing.
 
 ## Video Routing
 
@@ -66,17 +67,7 @@ Normalize structured video durations before CLI submission. Accept integer secon
 
 Pass a Dreamina group base name through `video_group` for ordinary production generation. Preserve a user-explicit base name. Otherwise prefer an explicit brand, product line, project, property, IP, organization, or campaign name from the task and format it as `<proper name>_<content type>`, for example `华为 Mate 80_产品视频`; use a specific suffix such as `产品视频`, `品牌广告`, `楼盘宣传片`, `城市巡游`, or `建筑漫游`, never bare `_视频`. If no proper name exists, derive a concise name from the distinctive video subject and action/theme without forcing this suffix format. Never invent a brand. The base name must be no longer than 20 Unicode characters total, including spaces, underscore, and suffix. The router prepends the local submission date as `YYYY_MM_DD-`; this prefix does not count toward the 20-character limit. If needed, remove nonessential modifiers and redundant hierarchy while preserving the most recognizable proper name and deliverable category; never cut a word into an ambiguous fragment. Exclude prompt syntax, reference labels, technical settings, generic generation wording, filenames, and sensitive personal data. Resolve the resulting dated name by exact Session name, create it once if absent, and pass the resulting `--session` ID to every submission in the batch. Omit it only when the user explicitly requests Session `0`, the default group.
 
-Explicit `batch-image-generation` workflows use the deterministic Codex_Batch_Image scheduler, not child Agents. Its 10 task slots do not raise adapter capacity; provider leases and limits remain authoritative. For other work, one media task uses the default tool directly and two or more independent tasks follow this child-Agent protocol:
-
-1. Build a pending queue and stable private task manifests.
-2. Keep at most `min(6, runtime_available_child_slots)` child Agents active.
-3. Give each child one bounded task and explicitly prohibit creating child Agents.
-4. Refill a freed slot immediately until the queue is empty.
-5. Read validated `result.json` files and summarize task ID, terminal state, provider/model, attempts, and output path without credentials or full logs.
-
-Every image child Agent must stop and return its failed result immediately when the router reports `task_timeout` at 300 seconds so its queue slot is released and can be refilled.
-
-Python scheduler tests may simulate this rolling protocol, but Python must not pretend to spawn Codex Agents.
+Explicit `batch-image-generation` workflows use the deterministic Codex_Batch_Image scheduler, not child Agents. Its 10 task slots do not raise adapter capacity; provider leases and limits remain authoritative. Video generation follows a separate unified route: identical prompt/reference sets use one `generate_video` call with `video_count`; different video units use the Codex_DT batch entrypoint and its rolling Media Router queue. Ordinary video generation must not be split into repeated tool calls or child-agent tasks.
 
 ## Setup and Status
 

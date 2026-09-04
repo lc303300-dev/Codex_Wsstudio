@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import hashlib
 from dataclasses import replace
 from pathlib import Path
 
@@ -15,6 +16,7 @@ SUPPORTED_IMAGE_RATIOS = {"21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:
 SUPPORTED_IMAGE_RESOLUTIONS = {"1K", "2K", "4K"}
 GEOMETRY_PRESERVING_PHRASES = ("原图原位", "原位重绘", "保持构图", "构图不变", "几何结构", "结构不变", "位置关系不变", "保持位置", "不改主体形态", "保留原图结构", "严格保持")
 STYLE_REDRAW_PHRASES = ("风格重绘", "整体风格", "风格迁移", "参考图风格", "按参考风格", "换画风", "换风格", "油画风", "动漫风", "插画风", "水彩风", "像素风")
+LOCAL_EDIT_PHRASES = ("局部修改", "局部调整", "元素替换", "替换元素", "真人角色", "真人")
 
 
 class ImageRouter:
@@ -29,14 +31,25 @@ class ImageRouter:
         if requested:
             image_ids = [item for item in image_ids if item == requested]
             return [self.registry[provider_id] for provider_id in image_ids], "user_explicit_provider"
-        ordered_ids = sorted(image_ids, key=lambda item: configured[item]["priority"])
+        # The default image path intentionally uses the two Comfly channels and
+        # Dreamina as the final fallback. Other enabled image adapters remain
+        # available only when explicitly selected by the caller.
+        preferred_ids = [item for item in ("comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image") if item in image_ids]
+        ordered_ids = preferred_ids or sorted(image_ids, key=lambda item: configured[item]["priority"])
         prompt = request.prompt.casefold()
-        if request.images and any(phrase in prompt for phrase in GEOMETRY_PRESERVING_PHRASES):
+        if any(phrase in prompt for phrase in GEOMETRY_PRESERVING_PHRASES) or any(phrase in prompt for phrase in LOCAL_EDIT_PHRASES):
             preferred, reason = "comfly-gemini-lite", "geometry_preserving_redraw"
         elif any(phrase in prompt for phrase in STYLE_REDRAW_PHRASES):
             preferred, reason = "comfly-gpt-image-2", "style_redraw"
+        elif len(request.images) > 1:
+            # A single request carrying multiple references represents the
+            # ordinary multi-image case. Hashing the prompt gives a stable,
+            # reproducible 50/50 split across independent requests while the
+            # opposite Comfly channel remains the immediate fallback.
+            preferred = "comfly-gemini-lite" if int(hashlib.sha256(request.prompt.encode("utf-8")).hexdigest()[-1], 16) % 2 == 0 else "comfly-gpt-image-2"
+            reason = "default_multi_image_balanced"
         else:
-            preferred, reason = None, "default_fallback"
+            preferred, reason = "comfly-gpt-image-2", "default_single_image"
         if preferred in ordered_ids:
             ordered_ids.remove(preferred)
             ordered_ids.insert(0, preferred)

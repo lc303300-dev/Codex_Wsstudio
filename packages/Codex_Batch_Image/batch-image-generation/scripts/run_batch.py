@@ -22,8 +22,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 RATIOS = {"21:9", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"}
 IMAGE_PROVIDERS = {"comfly-gemini-lite", "comfly-gpt-image-2", "apimart-gpt-image-2", "google-gemini-image", "dreamina-image"}
 IMAGE_RESOLUTIONS = {"1K", "2K", "4K"}
-DEFAULT_SECONDS_PER_IMAGE = 60.0
-DEFAULT_DEADLINE_MULTIPLIER = 1.5
+DEFAULT_SECONDS_PER_IMAGE = 120.0
+DEFAULT_DEADLINE_MULTIPLIER = 1.0
 DEFAULT_COMPLETION_GRACE_SECONDS = 120.0
 
 
@@ -150,11 +150,28 @@ def validate(data: dict[str, Any]) -> None:
 
 
 def resolve_timing(data: dict[str, Any], job_count: int) -> tuple[float, float]:
-    concurrency = int(data.get("concurrency", 10))
-    expected_seconds = math.ceil(job_count / concurrency) * float(data.get("seconds_per_image", DEFAULT_SECONDS_PER_IMAGE))
+    # One to ten images always receive a full 120-second dispatch window.
+    # Larger batches scale by 120 seconds per ten-image wave.
+    expected_seconds = max(DEFAULT_SECONDS_PER_IMAGE, math.ceil(job_count / 10) * DEFAULT_SECONDS_PER_IMAGE)
     if "deadline_seconds" in data:
         return expected_seconds, float(data["deadline_seconds"])
     return expected_seconds, expected_seconds * float(data.get("deadline_multiplier", DEFAULT_DEADLINE_MULTIPLIER))
+
+
+def providers_for_job(job: dict[str, Any]) -> list[str]:
+    prompt = job["prompt"].casefold()
+    local = ("局部修改", "局部调整", "元素替换", "替换元素", "真人角色", "真人")
+    style = ("风格转换", "风格重绘", "画面重绘", "整体风格", "风格化", "风格迁移", "换画风", "换风格")
+    if any(value in prompt for value in local):
+        return ["comfly-gemini-lite", "comfly-gpt-image-2", "dreamina-image"]
+    if any(value in prompt for value in style):
+        return ["comfly-gpt-image-2", "comfly-gemini-lite", "dreamina-image"]
+    if len(job.get("references", [])) > 1:
+        digest = hashlib.sha256(job["prompt"].encode("utf-8")).hexdigest()
+        first = "comfly-gemini-lite" if int(digest[-1], 16) % 2 == 0 else "comfly-gpt-image-2"
+        second = "comfly-gpt-image-2" if first == "comfly-gemini-lite" else "comfly-gemini-lite"
+        return [first, second, "dreamina-image"]
+    return ["comfly-gpt-image-2", "comfly-gemini-lite", "dreamina-image"]
 
 
 def router_result(stdout: bytes) -> dict[str, Any]:
@@ -189,7 +206,7 @@ async def kill_tree(process: asyncio.subprocess.Process) -> None:
         process.kill()
 
 
-async def generate(job: dict[str, Any], ratio: str, resolution: str | None, image_provider: str | None, router: Path, root: Path, store: Store, gate: StartGate, dispatch_deadline: float, completion_deadline: float) -> None:
+async def generate(job: dict[str, Any], ratio: str, resolution: str | None, image_provider: str | None, router: Path, root: Path, store: Store, gate: StartGate, timeout_gate: asyncio.Semaphore, dispatch_deadline: float, completion_deadline: float) -> None:
     if not await gate.wait(dispatch_deadline):
         return
     if not store.acquire(job["key"]):
@@ -197,41 +214,44 @@ async def generate(job: dict[str, Any], ratio: str, resolution: str | None, imag
     if time.monotonic() >= dispatch_deadline:
         store.finish(job["key"], "abandoned", failure_class="batch_deadline_not_submitted")
         return
-    command = [sys.executable, "-B", str(router), "generate_image", "--prompt", job["prompt"], "--image-ratio", ratio]
-    if resolution:
-        command += ["--image-resolution", resolution]
-    if image_provider:
-        command += ["--image-provider", image_provider]
-    for reference in job["references"]:
-        command += ["--image", str(reference)]
-    process = await asyncio.create_subprocess_exec(
-        *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
-        start_new_session=os.name != "nt",
-    )
-    try:
-        remaining = completion_deadline - time.monotonic()
-        if remaining <= 0:
-            raise asyncio.TimeoutError
-        stdout, _ = await asyncio.wait_for(process.communicate(), remaining)
-    except (asyncio.TimeoutError, asyncio.CancelledError):
-        await kill_tree(process)
-        store.finish(job["key"], "failed", failure_class="batch_completion_grace_timeout")
-        return
-    try:
-        result = router_result(stdout)
-    except ValueError:
-        store.finish(job["key"], "failed", failure_class="invalid_router_result")
-        return
-    source = Path(result["output_path"]) if result.get("output_path") else None
-    if result.get("status") == "success" and source and source.is_file() and time.monotonic() <= completion_deadline:
-        destination_dir = root / "results" / job["group"]
-        destination_dir.mkdir(parents=True, exist_ok=True)
-        destination = destination_dir / f"{job['index']:02d}{source.suffix.lower() or '.png'}"
-        shutil.copy2(source, destination)
-        store.finish(job["key"], "success", router_status="success", provider_id=result.get("provider_id"), model_id=result.get("model_id"), source_output=str(source.resolve()), collected_output=str(destination.resolve()))
-    else:
-        store.finish(job["key"], "failed", router_status=result.get("status"), provider_id=result.get("provider_id"), model_id=result.get("model_id"), failure_class=result.get("failure_class") or "router_failure")
+    providers = [image_provider] if image_provider else providers_for_job(job)
+    for attempt, provider_id in enumerate(providers):
+        if time.monotonic() >= dispatch_deadline:
+            store.finish(job["key"], "failed", failure_class="batch_completion_grace_timeout")
+            return
+        command = [sys.executable, "-B", str(router), "generate_image", "--prompt", job["prompt"], "--image-ratio", ratio, "--image-provider", provider_id]
+        if resolution:
+            command += ["--image-resolution", resolution]
+        for reference in job["references"]:
+            command += ["--image", str(reference)]
+        process = await asyncio.create_subprocess_exec(*command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0, start_new_session=os.name != "nt")
+        timed_out = False
+        try:
+            remaining = min(120.0, completion_deadline - time.monotonic())
+            if remaining <= 0:
+                raise asyncio.TimeoutError
+            stdout, _ = await asyncio.wait_for(process.communicate(), remaining)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            timed_out = True
+            await kill_tree(process)
+        if timed_out:
+            if attempt == 0:
+                async with timeout_gate:
+                    continue
+            continue
+        try:
+            result = router_result(stdout)
+        except ValueError:
+            continue
+        source = Path(result["output_path"]) if result.get("output_path") else None
+        if result.get("status") == "success" and source and source.is_file() and time.monotonic() <= completion_deadline:
+            destination_dir = root / "results" / job["group"]
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            destination = destination_dir / f"{job['index']:02d}{source.suffix.lower() or '.png'}"
+            shutil.copy2(source, destination)
+            store.finish(job["key"], "success", router_status="success", provider_id=result.get("provider_id"), model_id=result.get("model_id"), source_output=str(source.resolve()), collected_output=str(destination.resolve()))
+            return
+    store.finish(job["key"], "failed", failure_class="batch_completion_grace_timeout" if time.monotonic() >= completion_deadline else "router_failure")
 
 
 def get_font(size: int) -> ImageFont.ImageFont:
@@ -291,11 +311,11 @@ async def run(data: dict[str, Any], manifest: Path, router: Path, dry_run: bool)
         store.add(job["key"], job["group"], job["index"], job["prompt"])
     dispatch_deadline = time.monotonic() + deadline_seconds
     completion_deadline = dispatch_deadline + completion_grace_seconds
-    gate, semaphore = StartGate(float(data.get("start_delay_seconds", 1))), asyncio.Semaphore(int(data.get("concurrency", 10)))
+    gate, semaphore, timeout_gate = StartGate(float(data.get("start_delay_seconds", 1))), asyncio.Semaphore(int(data.get("concurrency", 10))), asyncio.Semaphore(2)
 
     async def limited(job: dict[str, Any]) -> None:
         async with semaphore:
-            await generate(job, data["image_ratio"], data.get("image_resolution"), data.get("image_provider"), router, root, store, gate, dispatch_deadline, completion_deadline)
+            await generate(job, data["image_ratio"], data.get("image_resolution"), data.get("image_provider"), router, root, store, gate, timeout_gate, dispatch_deadline, completion_deadline)
 
     tasks = [asyncio.create_task(limited(job)) for job in jobs]
     _, pending = await asyncio.wait(tasks, timeout=max(0, dispatch_deadline - time.monotonic()))

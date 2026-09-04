@@ -109,6 +109,12 @@ copies, then refreshes the globally registered `codex-github`, `video-to-gif`,
 `packages/Codex_Github/`, `packages/Codex_Gif/`, `packages/Codex_DT/`,
 `packages/Codex_Batch_Image/`, and `packages/Codex_Flow/` when those package scripts are present.
 
+During every registration/update it removes stale Wsstudio-managed media plugin
+versions, empty legacy cache directories, and marked `backup`/`disabled` copies of
+the default media skills. Unmarked user-owned directories are preserved. The current
+plugin version is then installed into the versioned cache and the global skills are
+re-applied from the repository source.
+
 After deployment, the same pipeline runs `scripts/maintenance/verify-deployment.ps1`.
 Run it independently to audit an existing machine:
 

@@ -78,6 +78,14 @@ class PluginContractTests(unittest.TestCase):
         self.assertIn("2026_08_20-华为 Mate 80_产品视频", skill)
         self.assertIn("Omit `video_group` only when the user explicitly asks", skill)
 
+    def test_default_video_skill_requires_one_unified_concurrent_route(self):
+        skill = (PLUGIN / "skills" / "default-video-generation" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("one `generate_video` call", skill)
+        self.assertIn("video_count", skill)
+        self.assertIn("Codex_DT batch entrypoint", skill)
+        self.assertNotIn("create a pending queue and keep up to `min(6, runtime_available_child_slots)` child agents", skill)
+        self.assertNotIn("For two or more independent media tasks, create a pending queue", skill)
+
     def test_test_channel_is_documented_as_a_cancellable_submission_probe(self):
         skill = (PLUGIN / "skills" / "default-video-generation" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("ten hours or longer", skill)

@@ -8,8 +8,14 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
-def rolling_map(tasks: Iterable[T], runner: Callable[[T], R], runtime_slots: int, configured_limit: int = 6) -> list[R]:
-    limit = min(6, configured_limit, max(1, runtime_slots))
+def rolling_map(tasks: Iterable[T], runner: Callable[[T], R], runtime_slots: int, configured_limit: int = 10) -> list[R]:
+    """Run a bounded rolling queue up to the caller/provider capacity.
+
+    The unified video route supports ten provider slots.  Keep the scheduler
+    generic and let each caller provide its authoritative capacity instead of
+    silently imposing the old six-slot video ceiling here.
+    """
+    limit = min(10, configured_limit, max(1, runtime_slots))
     pending = deque(tasks)
     active: dict[Future, int] = {}
     results: list[tuple[int, R]] = []

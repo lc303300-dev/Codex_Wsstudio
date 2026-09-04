@@ -203,7 +203,9 @@ foreach ($item in $confirmed) {
 }
 
 if ($pending.Count -gt 0) {
-    $queueLimit = 6
+    # Keep the DT batch entrypoint aligned with the unified Media Router's
+    # dreamina-video capacity (ten concurrent submissions).
+    $queueLimit = 10
     $nextIndex = 0
     $active = @()
     $childScript = Join-Path $PSScriptRoot "run_media_router_child.ps1"
