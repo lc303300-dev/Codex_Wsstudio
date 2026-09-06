@@ -12,6 +12,14 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SEARCH = ROOT / "scripts" / "search_forge.py"
+ENVIRONMENT_MOTION = ROOT / "scripts" / "environment_motion.py"
+
+import importlib.util
+
+_ENV_SPEC = importlib.util.spec_from_file_location("environment_motion", ENVIRONMENT_MOTION)
+assert _ENV_SPEC and _ENV_SPEC.loader
+_ENV_MODULE = importlib.util.module_from_spec(_ENV_SPEC)
+_ENV_SPEC.loader.exec_module(_ENV_MODULE)
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -84,6 +92,8 @@ def main() -> int:
         manifest = read_json(path)
         payload = search_manifest(path, args.top, args.include_content)
         matches = payload.get("matches", [])
+        if manifest.get("environment_motion", {}).get("detected"):
+            matches = _ENV_MODULE.sanitize_corpus_matches(matches)
         for match in matches:
             match["extracted_patterns"] = infer_patterns(match)
             if not args.include_content:

@@ -152,7 +152,21 @@ def main() -> int:
         legacy_parts=("outputs", args.batch, "tasks.jsonl"),
     )
     tasks = read_jsonl(tasks_file)
-    pending = {str(task["submit_id"]): task for task in tasks}
+    pending: dict[str, dict[str, Any]] = {}
+    for task in tasks:
+        submit_id = str(task["submit_id"])
+        image_id = str(task.get("id") or submit_id)
+        manifest_path = ROOT / "manifests" / args.batch / f"{image_id}.json"
+        if manifest_path.is_file():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+            except json.JSONDecodeError:
+                manifest = {}
+            generation = manifest.get("generation") or {}
+            downloaded = generation.get("downloaded_files") or []
+            if generation.get("status") in {"downloaded", "success"} and downloaded and all(Path(path).is_file() for path in downloaded):
+                continue
+        pending[submit_id] = task
     completed: dict[str, list[Path]] = {}
     known_files = set(current_mp4s(videos_dir))
     started = time.monotonic()

@@ -9,7 +9,7 @@ The installer script's Windows x64 branch downloads `dreamina_cli_windows_amd64.
 - Image commands: `text2image`, `image2image`, `image_upscale`
 - Image model policy: default `text2image` and `image2image` to `4.0`; use `5.0Pro` only for explicit maximum-quality requests
 - Image resolution policy: keep the requested supported resolution; use `4k` for an unspecified-resolution maximum-quality 5.0Pro request
-- Enabled video commands: `text2video`, `image2video`, `frames2video`, `multimodal2video`. The legacy `multiframe2video` command is disabled and must not be selected or submitted.
+- Enabled video commands: `text2video`, `image2video`, `multimodal2video`. Both `frames2video` and legacy `multiframe2video` are disabled and must not be selected or submitted.
 - `multimodal2video` is Dreamina Web's "全能参考" / all-around reference mode. Bind local absolute paths with `--image`, `--video`, and `--audio`. Default Seedance 2.5 allows audio-only, image<=30, video<=10, audio<=10, total inputs<=50, each and total video/audio duration 2-30s, output duration 4-30s, resolution `480p`, `720p`, or `1080p`, and ratios `1:1`, `3:4`, `16:9`, `4:3`, `9:16`, `21:9`. Explicit non-2.5 models must follow current CLI help.
 - Video model policy: default supported video commands to Seedance 2.5 (`seedance2.5`)
 - Video resolution policy: default supported video commands to `480p` unless the user explicitly requests another supported resolution

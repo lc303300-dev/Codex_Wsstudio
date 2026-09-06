@@ -12,7 +12,10 @@ function Resolve-DreaminaArguments {
             $resolved += "--model_version=4.0"
         }
     }
-    if ($resolved.Count -gt 0 -and $resolved[0] -in @("text2video", "image2video", "frames2video", "multimodal2video")) {
+    if ($resolved.Count -gt 0 -and $resolved[0] -eq "frames2video") {
+        throw "frames2video is disabled; use multimodal2video"
+    }
+    if ($resolved.Count -gt 0 -and $resolved[0] -in @("text2video", "image2video", "multimodal2video")) {
         $hasModel = @($resolved | Where-Object { $_ -eq "--model_version" -or $_ -like "--model_version=*" }).Count -gt 0
         if (-not $hasModel) {
             $resolved += "--model_version=seedance2.5"

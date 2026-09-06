@@ -44,14 +44,14 @@ Use only Dreamina/Seedance for video. Select the CLI subcommand from inputs:
 | --- | --- |
 | prompt only | `text2video` |
 | one image | `multimodal2video` |
-| exactly two images with explicit first/last-frame semantics | `frames2video` |
+| any image references, including prompts that mention first/last frames | `multimodal2video` |
 | multiple images without first/last semantics | `multimodal2video` |
 | any video, or audio plus an image/video | `multimodal2video` |
 | prompt plus audio only | reject as `input_error` |
 
 Validate local files before submit. For the default Seedance 2.5 `multimodal2video` path, allow at most 30 images, 10 videos, 10 audio files, and 50 total reference inputs; audio-only is allowed by Seedance 2.5, and every video/audio input must be 2-30 seconds. For explicit non-2.5 models, keep their current CLI limits. Run the chosen subcommand `-h` before every real submit.
 
-For supported video commands, default to Seedance 2.5 (`seedance2.5`) and `480p`. Seedance 2.5 supports 4-30 second outputs and `480p`, `720p`, or `1080p` resolution. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes. Treat `multiframe2video` as a disabled legacy CLI command: never select, suggest, expose, or submit it. Route ordinary multiple-image work through `multimodal2video`.
+For supported video commands, default to Seedance 2.5 (`seedance2.5`) and `480p`. Seedance 2.5 supports 4-30 second outputs and `480p`, `720p`, or `1080p` resolution. Honor supported model, ratio, resolution, and duration preferences that the user explicitly includes. Treat both `frames2video` and `multiframe2video` as disabled commands: never select, suggest, expose, or submit them. Route every image-referenced request, including first/last-frame wording, through `multimodal2video`.
 
 Save `submit_id`. Query and download successful tasks with `query_result --submit_id <id> --download_dir <private-output-dir>`. If a submission may have happened but its outcome is unknown, mark `needs_review` and do not submit again.
 
@@ -67,7 +67,7 @@ Normalize structured video durations before CLI submission. Accept integer secon
 
 Pass a Dreamina group base name through `video_group` for ordinary production generation. Preserve a user-explicit base name. Otherwise prefer an explicit brand, product line, project, property, IP, organization, or campaign name from the task and format it as `<proper name>_<content type>`, for example `华为 Mate 80_产品视频`; use a specific suffix such as `产品视频`, `品牌广告`, `楼盘宣传片`, `城市巡游`, or `建筑漫游`, never bare `_视频`. If no proper name exists, derive a concise name from the distinctive video subject and action/theme without forcing this suffix format. Never invent a brand. The base name must be no longer than 20 Unicode characters total, including spaces, underscore, and suffix. The router prepends the local submission date as `YYYY_MM_DD-`; this prefix does not count toward the 20-character limit. If needed, remove nonessential modifiers and redundant hierarchy while preserving the most recognizable proper name and deliverable category; never cut a word into an ambiguous fragment. Exclude prompt syntax, reference labels, technical settings, generic generation wording, filenames, and sensitive personal data. Resolve the resulting dated name by exact Session name, create it once if absent, and pass the resulting `--session` ID to every submission in the batch. Omit it only when the user explicitly requests Session `0`, the default group.
 
-Explicit `batch-image-generation` workflows use the deterministic Codex_Batch_Image scheduler, not child Agents. Its 10 task slots do not raise adapter capacity; provider leases and limits remain authoritative. Video generation follows a separate unified route: identical prompt/reference sets use one `generate_video` call with `video_count`; different video units use the Codex_DT batch entrypoint and its rolling Media Router queue. Ordinary video generation must not be split into repeated tool calls or child-agent tasks.
+Explicit `batch-image-generation` workflows use the deterministic Codex_Batch_Image scheduler, not child Agents. Its 10 task slots do not raise adapter capacity; provider leases and limits remain authoritative. Video generation follows a separate unified route: identical prompt/reference sets use one `generate_video` call with `video_count`; different video units use the Codex_DT batch entrypoint, which first submits the full confirmed batch through the rolling Media Router queue and then performs one shared polling/download phase. Ordinary video generation must not be split into repeated tool calls or child-agent tasks.
 
 ## Setup and Status
 

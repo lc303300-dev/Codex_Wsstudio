@@ -14,7 +14,6 @@ from .schemas import MediaRequest, MediaResult, TaskContext
 from .task_store import TaskStore
 
 
-FIRST_LAST_PATTERN = re.compile(r"(?i)(首尾帧|首帧.{0,8}尾帧|first.{0,8}last\s+frame|start.{0,8}end\s+frame)")
 DEFAULT_VIDEO_MODEL = "seedance2.5"
 DEFAULT_VIDEO_RESOLUTION = "480p"
 TEST_VIDEO_MODEL = "seedance2.0"
@@ -41,7 +40,9 @@ def select_video_command(request: MediaRequest) -> str:
     if request.video_command:
         if request.video_command == "multiframe2video":
             raise ValueError("multiframe2video is a disabled legacy command; use multimodal2video")
-        if request.video_command not in {"text2video", "image2video", "frames2video", "multimodal2video"}:
+        if request.video_command == "frames2video":
+            raise ValueError(f"{request.video_command} is disabled; use multimodal2video")
+        if request.video_command not in {"text2video", "image2video", "multimodal2video"}:
             raise ValueError(f"Unsupported video command: {request.video_command}")
         return request.video_command
     if request.audios and not request.images and not request.videos and request.video_model not in (None, DEFAULT_VIDEO_MODEL):
@@ -50,8 +51,6 @@ def select_video_command(request: MediaRequest) -> str:
         return "multimodal2video"
     if not request.images:
         return "text2video"
-    if len(request.images) == 2 and FIRST_LAST_PATTERN.search(request.prompt):
-        return "frames2video"
     return "multimodal2video"
 
 
@@ -68,6 +67,8 @@ def _prompt_preferences(prompt: str) -> tuple[str | None, str | None, str | None
 def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
     if command == "multiframe2video":
         raise ValueError("multiframe2video is a disabled legacy command; use multimodal2video")
+    if command == "frames2video":
+        raise ValueError(f"{command} is disabled; use multimodal2video")
     ratio, duration, resolution = _prompt_preferences(request.prompt)
     ratio = request.video_ratio or ratio
     duration = request.video_duration or duration
@@ -84,8 +85,6 @@ def build_video_arguments(command: str, request: MediaRequest) -> list[str]:
         args += ["--prompt", request.prompt]
     elif command == "image2video":
         args += ["--image", str(request.images[0]), "--prompt", request.prompt]
-    elif command == "frames2video":
-        args += ["--first", str(request.images[0]), "--last", str(request.images[1]), "--prompt", request.prompt]
     elif command == "multimodal2video":
         for path in request.images:
             args += ["--image", str(path)]

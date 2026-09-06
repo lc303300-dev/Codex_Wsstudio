@@ -589,7 +589,7 @@ class VideoRouterTests(unittest.TestCase):
             cases = [
                 (self.request(root), "text2video"),
                 (self.request(root, images=1), "multimodal2video"),
-                (self.request(root, prompt="使用首尾帧", images=2), "frames2video"),
+                (self.request(root, prompt="使用首尾帧", images=2), "multimodal2video"),
                 (self.request(root, images=3), "multimodal2video"),
                 (self.request(root, videos=1), "multimodal2video"),
                 (self.request(root, images=1, audios=1), "multimodal2video"),
@@ -614,6 +614,15 @@ class VideoRouterTests(unittest.TestCase):
                 select_video_command(request)
             with self.assertRaisesRegex(ValueError, "disabled legacy"):
                 build_video_arguments("multiframe2video", request)
+
+    def test_frames_command_is_disabled(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            request = self.request(Path(temporary), images=2)
+            request = MediaRequest(request.prompt, request.images, video_command="frames2video")
+            with self.assertRaisesRegex(ValueError, "disabled"):
+                select_video_command(request)
+            with self.assertRaisesRegex(ValueError, "disabled"):
+                build_video_arguments("frames2video", request)
 
     def test_supported_commands_default_to_seedance_25_480p(self):
         with tempfile.TemporaryDirectory() as temporary:

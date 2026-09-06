@@ -19,7 +19,7 @@ These scripts are intentionally thin wrappers around existing tools:
 - `record_image_result.py` optionally records a completed image job. It uses a lock and can recover a missing dispatch when explicitly passed `--recover-missing-dispatch`.
 - `review_subagent_outputs.py` optionally checks subagent deliverables for diagnostics.
 - `build_review.py` creates a Chinese confirmation HTML page.
-- `finalize_review.py` builds the review page and prints final status for one batch. Use `--auto-generate` for explicit auto-generation requests that should skip user confirmation and run the single batch entrypoint. The entrypoint runs six end-to-end workers: each worker submits, polls, and downloads one video, then the next pending item fills that worker's slot immediately after completion.
+- `finalize_review.py` builds the review page and prints final status for one batch. Use `--auto-generate` for explicit auto-generation requests that should skip user confirmation and run the single batch entrypoint. The entrypoint first submits all confirmed videos through a six-slot rolling submit queue, then runs one shared polling/download phase for the complete batch.
 - `validate_batch.py` calls the mqrox Seedance 2.0 validator.
 - `run_seedance_batch.ps1` sends confirmed items through the unified Media Router. It never submits directly to Dreamina/Seedance CLI.
 - `wait_seedance_batch.py` polls submitted Dreamina tasks from `.codex-image-private/batches/<batch>/tasks.jsonl` with `query_result --download_dir` until every submitted item has an `.mp4` in `outputs/<batch>/videos/`, then prints absolute video paths.

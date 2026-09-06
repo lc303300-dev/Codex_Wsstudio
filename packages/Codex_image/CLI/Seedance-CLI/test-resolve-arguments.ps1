@@ -14,7 +14,7 @@ function Assert-Arguments {
     }
 }
 
-$videoCommands = @("text2video", "image2video", "frames2video", "multimodal2video")
+$videoCommands = @("text2video", "image2video", "multimodal2video")
 foreach ($command in $videoCommands) {
     Assert-Arguments `
         -Name "$command defaults" `
@@ -36,5 +36,13 @@ Assert-Arguments `
     -Name "multiframe unsupported overrides" `
     -InputArguments @("multiframe2video") `
     -ExpectedArguments @("multiframe2video")
+
+try {
+    Resolve-DreaminaArguments -InputArguments @("frames2video") | Out-Null
+    throw "frames2video should be disabled"
+}
+catch {
+    if ($_.Exception.Message -notmatch "frames2video is disabled") { throw }
+}
 
 Write-Output "Dreamina argument resolution tests passed."

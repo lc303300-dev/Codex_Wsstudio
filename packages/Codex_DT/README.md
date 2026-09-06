@@ -4,6 +4,8 @@ This workspace builds a Codex-orchestrated pipeline for turning one or more stil
 
 Prompt authoring is layered: `video-director-prompt` supplies platform-neutral directing knowledge and community techniques, `seedance-forge` supplies searchable real-world examples as structural inspiration, and the local compiler/adapter converts the result into the active platform syntax. Source model versions are provenance metadata, not routing instructions. Generation defaults to Seedance 2.5; Seedance 2.0 is used only after an explicit current-user request.
 
+Environment elements have a narrow reusable strategy at `scripts/environment_motion.py`. After visual recognition, `compile_environment_motion.py` can inject plant/water/reflection motion and environmental-only corpus queries. Its sanitizer removes camera, lens, exposure, style, and unrelated subject-action advice before corpus matches are written back. See [environment-motion.md](docs/environment_motion.md).
+
 `AGENTS.md` defines the default trigger rules for this workspace. When images are submitted here, Codex should use this pipeline first instead of directly invoking the global Seedance CLI.
 
 ## Third-party projects used
@@ -78,7 +80,7 @@ Then continue from the printed `bootstrap_batch=...` value in a follow-up turn. 
 4. Draft and review all prompts in the main Codex agent.
 5. Run `scripts/finalize_review.py --batch <batch>` to build the review page and print final status.
 6. Show `review/<batch>/index.html` for user confirmation. The page only shows each image and its Chinese Dreamina/Jimeng prompt.
-7. After user confirmation, run `scripts/run_seedance_batch.ps1 -Batch <batch> -Yes` as the single batch entrypoint. Codex_DT must not submit directly to Dreamina CLI. It runs a six-slot rolling queue: each worker submits one item and polls/downloads it to completion; only then is the next pending item admitted. If the user explicitly asks for auto-generation, for example `自动生成视频` or `全自动生成视频`, skip the confirmation wait and use `scripts/finalize_review.py --batch <batch> --auto-generate`, which invokes the same entrypoint.
+7. After user confirmation, run `scripts/run_seedance_batch.ps1 -Batch <batch> -Yes` as the single batch entrypoint. Codex_DT must not submit directly to Dreamina CLI. It uses a two-phase batch: up to six workers submit all confirmed items first, releasing a slot immediately after `submit_id` is returned; only then does `wait_seedance_batch.py` poll and download the whole batch. If the user explicitly asks for auto-generation, for example `自动生成视频` or `全自动生成视频`, skip the confirmation wait and use `scripts/finalize_review.py --batch <batch> --auto-generate`, which invokes the same entrypoint.
 
 The main Codex agent drafts each manifest directly. Use these batch-isolated commands:
 
